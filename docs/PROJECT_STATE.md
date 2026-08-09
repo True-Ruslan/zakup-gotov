@@ -14,7 +14,7 @@ Current phase: **M0 — Product & Integration Discovery**
 
 No production code has been implemented yet.
 
-The following direction is proposed and documented in the foundation specification:
+The foundation direction was approved on 2026-08-09:
 
 - responsive web first;
 - native Android/iOS later;
@@ -22,7 +22,7 @@ The following direction is proposed and documented in the foundation specificati
 - full-basket comparison rather than cheapest-single-item search;
 - transparency around missing items, matching confidence, and offer freshness.
 
-## Proposed platform baseline
+## Approved platform baseline
 
 - Java 25 LTS
 - Spring Boot 4.1
@@ -36,13 +36,14 @@ The following direction is proposed and documented in the foundation specificati
 - OpenTelemetry-compatible observability
 - GitHub Actions and GitHub security tooling
 
-See `docs/adr/0001-platform-stack.md`.
+See accepted `docs/adr/0001-platform-stack.md`.
 
 ## Current repository state
 
-- `main` contains only the initial README.
-- Foundation documentation is being prepared in `docs/foundation-design`.
-- No CI or branch protection/ruleset has been configured by the project yet.
+- `main` contains only the initial README until foundation PR #1 is merged.
+- Draft PR #1 contains the approved foundation documentation and repository community files.
+- M0A Platform Foundation implementation plan is documented at `docs/superpowers/plans/2026-08-09-m0a-platform-foundation.md`.
+- No production application code or CI has been implemented yet.
 - No license decision has been made.
 - No external retailer integration has been proven yet.
 
@@ -56,7 +57,7 @@ See `docs/adr/0001-platform-stack.md`.
 
 ## Immediate next decision gate
 
-Review and approve the foundation design and ADR. After approval, create the M0 implementation plan and repository quality/security configuration before application feature work begins.
+Review the M0A Platform Foundation implementation plan. After approval, execute it task-by-task with TDD and verification checkpoints. M0B retailer feasibility is planned separately so volatile external integration experiments do not distort the platform foundation.
 
 ## Definition of M0 success
 
