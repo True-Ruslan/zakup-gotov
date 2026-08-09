@@ -1,23 +1,28 @@
 # Contributing
 
-Zakup Gotov is in an early architecture and integration-discovery phase. Contributions are welcome, but changes should preserve the product and architecture decisions documented under `docs/`.
+Zakup Gotov is in an early architecture and integration-discovery phase. Contributions are welcome, but changes must preserve the product and architecture decisions documented under `docs/`.
+
+The mandatory engineering rules are defined in [`docs/ENGINEERING.md`](docs/ENGINEERING.md). They apply to maintainers and contributors alike.
 
 ## Before contributing
 
-1. Read `README.md`, `docs/PROJECT_STATE.md`, `docs/ROADMAP.md`, and relevant ADRs.
+1. Read `README.md`, `docs/ENGINEERING.md`, `docs/PROJECT_STATE.md`, `docs/ROADMAP.md`, and relevant ADRs/specifications.
 2. Search existing issues and pull requests.
-3. For substantial behavior or architecture changes, open an issue/discussion first so the decision can be documented before implementation.
+3. For substantial behavior or architecture changes, document the decision before implementation.
 4. Never include secrets, retailer credentials, private endpoints, or personal data in commits, fixtures, logs, screenshots, or issues.
 
 ## Development principles
 
-- Prefer small, reviewable pull requests.
-- Use tests to prove behavior and regressions.
+- Use TDD for executable behavior: RED -> verify expected failure -> GREEN -> regression suite -> REFACTOR.
+- Prefer small, cohesive, reviewable pull requests.
+- Use automated tests to prove behavior and regressions; coverage alone is not proof.
 - Keep external retailer behavior behind provider adapters.
 - Do not bypass module boundaries for convenience.
 - Prefer explicit data freshness and uncertainty over silent fallback behavior.
 - Avoid adding infrastructure until a measured requirement justifies it.
-- Keep public API changes backward-compatible where practical and update OpenAPI contracts with implementation changes.
+- Keep public API changes synchronized with OpenAPI contracts.
+- Keep project documentation synchronized with repository reality in the same PR.
+- Do not claim completion without fresh verification evidence.
 
 ## Pull requests
 
@@ -25,16 +30,17 @@ A pull request should include:
 
 - problem and intended behavior;
 - scope and non-goals;
-- tests/verification performed;
+- TDD/verification evidence where behavior changed;
 - security/privacy impact where applicable;
-- screenshots for meaningful UI changes;
-- related issue/ADR/spec if one exists.
+- screenshots only for meaningful UI review that automated checks cannot replace;
+- related issue/ADR/spec/plan if one exists;
+- documentation/state/changelog updates where repository truth changed.
 
 The target repository policy is squash-only merging through protected `main` after required checks pass.
 
 ## Commit and branch conventions
 
-Use short descriptive branches such as:
+Use short-lived descriptive branches such as:
 
 - `feat/...`
 - `fix/...`
@@ -42,15 +48,23 @@ Use short descriptive branches such as:
 - `chore/...`
 - `spike/...`
 
-Commit messages should be concise and explain the change rather than the activity.
+Commit messages should be concise and describe the actual change rather than the activity performed. Do not mix unrelated cleanup into functional commits.
 
 ## Testing expectations
 
-Backend changes should prefer deterministic unit/module tests and real PostgreSQL integration tests through Testcontainers where persistence behavior matters.
+Backend changes should use deterministic unit/module tests and real PostgreSQL integration tests through Testcontainers where persistence behavior matters.
 
-Provider integrations require fixture/contract tests for successful and failure responses. Tests must not depend on live retailer services unless explicitly marked as opt-in integration probes.
+Provider integrations require sanitized fixture/contract tests for successful and relevant failure responses. Normal CI tests must not depend on live retailer services; live validation belongs in explicit opt-in probes.
 
-Web changes affecting critical journeys should include component tests and/or Playwright coverage at the appropriate level.
+Web changes affecting critical journeys should include component tests and/or Playwright coverage at the appropriate level, including responsive behavior where relevant.
+
+Repeated manual verification is treated as automation debt. A manual check must have a documented reason when reliable automation is not reasonable.
+
+## Documentation and changelog
+
+`docs/PROJECT_STATE.md` records factual current state. `docs/ROADMAP.md` records planned work. ADRs/specs record approved decisions. `CHANGELOG.md` records notable changes that actually happened.
+
+If a PR changes any of these truths, update the corresponding documents in the same PR. Keep `[Unreleased]` current throughout development.
 
 ## Security reports
 
