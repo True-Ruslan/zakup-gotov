@@ -9,7 +9,7 @@ Install and make available on `PATH`:
 - Java 25;
 - Node.js 24.18.1 (pinned by `.nvmrc`);
 - pnpm 11.4.0 (pinned by root `package.json#packageManager`);
-- Docker with a running daemon;
+- Docker with a running daemon and Docker Compose v2;
 - Git.
 
 The Java build uses the repository-owned Apache Maven Wrapper 3.3.4, pinned to Maven 3.9.16. A global Maven installation is not required.
@@ -21,6 +21,7 @@ java -version
 node --version
 pnpm --version
 docker info
+docker compose version
 ./apps/api/mvnw -f apps/api/pom.xml --version
 ```
 
@@ -56,9 +57,49 @@ It does not silently skip Testcontainers or convert infrastructure failures into
 
 Cloud-only security gates such as CodeQL and Dependency Review remain GitHub checks and cannot be fully reproduced by this script.
 
+## Production container bundle
+
+The production-container topology has a separate executable verification entrypoint:
+
+```bash
+./scripts/verify-release-bundle.sh
+```
+
+It builds `apps/api/Dockerfile` and `apps/web/Dockerfile`, validates `compose.release.yaml`, starts PostgreSQL 18.4 → API → web with health dependencies, verifies API readiness inside the API container, verifies the public web response, and tears down its disposable containers/volume afterward. On failure it prints Compose status and logs before cleanup.
+
+The release Compose file intentionally contains no local `build:` directives. Application images are supplied through `API_IMAGE` and `WEB_IMAGE`; only the web service publishes a host port by default. Web reaches API through the Compose network using runtime `API_BASE_URL` configuration.
+
+For a persistent manual local run, build the images and start Compose explicitly:
+
+```bash
+docker build -t zakup-gotov-api:local -f apps/api/Dockerfile .
+docker build -t zakup-gotov-web:local -f apps/web/Dockerfile .
+
+export API_IMAGE='zakup-gotov-api:local'
+export WEB_IMAGE='zakup-gotov-web:local'
+export POSTGRES_PASSWORD='local-development-only'
+export WEB_PORT='3000'
+
+docker compose -f compose.release.yaml up -d --wait
+```
+
+Stop while retaining PostgreSQL data:
+
+```bash
+docker compose -f compose.release.yaml down
+```
+
+Remove the named database volume only when destructive data removal is intended:
+
+```bash
+docker compose -f compose.release.yaml down --volumes
+```
+
+See [`RELEASES.md`](RELEASES.md) for the verified bundle boundary and the still-pending versioned GHCR release contract.
+
 ## Responsive browser tests
 
-Playwright is kept explicit because browser binaries are a separate local prerequisite and Task 10 treats browser verification as its own gate.
+Playwright is kept explicit because browser binaries are a separate local prerequisite and browser verification is its own gate.
 
 Install Chromium once:
 
@@ -202,4 +243,4 @@ pnpm --filter @zakup-gotov/api-client generate
 
 Then run `./scripts/verify.sh`.
 
-Dependency version changes must keep lockfiles synchronized and pass the repository security/functional gates. Dependabot automation is introduced during M0A Task 7.
+Dependency version changes must keep lockfiles synchronized and pass the repository security/functional gates. Dependabot manages recurring update proposals, while incompatible major lines remain explicitly deferred until their toolchain constraints are resolved.
