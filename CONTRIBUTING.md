@@ -2,14 +2,15 @@
 
 Zakup Gotov is in an early architecture and integration-discovery phase. Contributions are welcome, but changes must preserve the product and architecture decisions documented under `docs/`.
 
-The mandatory engineering rules are defined in [`docs/ENGINEERING.md`](docs/ENGINEERING.md). They apply to maintainers and contributors alike.
+The mandatory engineering rules are defined in [`docs/ENGINEERING.md`](docs/ENGINEERING.md). The reproducible local setup and commands are defined in [`docs/DEVELOPMENT.md`](docs/DEVELOPMENT.md). They apply to maintainers and contributors alike.
 
 ## Before contributing
 
-1. Read `README.md`, `docs/ENGINEERING.md`, `docs/PROJECT_STATE.md`, `docs/ROADMAP.md`, and relevant ADRs/specifications.
+1. Read `README.md`, `docs/DEVELOPMENT.md`, `docs/ENGINEERING.md`, `docs/PROJECT_STATE.md`, `docs/ROADMAP.md`, and relevant ADRs/specifications.
 2. Search existing issues and pull requests.
 3. For substantial behavior or architecture changes, document the decision before implementation.
 4. Never include secrets, retailer credentials, private endpoints, or personal data in commits, fixtures, logs, screenshots, or issues.
+5. Activate the repository-pinned Java/Node/pnpm toolchains and ensure Docker is running.
 
 ## Development principles
 
@@ -23,6 +24,20 @@ The mandatory engineering rules are defined in [`docs/ENGINEERING.md`](docs/ENGI
 - Keep public API changes synchronized with OpenAPI contracts.
 - Keep project documentation synchronized with repository reality in the same PR.
 - Do not claim completion without fresh verification evidence.
+
+## Verification before a pull request
+
+Run the unified verification command:
+
+```bash
+./scripts/verify.sh
+```
+
+It verifies backend behavior against real PostgreSQL/Testcontainers, generated OpenAPI-client drift, strict client/web type checks, tests, lint, and production builds. Do not bypass a failed step to open a green-looking PR.
+
+For changes affecting browser behavior, also run the Playwright workflow documented in `docs/DEVELOPMENT.md`.
+
+Cloud security checks (CodeQL, Dependency Review, and other GitHub-native controls) remain required PR gates where configured.
 
 ## Pull requests
 

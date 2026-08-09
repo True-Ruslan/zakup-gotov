@@ -49,7 +49,9 @@ See:
 
 - [Project state](docs/PROJECT_STATE.md)
 - [Roadmap](docs/ROADMAP.md)
+- [Development](docs/DEVELOPMENT.md)
 - [Engineering policy](docs/ENGINEERING.md)
+- [Observability](docs/OBSERVABILITY.md)
 - [Foundation design](docs/superpowers/specs/2026-08-09-zakup-gotov-foundation-design.md)
 - [M0A implementation plan](docs/superpowers/plans/2026-08-09-m0a-platform-foundation.md)
 - [ADR-0001: Platform stack](docs/adr/0001-platform-stack.md)
@@ -70,6 +72,18 @@ The approved baseline is:
 - **Repository/CI:** GitHub Actions and GitHub-native security tooling
 
 The architecture was approved on 2026-08-09 and is recorded in accepted ADR-0001.
+
+## Development
+
+The supported developer workflow is documented in [docs/DEVELOPMENT.md](docs/DEVELOPMENT.md). With the pinned Java 25 / Node 24.18.1 / pnpm 11.4.0 toolchains and Docker running, the primary local verification entrypoint is:
+
+```bash
+./scripts/verify.sh
+```
+
+The command intentionally fails rather than silently skipping Testcontainers, generated-contract drift, type checks, tests, or production builds.
+
+Responsive Playwright browser tests are an explicit additional gate; see the development guide for the Chromium setup and command.
 
 ## Engineering principles
 
@@ -100,7 +114,7 @@ Details: [docs/ROADMAP.md](docs/ROADMAP.md).
 
 ## Contributing
 
-Read [CONTRIBUTING.md](CONTRIBUTING.md) and [docs/ENGINEERING.md](docs/ENGINEERING.md) before proposing substantial changes. Security vulnerabilities must not be reported through public issues; see [SECURITY.md](SECURITY.md).
+Read [CONTRIBUTING.md](CONTRIBUTING.md), [docs/DEVELOPMENT.md](docs/DEVELOPMENT.md), and [docs/ENGINEERING.md](docs/ENGINEERING.md) before proposing substantial changes. Security vulnerabilities must not be reported through public issues; see [SECURITY.md](SECURITY.md).
 
 ## License
 
