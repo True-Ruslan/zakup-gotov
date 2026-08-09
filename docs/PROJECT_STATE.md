@@ -10,13 +10,29 @@ Repository: `True-Ruslan/zakup-gotov`
 Visibility: Public
 Current phase: **M0 — Product & Integration Discovery**
 Current execution stage: **M0A — Platform Foundation**
-Current task: **Task 1 — Toolchains and monorepo workspace**
+Current task: **Task 2 — Java/Spring API bootstrap**
 
 ## Product status
 
-No production application behavior has been implemented yet.
+The first executable platform behavior is implemented on PR #3: a minimal Spring Boot 4.1 API bootstrap with Java 25, Virtual Threads enabled, an Actuator health surface, and automated Spring context + Modulith architecture verification.
 
-Foundation PR #1 was squash-merged on 2026-08-09. The foundation specification is Approved and ADR-0001 is Accepted.
+No shopping, recipe, retailer, matching, persistence, or user-facing web behavior is implemented yet.
+
+## Completed foundation work
+
+- PR #1: approved product/architecture/engineering foundation, squash-merged.
+- PR #2 / M0A Task 1: Java/Node/pnpm toolchain pins, monorepo workspace hygiene, and ADR-0002, squash-merged.
+
+## Task 2 TDD evidence
+
+Task 2 was developed through an observed RED -> GREEN cycle in GitHub Actions:
+
+- **RED:** API CI run `31306570727`, job `93227791164` ran successfully on Temurin Java 25.0.3 and Maven 3.9.16, then failed the new `@SpringBootTest` exactly because no `@SpringBootConfiguration` existed.
+- Minimal `ZakupGotovApplication` production code was added only after that expected failure was observed.
+- A Modulith architecture test verifies `ApplicationModules.of(ZakupGotovApplication.class).verify()`.
+- **GREEN:** subsequent runs passed both bootstrap and architecture tests.
+- Premature runtime Modulith insight and unused Mockito dependencies were removed after the first green run exposed avoidable warning noise.
+- **Final regression:** API CI run `31306909477`, job `93228622348` verified Temurin Java 25.0.3, the generated Apache Maven Wrapper 3.3.4 selecting Maven 3.9.16, and `2/2` tests passing with `BUILD SUCCESS` and no prior Mockito/zero-module warning noise.
 
 ## Approved platform baseline
 
@@ -50,12 +66,12 @@ Mandatory defaults include:
 
 ## Current repository state
 
-- `main` contains the approved foundation from PR #1.
-- Task 1 is being implemented on `chore/m0a-toolchains`.
-- Java, Node, pnpm, line-ending/editor, ignore, and workspace pins are being established together with ADR-0002.
+- `main` contains the approved foundation and completed M0A Task 1.
+- PR #3 `feat: bootstrap M0A API foundation` contains Task 2 and is green pending final documentation/PR gate and merge.
+- `API CI` is already present earlier than originally sequenced in the plan because a real Java 25 CI environment was required to make Task 2 TDD evidence honest; broader CI/security work remains Task 7.
+- Apache Maven Wrapper 3.3.4 is generated from the official Maven Wrapper plugin with Maven 3.9.16 pinned; the final API CI uses `./mvnw`, not a runner-provided Maven installation.
 - M0A implementation plan is `docs/superpowers/plans/2026-08-09-m0a-platform-foundation.md`.
 - Execution mode in this ChatGPT environment is Inline Execution because independent subagent dispatch is not exposed here; task/review gates remain mandatory.
-- No backend/web application code or CI has been merged yet.
 - No license decision has been made.
 - No external retailer integration has been proven yet.
 
@@ -69,8 +85,8 @@ Mandatory defaults include:
 
 ## Immediate next work
 
-1. Verify and merge M0A Task 1 toolchain/workspace PR.
-2. Start Task 2 from updated `main`: bootstrap the Spring Boot API with failing application/Modulith tests first.
+1. Merge verified PR #3 / M0A Task 2.
+2. Start Task 3 from updated `main`: PostgreSQL 18 + Flyway + jOOQ persistence baseline, beginning with a failing Testcontainers-backed migration test.
 3. Continue M0A task-by-task; do not begin retailer-specific provider implementation before M0A verification and a separate M0B plan.
 
 ## Definition of M0 success
