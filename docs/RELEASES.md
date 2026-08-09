@@ -1,6 +1,6 @@
 # Releases
 
-Zakup Gotov is still **pre-release**. The production container topology is already exercised in normal CI; the versioned GHCR publishing workflow is now implemented but is not considered runtime-proven until a real published prerelease completes successfully.
+Zakup Gotov is still **pre-release**. The production container topology is already exercised in normal CI; the versioned GHCR publishing workflow is implemented but is not considered runtime-proven until a real published prerelease completes successfully.
 
 ## Verified container bundle
 
@@ -24,7 +24,7 @@ Run the same executable contract locally with a running Docker daemon and Docker
 
 ## Versioned release contract
 
-The repository now contains two separate layers for versioned releases.
+The repository contains two separate verification layers for versioned releases.
 
 ### Read-only release contract
 
@@ -34,35 +34,40 @@ The repository now contains two separate layers for versioned releases.
 - consistency between SemVer prerelease state and the GitHub Release `prerelease` flag;
 - prereleases can never publish the `latest` tag;
 - repository-scoped GHCR image names are normalized to lowercase;
+- unverified candidates use separate `*-staging-api` / `*-staging-web` package names rather than final package names;
+- final-package pre-version copies use deterministic `verified-<source-sha>` tags;
 - application images in a release-specific Compose file must be GHCR references pinned by `sha256` digest;
 - the release workflow uses immutable full-SHA action pins;
 - QEMU and BuildKit helper images are themselves digest-pinned;
-- candidate build, vulnerability scan, exact-bundle smoke verification, attestation, promotion, and release-asset upload remain in the approved trust order;
+- build, scan, staging smoke, final-package copy, final-package smoke, attestation, version promotion, optional `latest`, and release-asset upload remain in the approved trust order;
 - `release.yml` remains syntactically parseable YAML.
 
-This makes the most security-sensitive release semantics reviewable without granting package or OIDC write permissions to pull-request CI.
+This keeps security-sensitive release semantics testable without granting package or OIDC write permissions to pull-request CI.
 
 ### Published-release workflow
 
 `.github/workflows/release.yml` is triggered only by a **published GitHub Release**. It has two jobs with distinct trust boundaries.
 
-`Release / Verify` remains read-only and requires the tagged commit to be contained in `main`. It reruns the repository verification, responsive production-browser tests, and the production container-bundle smoke test.
+`Release / Verify` remains read-only and requires the tagged commit to be contained in `main`. It reruns repository verification, responsive production-browser tests, and the production container-bundle smoke test.
 
 Only after that succeeds, `Release / Publish` receives narrowly scoped release permissions and performs this sequence:
 
-1. validate release metadata and derive lowercase GHCR package names;
+1. validate release metadata and derive lowercase final/staging GHCR package names;
 2. authenticate to GHCR with the workflow token;
-3. build and push candidate API/web image indexes for `linux/amd64` and `linux/arm64`;
+3. build and push candidate API/web image indexes for `linux/amd64` and `linux/arm64` into dedicated staging packages;
 4. generate BuildKit provenance and SBOM attestations during the build;
-5. scan both target platforms of both application images for `HIGH` and `CRITICAL` vulnerabilities;
+5. scan both target platforms of both staging images for `HIGH` and `CRITICAL` vulnerabilities;
 6. generate per-platform SPDX JSON SBOM files as release evidence;
-7. render `compose.release.yaml` with the exact candidate image digests;
-8. pull and smoke-test that exact published digest-pinned bundle;
-9. create GitHub provenance attestations for the verified image digests and push them to the registry;
-10. promote the **same digests without rebuild** to the version tag;
-11. move `latest` only when the release is stable;
-12. verify the promoted manifests contain both target Linux architectures;
-13. attach the digest-pinned Compose file, manifests, vulnerability reports, SBOMs, verification metadata, and checksums to the GitHub Release.
+7. render a temporary Compose file with the exact staging image digests and smoke-test that registry-pulled bundle;
+8. copy those verified indexes **without rebuild** into the final API/web packages under `verified-<source-sha>` tags and require the copied digest to remain identical;
+9. render the release Compose file using the final package names with those exact digests and smoke-test the final-package bundle;
+10. create GitHub provenance attestations for the final-package image digests;
+11. only now create the SemVer version tags from the already verified final-package digests, again without rebuild;
+12. move `latest` only when the release is stable;
+13. verify the final manifests contain both target Linux architectures;
+14. attach the digest-pinned Compose file, manifests, vulnerability reports, SBOMs, verification metadata, and checksums to the GitHub Release.
+
+The staging packages are intentionally separate from the final packages so an unverified candidate is never placed in a future public release package. Staging packages must remain private. Final package visibility is a separate product/distribution setting and is verified independently after first publication.
 
 Docker Actions are pinned to immutable commit SHAs. The QEMU binfmt helper image and BuildKit daemon image are also pinned by digest so the release builder does not silently inherit mutable `latest`/`buildx-stable-1` dependencies.
 
@@ -82,9 +87,13 @@ Do not create a stable release until at least one prerelease has exercised the c
 
 ## GHCR visibility
 
-Package publication and package visibility are separate concerns. The first GHCR publication may not be anonymously pullable merely because the source repository is public. After the first real prerelease, verify the API and web package visibility explicitly before calling the release publicly consumable.
+Package publication and package visibility are separate concerns.
 
-Until that verification is complete, documentation may state that GHCR publication exists, but must not promise anonymous public pulls.
+- staging packages are an internal release-engineering boundary and must remain private;
+- final API/web packages may be made public only as a deliberate distribution decision;
+- a public source repository is not treated as proof that a newly created GHCR package is anonymously pullable.
+
+After the first real prerelease, verify both staging-package privacy and final-package visibility explicitly. Until final-package visibility is proven, documentation must not promise anonymous public pulls.
 
 ## Manual local start
 
