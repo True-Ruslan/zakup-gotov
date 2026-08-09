@@ -4,6 +4,7 @@ import unittest
 from release_contract import (
     ReleaseMetadata,
     build_image_names,
+    build_staging_image_names,
     parse_release,
     render_release_compose,
 )
@@ -73,6 +74,14 @@ class ImageNameTest(unittest.TestCase):
 
         self.assertEqual(api, "ghcr.io/true-ruslan/zakup-gotov-api")
         self.assertEqual(web, "ghcr.io/true-ruslan/zakup-gotov-web")
+
+    def test_unverified_candidates_use_separate_staging_packages(self):
+        api, web = build_staging_image_names("True-Ruslan", "zakup-gotov")
+
+        self.assertEqual(api, "ghcr.io/true-ruslan/zakup-gotov-staging-api")
+        self.assertEqual(web, "ghcr.io/true-ruslan/zakup-gotov-staging-web")
+        self.assertNotEqual(api, build_image_names("True-Ruslan", "zakup-gotov")[0])
+        self.assertNotEqual(web, build_image_names("True-Ruslan", "zakup-gotov")[1])
 
 
 class ComposeRenderTest(unittest.TestCase):
@@ -160,24 +169,26 @@ class PublishingWorkflowContractTest(unittest.TestCase):
         self.assertNotIn("tonistiigi/binfmt:latest", workflow)
         self.assertNotIn("moby/buildkit:buildx-stable-1", workflow)
 
-    def test_verification_and_security_gates_precede_promotion(self):
+    def test_verification_and_security_gates_precede_final_publication(self):
         workflow = self._workflow()
 
         build_position = workflow.index("Build and push API candidate")
         scan_position = workflow.index(
             "Scan API candidate for HIGH/CRITICAL vulnerabilities on amd64"
         )
-        smoke_position = workflow.index("Verify exact published candidate bundle")
-        attest_position = workflow.index("Attest API candidate provenance")
+        candidate_smoke_position = workflow.index("Verify staging candidate bundle")
         promote_position = workflow.index("Promote verified digests to release version")
+        final_smoke_position = workflow.index("Verify exact promoted release bundle")
+        attest_position = workflow.index("Attest final API provenance")
         latest_position = workflow.index("Promote stable release to latest")
         upload_position = workflow.index("Attach verified release assets")
 
         self.assertLess(build_position, scan_position)
-        self.assertLess(scan_position, smoke_position)
-        self.assertLess(smoke_position, attest_position)
-        self.assertLess(attest_position, promote_position)
-        self.assertLess(promote_position, latest_position)
+        self.assertLess(scan_position, candidate_smoke_position)
+        self.assertLess(candidate_smoke_position, promote_position)
+        self.assertLess(promote_position, final_smoke_position)
+        self.assertLess(final_smoke_position, attest_position)
+        self.assertLess(attest_position, latest_position)
         self.assertLess(latest_position, upload_position)
 
     def test_latest_promotion_is_explicitly_conditional(self):
@@ -186,6 +197,14 @@ class PublishingWorkflowContractTest(unittest.TestCase):
 
         self.assertIn("if: steps.release.outputs.publish_latest == 'true'", latest_section)
         self.assertIn(":latest", latest_section)
+
+    def test_candidate_builds_use_staging_packages_not_final_packages(self):
+        workflow = self._workflow()
+
+        self.assertIn("steps.release.outputs.api_candidate", workflow)
+        self.assertIn("steps.release.outputs.web_candidate", workflow)
+        self.assertIn("steps.release.outputs.api_staging_image", workflow)
+        self.assertIn("steps.release.outputs.web_staging_image", workflow)
 
 
 if __name__ == "__main__":
