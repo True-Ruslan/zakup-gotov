@@ -38,7 +38,7 @@ Target rules for `main`:
 - no mandatory second-human approval while the project has one maintainer;
 - administrators should normally follow the same rules rather than silently bypass them.
 
-Required checks are activated only after they have completed successfully at least once in the repository. The currently enforced baseline is:
+Required checks are activated only after they have completed successfully at least once in the repository. The currently independently verified enforced baseline is:
 
 - `API CI`;
 - `Contract CI`;
@@ -48,7 +48,12 @@ Required checks are activated only after they have completed successfully at lea
 - CodeQL JavaScript/TypeScript;
 - `Dependency Review`.
 
-`Release Bundle CI` is now a **proven successful check candidate**: it builds the production API/web images and executes the full PostgreSQL → API → web Compose topology. It should be added to `main` required checks once the repository ruleset is updated and that setting is independently verified. Until then, documentation must not describe it as already enforced by the ruleset.
+Additional proven candidates:
+
+- `Release Bundle CI` — builds the production API/web images and executes the full PostgreSQL → API → web Compose topology;
+- `Release Contract CI` — verifies version/prerelease semantics, digest-only release Compose rendering, immutable release dependencies, release-workflow syntax, and security/promotion ordering without write permissions.
+
+These candidates should be added to `main` required checks only when the ruleset change can be applied and independently verified. Documentation must not describe them as already enforced until then.
 
 ## Branch lifecycle
 
@@ -63,13 +68,20 @@ After a pull request is squash-merged, its source branch should be deleted autom
 
 Permanent workflows must solve a recurring repository need. One-off generators/scaffold workflows are deleted immediately after the generated artifact is committed and independently verified.
 
-Default workflow permissions should be read-only. A workflow receives write permissions only for the smallest explicit capability needed by that workflow.
+Default workflow permissions remain read-only. A workflow receives write permissions only for the smallest explicit capability needed by that workflow.
 
-Third-party and GitHub-owned actions should ultimately be pinned by full commit SHA in permanent security-sensitive workflows. Dependabot for `github-actions` keeps those pins reviewable and current.
+Third-party and GitHub-owned actions in permanent security-sensitive workflows are pinned by full commit SHA. Mutable helper images used by security-sensitive release actions should also be pinned by digest where supported.
 
 Do not grant workflows permission to approve pull requests.
 
-`Release Bundle CI` follows the normal read-only workflow baseline. Future versioned publishing is a separate workflow boundary and may receive package/attestation write permissions only where publishing actually requires them; those permissions must not be moved into ordinary PR CI.
+Release boundaries:
+
+- `Release Bundle CI` is ordinary read-only PR/main verification;
+- `Release Contract CI` is ordinary read-only PR/main verification;
+- `.github/workflows/release.yml` runs only for a published GitHub Release;
+- its `Release / Verify` job remains `contents: read`;
+- only the downstream `Release / Publish` job may receive `contents: write`, `packages: write`, `attestations: write`, and `id-token: write`;
+- package/OIDC write permissions must never be copied into ordinary PR CI.
 
 ## Security features
 
@@ -110,7 +122,7 @@ Repository visibility and software licensing are separate decisions. The reposit
 
 ## Releases and packages
 
-The production container topology is now implemented and verified in PR CI:
+Runtime-proven production container baseline:
 
 - separate production `api` and `web` images;
 - Next.js standalone runtime;
@@ -120,17 +132,24 @@ The production container topology is now implemented and verified in PR CI:
 - API kept internal to the Compose network while the web port is host-published;
 - automated exact-topology startup/smoke verification with failure diagnostics.
 
-The remaining approved versioned release-engineering direction is:
+Implemented versioned publishing contract:
 
-- versioned GitHub Releases;
-- prebuilt `api` and `web` OCI images published to GitHub Container Registry;
-- multi-platform `linux/amd64` and `linux/arm64` images;
-- a release-specific Compose asset pinned to immutable application-image digests;
-- release verification against the exact published container set that users will run;
-- vulnerability scanning, SBOM, provenance/attestation, and immutable image digests;
-- prereleases do not update the stable `latest` tag.
+- published GitHub Release is the authoritative trigger;
+- tagged source must belong to `main` history;
+- strict SemVer and GitHub prerelease-state consistency are enforced;
+- prebuilt `api` and `web` OCI indexes target `linux/amd64` and `linux/arm64`;
+- candidate image digests are scanned on both target platforms before promotion;
+- per-platform SPDX SBOM evidence is generated;
+- BuildKit provenance/SBOM and GitHub provenance attestations are created for exact image digests;
+- release-specific Compose is pinned to immutable application-image digests;
+- that exact published digest set is pulled and smoke-tested before promotion;
+- promotion copies the verified image indexes without rebuild;
+- stable releases may update `latest`; prereleases never do;
+- Compose, manifests, scans, SBOMs, verification metadata, and checksums are attached to the GitHub Release.
 
-The local/CI container baseline must not be confused with a consumable public release: GHCR publication and release-specific supply-chain evidence remain incomplete until a separately verified release workflow lands.
+This release-event path must be exercised by a real prerelease before it is considered runtime-proven. A stable release should not be used for first validation.
+
+GHCR package visibility must be independently checked after first publication. Public repository visibility is not treated as evidence that new package images are anonymously pullable.
 
 ## Audit cadence
 
