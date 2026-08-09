@@ -1,7 +1,8 @@
 # ADR-0001: Platform Stack and Architectural Baseline
 
-- Status: Proposed
+- Status: Accepted
 - Date: 2026-08-09
+- Accepted: 2026-08-09
 
 ## Context
 
