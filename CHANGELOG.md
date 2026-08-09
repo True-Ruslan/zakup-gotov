@@ -47,6 +47,7 @@ The format follows the spirit of Keep a Changelog and semantic versioning will b
 - `docs/REPOSITORY_GOVERNANCE.md` defining merge, branch, Actions, security-feature, and future release-governance policy.
 - `.github/SUPPORT.md` routing bugs, proposals, contributions, and confidential security reports to appropriate channels.
 - Approved repository-governance and Docker/GHCR release-engineering specification, including multi-platform images, Compose distribution, supply-chain evidence, and backend-first provider policy.
+- Repository-hardening implementation plan covering deterministic required checks, immutable Actions, GitHub-native security, rulesets, branch cleanup, and social-preview handoff.
 
 ### Changed
 
@@ -67,6 +68,9 @@ The format follows the spirit of Keep a Changelog and semantic versioning will b
 - Public README was reorganized around product value, honest implementation status, CI visibility, quick verification, architecture, security, and a compact documentation map.
 - `PROJECT_STATE.md` was converted from a stale task diary into a factual snapshot of merged work, open blockers, verified gates, and next actions.
 - Repository branch lifecycle now explicitly keeps only `main` plus active pull-request branches; merged source branches are treated as disposable after squash merge.
+- API CI, Contract CI, Web CI, and Web E2E now run predictably on every pull request so future required-check rules cannot deadlock on path-filtered workflows.
+- API CI now runs Maven `verify` instead of only `test`, aligning the required backend gate with packaged-build verification.
+- Recurring workflows now cancel superseded runs for the same PR/ref and have finite job timeouts.
 
 ### Fixed
 
@@ -75,6 +79,7 @@ The format follows the spirit of Keep a Changelog and semantic versioning will b
 - Corrected the initial web-test dependency updater to operate from the root pnpm workspace after local-directory installation could not resolve the shared workspace protocol package.
 - Removed an unused-variable lint warning from the initial component test rather than accepting warning noise.
 - Corrected `PROJECT_STATE.md` references that still described already-merged PR #7 and the pre-Task-8 repository state as current.
+- Removed the future protected-branch deadlock risk caused by path-filtered required-check candidates.
 
 ### Security
 
@@ -82,4 +87,7 @@ The format follows the spirit of Keep a Changelog and semantic versioning will b
 - Production database credentials are required through external environment configuration and are not stored in source control.
 - Contract CI and Web CI use read-only repository permissions and verify the lockfile through pnpm's supply-chain policy check during frozen installation.
 - Actuator environment/configuration/metrics endpoints remain unavailable over public HTTP, and request logging defaults are restricted to reduce accidental credential/location leakage.
-- Repository governance now explicitly requires least-privilege Actions, no silent security-check bypasses, Dependency Graph/Dependabot/CodeQL/Dependency Review/secret scanning/push protection/PVR where available, and convergence on immutable full-SHA action pins.
+- Repository governance now explicitly requires least-privilege Actions, no silent security-check bypasses, Dependency Graph/Dependabot/CodeQL/Dependency Review/secret scanning/push protection/PVR where available, and immutable full-SHA action pins.
+- Permanent API/Contract/Web Actions are pinned to full commit SHAs verified from successful repository runs instead of mutable major tags.
+- Read-only checkout steps disable persisted Git credentials after source retrieval.
+- PR #8 CodeQL and Dependency Review workflows were likewise hardened with full-SHA pins, non-persisted checkout credentials, concurrency control, and finite timeouts while preserving the real Dependency Graph blocker.
