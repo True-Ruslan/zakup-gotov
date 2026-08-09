@@ -10,11 +10,11 @@ Repository: `True-Ruslan/zakup-gotov`
 Visibility: Public  
 Current phase: **M0 — Product & Integration Discovery**  
 Current execution stage: **M0A — Platform Foundation**  
-Current focus: **repository CI/security hardening and GitHub governance before release-engineering implementation**
+Current focus: **finish repository ruleset/release engineering, then enter M0B retailer feasibility**
 
 ## Product status
 
-The platform foundation is executable and automatically verified, but the core retailer-comparison product is **not implemented yet**. The current web surface intentionally presents project status rather than fake store cards, prices, or comparison behavior.
+The platform foundation is executable and automatically verified. The core retailer-comparison product is **not implemented yet**. The current web surface intentionally presents project status rather than fake store cards, prices, or comparison behavior.
 
 No retailer integration is considered supported until M0B proves it with acceptable technical/legal evidence and reproducible fixture/contract tests.
 
@@ -27,10 +27,11 @@ No retailer integration is considered supported until M0B proves it with accepta
 - PR #5 / Task 4 — OpenAPI 3.1 contract, tested system endpoint, generated TypeScript client, Contract CI.
 - PR #6 / Task 5 — Next.js 16 / React 19 responsive web shell, component tests, desktop/mobile Playwright, Web CI.
 - PR #7 / Task 6 — constrained Actuator health/readiness surface, executable exposure guard, observability/privacy rules.
+- PR #8 / Task 7 — CodeQL, Dependency Review, Dependabot version-update policy, and hardened security workflows.
 - PR #9 / Task 8 — reproducible `./scripts/verify.sh`, `docs/DEVELOPMENT.md`, and verified clean-runner developer workflow.
-- PR #10 — public README/documentation index, repository-governance policy, support routing, branch/workflow audit, factual state cleanup, and approved governance/release design.
-
-Task 8 was completed before Task 7 because Task 7 is externally blocked by a GitHub repository security setting; independent verified work was not held back artificially.
+- PR #10 — public README/documentation index, repository-governance policy, support routing, branch/workflow audit, and approved governance/release design.
+- PR #11 — unconditional required-check candidates, immutable Action SHAs, non-persisted checkout credentials, finite timeouts/concurrency, and Maven `verify` in API CI.
+- PR #12 — removal of stale `create-next-app` README/ignore boilerplate and centralized monorepo guidance.
 
 ## Verified platform baseline
 
@@ -71,45 +72,36 @@ Public management HTTP surface is intentionally limited to:
 
 Environment, configuration-properties, and metrics Actuator endpoints remain HTTP-inaccessible. Request-detail logging is disabled by default. Provider credentials, raw payloads, authorization material, precise user addresses, and arbitrary user input must not become telemetry labels/log content by default.
 
-## Current automated gates
+## Automated gates on `main`
 
-Merged baseline:
-
-- **API CI** — Java 25, pinned Maven Wrapper/Maven 3.9.16, backend tests, PostgreSQL/Testcontainers;
+- **API CI** — Java 25, pinned Maven Wrapper/Maven 3.9.16, PostgreSQL/Testcontainers, backend tests, packaged JAR via Maven `verify`;
 - **Contract CI** — exact Node/pnpm, frozen install, OpenAPI generation drift, typecheck, Vitest, build;
 - **Web CI** — frozen install, shared client build, lint, typecheck, component tests, production build;
 - **Web E2E** — Playwright against the production-built web app on desktop/mobile Chromium profiles;
+- **CodeQL / Java**;
+- **CodeQL / JavaScript-TypeScript**;
+- **Dependency Review**;
 - local/clean-runner **`./scripts/verify.sh`** — unified backend/contract/web verification.
 
-PR #11 (`ci/repository-hardening`) hardens these recurring checks before they become ruleset requirements:
+Recurring CI Actions are pinned to immutable full commit SHAs where introduced by the project, use non-persisted checkout credentials for read-only jobs, have finite timeouts, and cancel superseded PR/ref runs.
 
-- removes PR path filters so all four required-check candidates are emitted on every pull request;
-- pins permanent checkout/setup/cache Actions to full commit SHA verified from actual repository runs;
-- sets `persist-credentials: false` on read-only checkouts;
-- adds finite job timeouts and cancellation of superseded runs;
-- upgrades API CI from Maven `test` to Maven `verify`.
+## Repository governance and security state
 
-Initial PR #11 verification is GREEN:
+Verified repository-admin baseline:
 
-- API CI run `31312678179`: Java 25.0.3, Maven 3.9.16, PostgreSQL 18.4/Testcontainers, `5/5` tests, packaged JAR, `BUILD SUCCESS`;
-- Contract CI run `31312678120`: generated contract drift/typecheck/test/build GREEN;
-- Web CI run `31312678133`: Web CI GREEN and Web E2E GREEN.
+- squash merge enabled; merge commits and rebase merge disabled;
+- auto-merge and update-branch enabled;
+- merged source branches are deleted automatically;
+- only `main` plus active PR branches are retained;
+- default workflow token permissions are read-only and Actions cannot approve pull requests;
+- Dependency Graph enabled and SBOM endpoint available;
+- Dependabot alerts/security updates enabled;
+- secret scanning enabled;
+- secret scanning push protection enabled;
+- private vulnerability reporting enabled;
+- CodeQL and Dependency Review are operational and green after Dependency Graph enablement.
 
-Logs explicitly confirm full-SHA action resolution and `persist-credentials: false`. A final current-head run is required after this documentation synchronization before PR #11 can merge.
-
-## Security gates in progress
-
-PR #8 (`ci/m0a-security-gates`) adds permanent CodeQL, Dependency Review, and Dependabot configuration.
-
-- CodeQL previously passed for Java and JavaScript/TypeScript.
-- CodeQL and Dependency Review workflows have now also been hardened with immutable action SHAs, non-persisted checkout credentials, concurrency, and finite timeouts.
-- Dependency Review remains intentionally blocked because GitHub reports Dependency Graph as unavailable/disabled for this repository. The check is not weakened or skipped to hide that configuration defect.
-
-## Repository hygiene
-
-- No obsolete one-off generator/scaffold workflow remains on `main`; only recurring CI workflows are kept permanently.
-- Historical merged branches are safe to delete; future merged PR branches should be removed automatically through repository settings.
-- The desired branch steady state is `main` plus active pull-request branches only.
+The remaining repository-governance step is to activate the `main` ruleset using the now-proven required check names, plus any final Actions/security policy toggles that are available and appropriate for this public repository.
 
 ## Approved engineering policy
 
@@ -144,12 +136,11 @@ The intended release experience is a ready Docker Compose bundle using prebuilt 
 
 ## Immediate next work
 
-1. Complete final current-head verification and merge PR #11.
-2. Enable/verify GitHub Dependency Graph and security settings so PR #8 Dependency Review becomes genuinely green, then merge PR #8.
-3. Activate repository merge/ruleset/Actions/security governance using the exact proven check names and remove historical merged branches.
-4. Generate and upload the repository Social Preview asset.
-5. Write and execute the separate implementation plan for the approved Docker/GHCR release-engineering subsystem.
-6. Run final M0A verification and hand off to a separately planned M0B Retailer Feasibility phase.
+1. Activate and verify the `main` repository ruleset with proven required checks and no force-push/deletion bypasses.
+2. Apply remaining appropriate GitHub Actions/security hardening toggles and verify the resulting repository settings.
+3. Implement the approved Docker/GHCR release-engineering subsystem with multi-platform images, Compose smoke tests, scanning, SBOM/provenance/attestations, and stable/prerelease semantics.
+4. Run final M0A verification.
+5. Hand off to a separately planned M0B Retailer Feasibility phase.
 
 ## Definition of M0 success
 
