@@ -45,5 +45,7 @@ docker build --tag "$WEB_IMAGE" --file apps/web/Dockerfile .
 docker compose -f compose.release.yaml config >/dev/null
 docker compose -f compose.release.yaml up --detach --wait --wait-timeout 120
 
-curl --fail --silent --show-error http://127.0.0.1:8080/actuator/health/readiness | grep -q '"status":"UP"'
+docker compose -f compose.release.yaml exec -T api \
+  curl --fail --silent --show-error http://127.0.0.1:8080/actuator/health/readiness \
+  | grep -q '"status":"UP"'
 curl --fail --silent --show-error http://127.0.0.1:3000/ | grep -q 'Закуп готов'
