@@ -18,11 +18,12 @@ The format follows the spirit of Keep a Changelog and semantic versioning will b
 - Engineering policy defining mandatory TDD, evidence-based verification, automation-first testing, documentation synchronization, clean Git/PR discipline, and changelog maintenance.
 - Security, contribution, and conduct policies.
 - Structured pull request and issue templates.
+- M0A toolchain/workspace baseline: Java 25, Node.js 24 LTS, pnpm 11 workspace, repository text/ignore rules, and ADR-0002 for build tooling.
 
 ### Changed
 
 - Foundation architecture was approved on 2026-08-09.
-- Project execution is now entering M0A Platform Foundation before retailer feasibility work.
+- Project execution entered M0A Platform Foundation before retailer feasibility work.
 
 ### Fixed
 
