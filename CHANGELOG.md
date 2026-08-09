@@ -57,6 +57,7 @@ The format follows the spirit of Keep a Changelog and semantic versioning will b
 - `scripts/release/verify-published-release.sh`, which rejects mutable/local-build release Compose files and smoke-tests the exact digest-pinned images pulled from the registry.
 - Versioned `release: published` workflow implementing source verification, `linux/amd64` + `linux/arm64` GHCR candidate builds, per-platform Trivy vulnerability gates and SPDX SBOMs, exact-digest Compose smoke verification, GitHub attestations, no-rebuild digest promotion, stable-only `latest`, manifest verification, checksums, and GitHub Release evidence assets.
 - Clean-checkout regression coverage that requires both release helper shell scripts to retain executable Git modes.
+- Read-only `Container Security CI` for pull requests, `main`, and daily scheduled runs; it builds the exact production API/web Dockerfiles with fresh bases and fails closed on Trivy `HIGH`/`CRITICAL` vulnerabilities before a GitHub Release is created.
 
 ### Changed
 
@@ -95,6 +96,8 @@ The format follows the spirit of Keep a Changelog and semantic versioning will b
 - Stable and prerelease semantics are explicit: a GitHub prerelease must use a SemVer prerelease tag and can never update `latest`; stable releases may update `latest` only after the same verification path succeeds.
 - Release verification is intentionally split between read-only PR contract tests and the write-capable release-event workflow so package/OIDC permissions are never granted to ordinary pull-request CI.
 - The first real prerelease, `v0.1.0-rc.1`, exercised the actual `release: published` trigger and proved release metadata/main-ancestry checks, the full source verification suite, production web build, and 4/4 Playwright tests before stopping at the release-helper mode defect; `Release / Publish` was skipped, so no GHCR publication evidence is attributed to rc.1.
+- `v0.1.0-rc.2` proved the corrected `Release / Verify` path end to end, started `Release / Publish`, authenticated to GHCR, and built/pushed both multi-platform staging image indexes before the first Trivy gate intentionally stopped publication on a HIGH API dependency finding.
+- The final Next.js production runtime moved from full Node 24 Bookworm-slim to distroless Node 24 Debian 13/non-root, removing shell/package-manager runtime requirements while preserving the Node 24.18.1 build toolchain and verified standalone-server behavior.
 
 ### Fixed
 
@@ -110,6 +113,7 @@ The format follows the spirit of Keep a Changelog and semantic versioning will b
 - Corrected the release PostgreSQL volume from the pre-18 `/var/lib/postgresql/data` mount to the PostgreSQL 18-compatible `/var/lib/postgresql` mount after the first real Compose run exposed the upstream data-layout change.
 - Release-bundle failures now print Compose service state and logs before cleanup instead of losing the root-cause evidence during teardown.
 - Preserved executable Git modes for `scripts/verify-release-bundle.sh` and `scripts/release/verify-published-release.sh` after `v0.1.0-rc.1` failed with `Permission denied` / exit 126 on a clean GitHub Actions checkout; a TDD regression test now rejects mode `100644` for either release helper.
+- Updated pgJDBC from `42.7.11` to `42.7.12` after `v0.1.0-rc.2` and the TDD PR security gate reproduced `CVE-2026-54291` (`HIGH`) in the API production image.
 
 ### Security
 
@@ -128,6 +132,7 @@ The format follows the spirit of Keep a Changelog and semantic versioning will b
 - Default GitHub Actions workflow token permissions are read-only and workflows cannot approve pull requests.
 - No dependency update was allowed to weaken the pnpm minimum-release-age policy, required status checks, CodeQL, Dependency Review, contract generation, linting, or browser verification in order to become mergeable.
 - Application container runtimes use non-root users, Compose requires the database password at runtime instead of committing one, and only the web service is host-published by default.
-- `Release Bundle CI` and `Release Contract CI` remain read-only; package and OIDC write permissions exist only on the downstream release-publish job after read-only release verification succeeds.
+- `Release Bundle CI`, `Release Contract CI`, and `Container Security CI` remain read-only; package and OIDC write permissions exist only on the downstream release-publish job after read-only release verification succeeds.
 - Release Docker/GitHub Actions are pinned to full commit SHAs, and the QEMU binfmt and BuildKit helper images are additionally pinned by digest to avoid mutable helper-image drift.
 - Both target image architectures are scanned for `HIGH` and `CRITICAL` vulnerabilities before version promotion, and release consumers are bound to immutable application-image digests through the attached Compose asset.
+- `v0.1.0-rc.2` demonstrated the release security boundary fail-closed: publication stopped at the first HIGH finding before final-package copy, attestation, SemVer promotion, evidence upload, or any stable `latest` action; remediation used dependency/runtime hardening rather than scanner suppression.

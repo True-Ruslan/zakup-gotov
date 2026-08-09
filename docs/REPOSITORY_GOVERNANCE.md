@@ -51,7 +51,8 @@ Required checks are activated only after they have completed successfully at lea
 Additional proven candidates:
 
 - `Release Bundle CI` — builds the production API/web images and executes the full PostgreSQL → API → web Compose topology;
-- `Release Contract CI` — verifies version/prerelease semantics, digest-only release Compose rendering, immutable release dependencies, release-workflow syntax, and security/promotion ordering without write permissions.
+- `Release Contract CI` — verifies version/prerelease semantics, digest-only release Compose rendering, immutable release dependencies, release-workflow syntax, and security/promotion ordering without write permissions;
+- `Container Security / API` and `Container Security / Web` — build the exact production images with fresh base images and fail closed on Trivy `HIGH`/`CRITICAL` vulnerabilities before release publication.
 
 These candidates should be added to `main` required checks only when the ruleset change can be applied and independently verified. Documentation must not describe them as already enforced until then.
 
@@ -74,14 +75,23 @@ Third-party and GitHub-owned actions in permanent security-sensitive workflows a
 
 Do not grant workflows permission to approve pull requests.
 
-Release boundaries:
+Release and container-security boundaries:
 
 - `Release Bundle CI` is ordinary read-only PR/main verification;
 - `Release Contract CI` is ordinary read-only PR/main verification;
+- `Container Security CI` is ordinary read-only PR/main/daily verification and must not receive package or OIDC write permissions;
 - `.github/workflows/release.yml` runs only for a published GitHub Release;
 - its `Release / Verify` job remains `contents: read`;
 - only the downstream `Release / Publish` job may receive `contents: write`, `packages: write`, `attestations: write`, and `id-token: write`;
 - package/OIDC write permissions must never be copied into ordinary PR CI.
+
+Container vulnerability policy:
+
+- exact production API/web Dockerfiles are scanned before release in ordinary CI;
+- the release workflow still performs both-platform scans on the published staging candidates;
+- `HIGH` and `CRITICAL` findings fail the gate;
+- scanner ignores, severity reduction, `ignore-unfixed`, or equivalent bypasses require explicit security justification and must never be introduced merely to unblock a release;
+- removing unnecessary runtime software is preferred over suppressing findings when the software is not required for application execution.
 
 ## Security features
 
@@ -93,6 +103,7 @@ Target security baseline for this public repository:
 - Dependabot version updates;
 - CodeQL code scanning;
 - Dependency Review on pull requests;
+- production-container vulnerability scanning before release;
 - secret scanning;
 - push protection;
 - Private Vulnerability Reporting;
@@ -126,11 +137,13 @@ Runtime-proven production container baseline:
 
 - separate production `api` and `web` images;
 - Next.js standalone runtime;
+- distroless non-root final web runtime with no shell/package-manager dependency;
 - a no-source-build Compose definition for `web + api + PostgreSQL 18.4`;
 - persistent PostgreSQL named volume;
 - explicit health/readiness dependencies;
 - API kept internal to the Compose network while the web port is host-published;
-- automated exact-topology startup/smoke verification with failure diagnostics.
+- automated exact-topology startup/smoke verification with failure diagnostics;
+- read-only pre-release production-image HIGH/CRITICAL scanning.
 
 Implemented versioned publishing contract:
 
@@ -142,14 +155,14 @@ Implemented versioned publishing contract:
 - per-platform SPDX SBOM evidence is generated;
 - BuildKit provenance/SBOM and GitHub provenance attestations are created for exact image digests;
 - release-specific Compose is pinned to immutable application-image digests;
-- that exact published digest set is pulled and smoke-tested before promotion;
+- staging and final-package digest sets are pulled and smoke-tested before version promotion;
 - promotion copies the verified image indexes without rebuild;
 - stable releases may update `latest`; prereleases never do;
 - Compose, manifests, scans, SBOMs, verification metadata, and checksums are attached to the GitHub Release.
 
-This release-event path must be exercised by a real prerelease before it is considered runtime-proven. A stable release should not be used for first validation.
+`v0.1.0-rc.1` and `v0.1.0-rc.2` have exercised the real release-event path and exposed two defects at progressively later boundaries. Neither constitutes complete end-to-end publication proof. A new prerelease must complete the full workflow before a stable release is considered.
 
-GHCR package visibility must be independently checked after first publication. Public repository visibility is not treated as evidence that new package images are anonymously pullable.
+GHCR package visibility must be independently checked after the first successful publication. Public repository visibility is not treated as evidence that new package images are anonymously pullable.
 
 ## Audit cadence
 
