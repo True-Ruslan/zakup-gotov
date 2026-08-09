@@ -38,6 +38,9 @@ The format follows the spirit of Keep a Changelog and semantic versioning will b
 - Playwright production-browser coverage for desktop and mobile viewports, horizontal-overflow protection, and keyboard-focus visibility.
 - Read-only `Web CI` covering frozen dependency installation, shared-client build, ESLint, TypeScript, component tests, production Next.js build, and responsive Chromium E2E.
 - Next.js build-cache persistence through GitHub Actions.
+- Safe Actuator operational surface exposing only health, liveness, readiness, and non-sensitive info over HTTP.
+- Executable Actuator security test that rejects HTTP exposure of environment, configuration-properties, and metrics endpoints.
+- `docs/OBSERVABILITY.md` defining telemetry naming, low-cardinality constraints, provider redaction rules, and liveness/readiness semantics.
 
 ### Changed
 
@@ -53,6 +56,8 @@ The format follows the spirit of Keep a Changelog and semantic versioning will b
 - The generated nested web pnpm workspace file was removed so the repository has one authoritative workspace root and Next.js no longer reports ambiguous workspace-root detection.
 - The default generated Geist webfont was replaced with a reliable Cyrillic-capable system UI font stack until typography is explicitly decided as part of the design system.
 - Next.js anonymous telemetry is disabled in CI.
+- Spring MVC request-detail logging is explicitly disabled by default.
+- Health component/details disclosure is explicitly disabled while Kubernetes-style liveness/readiness probe groups are enabled.
 
 ### Fixed
 
@@ -66,3 +71,4 @@ The format follows the spirit of Keep a Changelog and semantic versioning will b
 - Established security-reporting and secret/privacy handling policy; broader repository security automation will be activated during M0A.
 - Production database credentials are required through external environment configuration and are not stored in source control.
 - Contract CI and Web CI use read-only repository permissions and verify the lockfile through pnpm's supply-chain policy check during frozen installation.
+- Actuator environment/configuration/metrics endpoints remain unavailable over public HTTP, and request logging defaults are restricted to reduce accidental credential/location leakage.
