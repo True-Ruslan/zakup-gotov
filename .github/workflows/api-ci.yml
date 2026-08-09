@@ -1,0 +1,38 @@
+name: API CI
+
+on:
+  pull_request:
+    paths:
+      - "apps/api/**"
+      - ".github/workflows/api-ci.yml"
+  push:
+    branches:
+      - main
+    paths:
+      - "apps/api/**"
+      - ".github/workflows/api-ci.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    name: API CI
+    runs-on: ubuntu-latest
+    container:
+      image: maven:3.9.16-eclipse-temurin-25
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v6
+
+      - name: Verify pinned toolchain
+        shell: bash
+        run: |
+          set -euo pipefail
+          java -version
+          mvn -version
+          java -version 2>&1 | grep -Eq 'version "25([.\"])'
+          mvn -version | grep -F 'Apache Maven 3.9.16'
+
+      - name: Run API tests
+        run: mvn -f apps/api/pom.xml --batch-mode --no-transfer-progress test
