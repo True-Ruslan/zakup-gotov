@@ -33,6 +33,7 @@ class ReleaseMetadata:
     stable: bool
     version_tag: str
     candidate_tag: str
+    verified_tag: str
     publish_latest: bool
 
 
@@ -72,6 +73,7 @@ def parse_release(tag: str, *, prerelease: bool, commit_sha: str) -> ReleaseMeta
         stable=stable,
         version_tag=version,
         candidate_tag=f"candidate-{commit_sha}",
+        verified_tag=f"verified-{commit_sha}",
         publish_latest=stable,
     )
 
@@ -158,6 +160,7 @@ def _metadata_command(args: argparse.Namespace) -> None:
         "stable": str(metadata.stable).lower(),
         "version_tag": metadata.version_tag,
         "candidate_tag": metadata.candidate_tag,
+        "verified_tag": metadata.verified_tag,
         "publish_latest": str(metadata.publish_latest).lower(),
         "api_image": api_image,
         "web_image": web_image,
@@ -165,6 +168,8 @@ def _metadata_command(args: argparse.Namespace) -> None:
         "web_staging_image": web_staging_image,
         "api_candidate": f"{api_staging_image}:{metadata.candidate_tag}",
         "web_candidate": f"{web_staging_image}:{metadata.candidate_tag}",
+        "api_verified_candidate": f"{api_image}:{metadata.verified_tag}",
+        "web_verified_candidate": f"{web_image}:{metadata.verified_tag}",
     }
 
     if args.github_output is not None:
