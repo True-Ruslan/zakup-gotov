@@ -10,7 +10,7 @@ Repository: `True-Ruslan/zakup-gotov`
 Visibility: Public  
 Current phase: **M0 — Product & Integration Discovery**  
 Current execution stage: **M0A — Platform Foundation**  
-Current focus: **finish repository ruleset/release engineering, then enter M0B retailer feasibility**
+Current focus: **implement release engineering and complete final M0A verification, then enter M0B retailer feasibility**
 
 ## Product status
 
@@ -32,6 +32,10 @@ No retailer integration is considered supported until M0B proves it with accepta
 - PR #10 — public README/documentation index, repository-governance policy, support routing, branch/workflow audit, and approved governance/release design.
 - PR #11 — unconditional required-check candidates, immutable Action SHAs, non-persisted checkout credentials, finite timeouts/concurrency, and Maven `verify` in API CI.
 - PR #12 — removal of stale `create-next-app` README/ignore boilerplate and centralized monorepo guidance.
+- PR #19 — `actions/cache` 6.1.0 maintenance after a full required-check pass.
+- PR #20 — `actions/checkout` 7.0.1 maintenance after a fresh required-check pass on current `main`.
+- PR #23 — consolidated `actions/setup-node` 7.0.0 and `dependency-review-action` 5.0.0 maintenance with corrected immutable-pin annotations and full CI/security verification.
+- PR #15 — CI-verified web dependency maintenance to Next.js 16.3.0, React/React DOM 19.2.8, and `eslint-config-next` 16.3.0.
 
 ## Verified platform baseline
 
@@ -55,9 +59,9 @@ No retailer integration is considered supported until M0B proves it with accepta
 
 ### Web
 
-- Next.js 16.2;
-- React 19.2;
-- TypeScript;
+- Next.js 16.3.0;
+- React 19.2.8;
+- TypeScript 5.x compatibility line;
 - Vitest + Testing Library;
 - Playwright production-browser coverage for desktop and mobile viewports.
 
@@ -83,7 +87,7 @@ Environment, configuration-properties, and metrics Actuator endpoints remain HTT
 - **Dependency Review**;
 - local/clean-runner **`./scripts/verify.sh`** — unified backend/contract/web verification.
 
-Recurring CI Actions are pinned to immutable full commit SHAs where introduced by the project, use non-persisted checkout credentials for read-only jobs, have finite timeouts, and cancel superseded PR/ref runs.
+Recurring CI Actions are pinned to immutable full commit SHAs where introduced by the project, use non-persisted checkout credentials for read-only jobs, have finite timeouts, and cancel superseded PR/ref runs. The current maintenance baseline includes `actions/cache` 6.1.0, `actions/checkout` 7.0.1, `actions/setup-node` 7.0.0, and `dependency-review-action` 5.0.0.
 
 ## Repository governance and security state
 
@@ -93,6 +97,7 @@ Verified repository-admin baseline:
 - auto-merge and update-branch enabled;
 - merged source branches are deleted automatically;
 - only `main` plus active PR branches are retained;
+- `main` merge protection actively requires the seven proven CI/security checks listed above, and stale/missing required checks block merge;
 - default workflow token permissions are read-only and Actions cannot approve pull requests;
 - Dependency Graph enabled and SBOM endpoint available;
 - Dependabot alerts/security updates enabled;
@@ -101,7 +106,20 @@ Verified repository-admin baseline:
 - private vulnerability reporting enabled;
 - CodeQL and Dependency Review are operational and green after Dependency Graph enablement.
 
-The remaining repository-governance step is to activate the `main` ruleset using the now-proven required check names, plus any final Actions/security policy toggles that are available and appropriate for this public repository.
+Required-check enforcement was exercised during dependency maintenance rather than inferred from configuration: direct merge attempts were rejected until the candidate was refreshed against current `main` and all required checks had passed. The repository-governance baseline is therefore active; remaining governance work is limited to any release-specific permissions/settings introduced by the release-engineering subsystem.
+
+## Dependency maintenance state
+
+The first Dependabot maintenance cycle was intentionally triaged rather than blindly merged:
+
+- compatible Actions updates were verified and merged through PRs #19, #20, and #23;
+- compatible Next.js/React maintenance was refreshed against current `main`, passed the full required gate including production Web E2E, and merged through PR #15;
+- the older Next.js 16.2.11 PR #13 was closed as superseded after `main` advanced to 16.3.0;
+- TypeScript 7.0.2 remains intentionally deferred because CI proved `openapi-typescript` 7.13.0 is incompatible with it;
+- ESLint 10 remains intentionally deferred because the current web lint configuration fails under that major line;
+- `@types/node` 26 remains intentionally deferred while the repository runtime is pinned to Node 24.
+
+No required test, supply-chain, or security gate was weakened to make an automated dependency update pass.
 
 ## Approved engineering policy
 
@@ -136,11 +154,10 @@ The intended release experience is a ready Docker Compose bundle using prebuilt 
 
 ## Immediate next work
 
-1. Activate and verify the `main` repository ruleset with proven required checks and no force-push/deletion bypasses.
-2. Apply remaining appropriate GitHub Actions/security hardening toggles and verify the resulting repository settings.
-3. Implement the approved Docker/GHCR release-engineering subsystem with multi-platform images, Compose smoke tests, scanning, SBOM/provenance/attestations, and stable/prerelease semantics.
-4. Run final M0A verification.
-5. Hand off to a separately planned M0B Retailer Feasibility phase.
+1. Implement the approved Docker/GHCR release-engineering subsystem with multi-platform images, Compose smoke tests, scanning, SBOM/provenance/attestations, and stable/prerelease semantics.
+2. Verify any release-specific GitHub permissions/settings introduced by those workflows without broadening the default least-privilege baseline.
+3. Run final M0A verification across repository checks and the exact distributable Compose bundle.
+4. Hand off to a separately planned M0B Retailer Feasibility phase.
 
 ## Definition of M0 success
 
