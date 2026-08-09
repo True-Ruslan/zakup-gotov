@@ -8,8 +8,11 @@ node_modules/
 .next/
 out/
 dist/
+build/
 coverage/
 *.tsbuildinfo
+next-env.d.ts
+.vercel/
 
 # Playwright
 playwright-report/
@@ -20,6 +23,7 @@ blob-report/
 .env
 .env.*
 !.env.example
+*.pem
 
 # IDEs / editors
 .idea/

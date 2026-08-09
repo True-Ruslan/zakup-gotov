@@ -71,6 +71,8 @@ The format follows the spirit of Keep a Changelog and semantic versioning will b
 - API CI, Contract CI, Web CI, and Web E2E now run predictably on every pull request so future required-check rules cannot deadlock on path-filtered workflows.
 - API CI now runs Maven `verify` instead of only `test`, aligning the required backend gate with packaged-build verification.
 - Recurring workflows now cancel superseded runs for the same PR/ref and have finite job timeouts.
+- Web package agent guidance now points to repository engineering/development rules and current Next.js docs instead of relying on a minimal generated warning.
+- Web-specific ignore rules were centralized into the root `.gitignore` so the monorepo has one authoritative ignore policy.
 
 ### Fixed
 
@@ -80,6 +82,7 @@ The format follows the spirit of Keep a Changelog and semantic versioning will b
 - Removed an unused-variable lint warning from the initial component test rather than accepting warning noise.
 - Corrected `PROJECT_STATE.md` references that still described already-merged PR #7 and the pre-Task-8 repository state as current.
 - Removed the future protected-branch deadlock risk caused by path-filtered required-check candidates.
+- Removed stale `create-next-app` README content that advertised unsupported npm/yarn/bun workflows, Geist usage, and Vercel deployment after the project had already chosen different repository conventions.
 
 ### Security
 
