@@ -1,6 +1,6 @@
 # Releases
 
-Zakup Gotov is still **pre-release**. The production container topology is already exercised in normal CI; the versioned GHCR publishing workflow is implemented but is not considered runtime-proven until a real published prerelease completes successfully.
+Zakup Gotov is still **pre-release**. The production container topology is exercised in normal CI. The versioned GHCR publishing workflow has now received its first real `release: published` execution, but it is not yet considered end-to-end runtime-proven because `v0.1.0-rc.1` exposed and stopped on a release-helper executable-mode defect before the publish job began.
 
 ## Verified container bundle
 
@@ -37,6 +37,7 @@ The repository contains two separate verification layers for versioned releases.
 - unverified candidates use separate `*-staging-api` / `*-staging-web` package names rather than final package names;
 - final-package pre-version copies use deterministic `verified-<source-sha>` tags;
 - application images in a release-specific Compose file must be GHCR references pinned by `sha256` digest;
+- release helper shell scripts retain executable modes in a clean Git checkout;
 - the release workflow uses immutable full-SHA action pins;
 - QEMU and BuildKit helper images are themselves digest-pinned;
 - build, scan, staging smoke, final-package copy, final-package smoke, attestation, version promotion, optional `latest`, and release-asset upload remain in the approved trust order;
@@ -67,21 +68,47 @@ Only after that succeeds, `Release / Publish` receives narrowly scoped release p
 13. verify the final manifests contain both target Linux architectures;
 14. attach the digest-pinned Compose file, manifests, vulnerability reports, SBOMs, verification metadata, and checksums to the GitHub Release.
 
-The staging packages are intentionally separate from the final packages so an unverified candidate is never placed in a future public release package. Staging packages must remain private. Final package visibility is a separate product/distribution setting and is verified independently after first publication.
+The staging packages are intentionally separate from the final packages so an unverified candidate is never placed in a future public release package. Staging packages must remain private. Final package visibility is a separate product/distribution setting and is verified independently after first successful publication.
 
 Docker Actions are pinned to immutable commit SHAs. The QEMU binfmt helper image and BuildKit daemon image are also pinned by digest so the release builder does not silently inherit mutable `latest`/`buildx-stable-1` dependencies.
 
-## Release status and first validation
+## First runtime validation: `v0.1.0-rc.1`
 
-The workflow implementation itself is covered by normal PR CI, but GitHub does not execute a `release: published` workflow during a pull request. Therefore the first real end-to-end validation must be a prerelease after this implementation is merged.
+The first real prerelease was published on 2026-08-09 as `v0.1.0-rc.1`, marked as a GitHub prerelease and targeting commit `d3066258915542c2488d9a3277680b2cc478d611`.
 
-The intended first validation release is a prerelease such as:
+The real `release: published` workflow fired and proved the following on the release-event runner:
+
+- release metadata validation passed, including `publish_latest=false`;
+- the release commit was confirmed to be contained in `main`;
+- Java 25, Node 24.18.1, and pnpm 11.4.0 setup passed;
+- the complete `./scripts/verify.sh` suite passed;
+- production web build passed;
+- responsive Playwright coverage passed **4/4**;
+- the workflow reached production container-bundle verification.
+
+The run then failed before executing the bundle because `scripts/verify-release-bundle.sh` was stored in Git as mode `100644`. A clean Linux checkout therefore returned `Permission denied` / exit 126 when the workflow invoked the script directly. The same Git-tree audit found `scripts/release/verify-published-release.sh` was also `100644`, so the later publish smoke would have had the same defect.
+
+`Release / Publish` was skipped because `Release / Verify` failed. Therefore rc.1 produced **no verified GHCR publication path evidence**: no candidate/final application images, release vulnerability reports, release SBOM assets, final-package attestations, SemVer OCI tags, or `latest` update are claimed from that run.
+
+The fix is intentionally at the source rather than in the workflow command: both release helpers are stored as `100755`, and `Release Contract CI` now has a clean-checkout regression test for their executable modes. The test was observed RED against the old `100644` modes before the mode-only fix made it GREEN.
+
+## Next validation
+
+The next runtime validation must be a **new prerelease** from corrected `main`; do not rerun rc.1 because its immutable tag points at the defective source commit. The expected next tag is:
 
 ```text
-v0.1.0-rc.1
+v0.1.0-rc.2
 ```
 
-It must remain marked as a GitHub prerelease. A successful prerelease must **not** create or move `latest`.
+It must remain a GitHub prerelease. A successful rc.2 must:
+
+- pass both `Release / Verify` and `Release / Publish`;
+- create and verify both target architectures;
+- pass all vulnerability and digest-pinned staging/final smoke gates;
+- attach the expected evidence assets;
+- preserve `latest` untouched;
+- keep staging packages private;
+- allow final package visibility to be verified independently.
 
 Do not create a stable release until at least one prerelease has exercised the complete workflow successfully and its attached evidence has been inspected.
 
@@ -93,7 +120,7 @@ Package publication and package visibility are separate concerns.
 - final API/web packages may be made public only as a deliberate distribution decision;
 - a public source repository is not treated as proof that a newly created GHCR package is anonymously pullable.
 
-After the first real prerelease, verify both staging-package privacy and final-package visibility explicitly. Until final-package visibility is proven, documentation must not promise anonymous public pulls.
+After the first successful prerelease, verify both staging-package privacy and final-package visibility explicitly. Until final-package visibility is proven, documentation must not promise anonymous public pulls.
 
 ## Manual local start
 

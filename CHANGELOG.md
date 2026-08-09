@@ -56,6 +56,7 @@ The format follows the spirit of Keep a Changelog and semantic versioning will b
 - `Release Contract CI` and `scripts/release/release_contract.py`, providing read-only PR verification for strict SemVer/prerelease rules, lower-case GHCR names, digest-only release Compose rendering, immutable release dependencies, and release-workflow trust ordering.
 - `scripts/release/verify-published-release.sh`, which rejects mutable/local-build release Compose files and smoke-tests the exact digest-pinned images pulled from the registry.
 - Versioned `release: published` workflow implementing source verification, `linux/amd64` + `linux/arm64` GHCR candidate builds, per-platform Trivy vulnerability gates and SPDX SBOMs, exact-digest Compose smoke verification, GitHub attestations, no-rebuild digest promotion, stable-only `latest`, manifest verification, checksums, and GitHub Release evidence assets.
+- Clean-checkout regression coverage that requires both release helper shell scripts to retain executable Git modes.
 
 ### Changed
 
@@ -93,6 +94,7 @@ The format follows the spirit of Keep a Changelog and semantic versioning will b
 - Versioned release publication now uses candidate image digests as the security boundary: scan, SBOM, exact-bundle smoke verification, and attestation happen before version-tag promotion, and promotion copies the verified image index without rebuild.
 - Stable and prerelease semantics are explicit: a GitHub prerelease must use a SemVer prerelease tag and can never update `latest`; stable releases may update `latest` only after the same verification path succeeds.
 - Release verification is intentionally split between read-only PR contract tests and the write-capable release-event workflow so package/OIDC permissions are never granted to ordinary pull-request CI.
+- The first real prerelease, `v0.1.0-rc.1`, exercised the actual `release: published` trigger and proved release metadata/main-ancestry checks, the full source verification suite, production web build, and 4/4 Playwright tests before stopping at the release-helper mode defect; `Release / Publish` was skipped, so no GHCR publication evidence is attributed to rc.1.
 
 ### Fixed
 
@@ -107,6 +109,7 @@ The format follows the spirit of Keep a Changelog and semantic versioning will b
 - Closed the obsolete Next.js 16.2.11 dependency PR after the verified 16.3.0 update superseded it.
 - Corrected the release PostgreSQL volume from the pre-18 `/var/lib/postgresql/data` mount to the PostgreSQL 18-compatible `/var/lib/postgresql` mount after the first real Compose run exposed the upstream data-layout change.
 - Release-bundle failures now print Compose service state and logs before cleanup instead of losing the root-cause evidence during teardown.
+- Preserved executable Git modes for `scripts/verify-release-bundle.sh` and `scripts/release/verify-published-release.sh` after `v0.1.0-rc.1` failed with `Permission denied` / exit 126 on a clean GitHub Actions checkout; a TDD regression test now rejects mode `100644` for either release helper.
 
 ### Security
 

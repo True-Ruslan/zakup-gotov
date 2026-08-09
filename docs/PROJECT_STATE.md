@@ -10,7 +10,7 @@ Repository: `True-Ruslan/zakup-gotov`
 Visibility: Public  
 Current phase: **M0 — Product & Integration Discovery**  
 Current execution stage: **M0A — Platform Foundation**  
-Current focus: **runtime-validate the versioned release pipeline with a prerelease, finish repository/release gates, then enter M0B retailer feasibility**
+Current focus: **fix the first prerelease runtime defect, validate the corrected release pipeline with a follow-up prerelease, finish repository/release gates, then enter M0B retailer feasibility**
 
 ## Product status
 
@@ -37,7 +37,9 @@ No retailer integration is considered supported until M0B proves it with accepta
 - PR #23 — consolidated `actions/setup-node` 7.0.0 and `dependency-review-action` 5.0.0 maintenance with corrected immutable-pin annotations and full CI/security verification.
 - PR #15 — CI-verified web dependency maintenance to Next.js 16.3.0, React/React DOM 19.2.8, and `eslint-config-next` 16.3.0.
 - PR #25 — production API/web Docker images, Next.js standalone runtime, PostgreSQL 18.4-compatible no-source-build Compose topology, and executable `Release Bundle CI` smoke verification.
-- PR #26 — merged versioned-release contract and release workflow implementation: strict SemVer/prerelease semantics, multi-platform GHCR candidates, per-platform vulnerability scans/SBOMs, immutable digest rendering, exact-published-bundle smoke verification, attestations, no-rebuild promotion, release assets, and stable-only `latest` policy. The workflow is merged and PR-verified but still requires its first real `release: published` runtime execution.
+- PR #26 — merged versioned-release contract and release workflow implementation: strict SemVer/prerelease semantics, multi-platform GHCR candidates, per-platform vulnerability scans/SBOMs, immutable digest rendering, exact-published-bundle smoke verification, attestations, no-rebuild promotion, release assets, and stable-only `latest` policy.
+- PR #27 — synchronized post-merge release-engineering state before the first real release event.
+- PR #28 — executable-mode regression fix for the release helper scripts, developed TDD-first after `v0.1.0-rc.1` exposed that clean Git checkouts stored the two release helpers as non-executable files.
 
 ## Verified platform baseline
 
@@ -102,7 +104,7 @@ PR/main checks currently available:
 - **CodeQL / JavaScript-TypeScript**;
 - **Dependency Review**;
 - **Release Bundle CI** — builds production API/web images and smoke-tests the complete PostgreSQL → API → web topology;
-- **Release Contract CI** — read-only verification of release SemVer/prerelease semantics, digest-only Compose rendering, immutable action/helper pins, release-workflow YAML syntax, and build/scan/smoke/attest/promotion ordering;
+- **Release Contract CI** — read-only verification of release SemVer/prerelease semantics, digest-only Compose rendering, immutable action/helper pins, release-workflow YAML syntax, build/scan/smoke/attest/promotion ordering, and executable release-helper modes in a clean checkout;
 - local/clean-runner **`./scripts/verify.sh`**;
 - local/CI **`./scripts/verify-release-bundle.sh`**.
 
@@ -153,12 +155,18 @@ No required test, supply-chain, or security gate was weakened to make an automat
 - PostgreSQL 18.4 → API → web Compose startup is automated and green;
 - API remains internal while web is host-published;
 - exact local production topology smoke verification is green;
-- PostgreSQL 18 volume-layout compatibility is covered by real Compose execution.
+- PostgreSQL 18 volume-layout compatibility is covered by real Compose execution;
+- the real GitHub `release: published` event fires for a published prerelease and checks out the exact release tag;
+- `v0.1.0-rc.1` proved release metadata validation, the `main` ancestry guard, Java/Node/pnpm setup, full `./scripts/verify.sh`, production web build, and all four responsive Playwright tests on the release-event runner.
 
-### Merged and PR-verified, awaiting first release event
+### First prerelease runtime finding
 
-- authoritative trigger: published GitHub Release;
-- release commit must be contained in `main`;
+`v0.1.0-rc.1` targeted `d3066258915542c2488d9a3277680b2cc478d611` and was correctly marked as a GitHub prerelease. `Release / Verify` passed every step through production browser tests, then failed before container verification because `scripts/verify-release-bundle.sh` was stored in Git with mode `100644`; the runner therefore returned `Permission denied` / exit 126. `Release / Publish` was skipped, so no GHCR candidate/final images, scans, SBOM release assets, attestations, version OCI tags, or `latest` update can be claimed from rc.1.
+
+The root cause was independently confirmed from the Git tree: both `scripts/verify-release-bundle.sh` and `scripts/release/verify-published-release.sh` were `100644` while the working `scripts/verify.sh` was `100755`. PR #28 adds a regression test that first failed on both helpers and changes only those two Git tree modes to `100755`, preserving their blob contents.
+
+### Merged release design awaiting successful end-to-end publication
+
 - strict SemVer + GitHub prerelease flag validation;
 - prereleases never move `latest`;
 - unverified multi-platform `linux/amd64` + `linux/arm64` API/web candidates are isolated in staging packages;
@@ -173,7 +181,7 @@ No required test, supply-chain, or security gate was weakened to make an automat
 - manifest verification for amd64/arm64;
 - release verification JSON, manifests, scans, SBOMs, checksums, and digest-pinned Compose are attached as GitHub Release assets.
 
-A real `release: published` run is still required before these publishing claims move from implementation evidence to runtime evidence. GHCR package visibility must also be checked after first publication; a public source repository alone is not treated as proof of anonymous image pullability.
+A follow-up prerelease from corrected `main` is required before the publishing path moves from implementation evidence to complete runtime evidence. GHCR package visibility must also be checked after first successful publication; a public source repository alone is not treated as proof of anonymous image pullability.
 
 See [`RELEASES.md`](RELEASES.md).
 
@@ -200,10 +208,11 @@ See [`RELEASES.md`](RELEASES.md).
 
 ## Immediate next work
 
-1. Publish a first **prerelease** (not stable) to exercise the real release workflow; verify multi-platform GHCR digests, scans, attestations, attached evidence, both staging/final exact digest-pinned Compose smoke tests, and confirm that `latest` is untouched.
-2. Verify staging packages remain private and verify the intended final GHCR package visibility; do not claim anonymous availability before it is proven.
-3. Add `Release Bundle CI` and `Release Contract CI` to the `main` ruleset when the settings API/UI change can be applied and independently verified.
-4. Run final M0A verification, then hand off to separately planned M0B Retailer Feasibility.
+1. Publish a follow-up **prerelease** from corrected `main` (expected `v0.1.0-rc.2`) and verify both `Release / Verify` and `Release / Publish` end to end.
+2. Verify multi-platform GHCR digests, Trivy gates, SBOMs, attestations, attached evidence, both staging/final exact digest-pinned Compose smoke tests, and confirm that prerelease publication leaves `latest` untouched.
+3. Verify staging packages remain private and verify the intended final GHCR package visibility; do not claim anonymous availability before it is proven.
+4. Add `Release Bundle CI` and `Release Contract CI` to the `main` ruleset when the settings API/UI change can be applied and independently verified.
+5. Run final M0A verification, then hand off to separately planned M0B Retailer Feasibility.
 
 ## Definition of M0 success
 
