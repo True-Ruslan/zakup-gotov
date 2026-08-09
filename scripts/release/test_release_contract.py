@@ -1,3 +1,4 @@
+import os
 import pathlib
 import unittest
 
@@ -83,6 +84,21 @@ class ImageNameTest(unittest.TestCase):
         self.assertEqual(web, "ghcr.io/true-ruslan/zakup-gotov-staging-web")
         self.assertNotEqual(api, build_image_names("True-Ruslan", "zakup-gotov")[0])
         self.assertNotEqual(web, build_image_names("True-Ruslan", "zakup-gotov")[1])
+
+
+class ReleaseScriptModeTest(unittest.TestCase):
+    def test_release_scripts_are_executable_in_checkout(self):
+        scripts = (
+            ROOT / "scripts/verify-release-bundle.sh",
+            ROOT / "scripts/release/verify-published-release.sh",
+        )
+
+        for script in scripts:
+            with self.subTest(script=script.relative_to(ROOT)):
+                self.assertTrue(
+                    os.access(script, os.X_OK),
+                    f"{script.relative_to(ROOT)} must be executable in a clean checkout",
+                )
 
 
 class ComposeRenderTest(unittest.TestCase):
