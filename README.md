@@ -1,121 +1,163 @@
 # Закуп готов / Zakup Gotov
 
-> Recipe-to-cart grocery comparison service for finding the best complete basket across nearby stores.
+> От рецепта или списка продуктов — к честному сравнению полной корзины в доступных магазинах.
 
-**Status:** M0 — Product & Integration Discovery
+[![API CI](https://github.com/True-Ruslan/zakup-gotov/actions/workflows/api-ci.yml/badge.svg)](https://github.com/True-Ruslan/zakup-gotov/actions/workflows/api-ci.yml)
+[![Contract CI](https://github.com/True-Ruslan/zakup-gotov/actions/workflows/contract-ci.yml/badge.svg)](https://github.com/True-Ruslan/zakup-gotov/actions/workflows/contract-ci.yml)
+[![Web CI](https://github.com/True-Ruslan/zakup-gotov/actions/workflows/web-ci.yml/badge.svg)](https://github.com/True-Ruslan/zakup-gotov/actions/workflows/web-ci.yml)
 
-Zakup Gotov is an early-stage product for turning a recipe, meal plan, or manual grocery list into a location-aware comparison of complete grocery baskets.
+**Status:** M0 — Product & Integration Discovery · **pre-release**
 
-The product is intentionally focused on the **whole basket**, not isolated “cheapest item” search:
+Zakup Gotov — сервис, который должен превращать рецепт, недельное меню или обычный список покупок в сравнение **полной корзины** по магазинам с учётом местоположения, актуальности цены, наличия и полноты сопоставления.
+
+Проект намеренно не маскирует неизвестность: пока реальные retailer-интеграции не доказаны в M0B, интерфейс не выдаёт сравнение магазинов за готовую функцию.
+
+## Зачем проект
+
+Большинство сравнений отвечает на вопрос «где дешевле конкретный товар?». Zakup Gotov ориентирован на более практичный вопрос:
+
+> **Где выгоднее и реально возможно купить всю нужную корзину?**
 
 ```text
-recipe / meal plan / grocery list
-        ↓
-shopping requirements
-        ↓
-location + retailer context
-        ↓
-product matching
-        ↓
-current price + availability
-        ↓
-package / quantity optimization
-        ↓
-complete basket comparison
+рецепт / меню / список продуктов
+              ↓
+     shopping requirements
+              ↓
+      location + retailer
+              ↓
+       product matching
+              ↓
+   price + availability + age
+              ↓
+      quantity / package fit
+              ↓
+     complete basket ranking
 ```
 
-## Product promise
+Целевой результат должен явно показывать:
 
-Choose what you want to cook or buy. Zakup Gotov should help answer:
+- какие магазины способны закрыть весь список;
+- итоговую стоимость корзины, а не отдельных SKU;
+- отсутствующие и неоднозначно сопоставленные позиции;
+- свежесть цены и наличия;
+- разницу между удобством одной корзины и минимальной ценой нескольких магазинов.
 
-- Which nearby retailer can fulfill the whole list?
-- What will the basket actually cost?
-- Which items are missing or uncertain?
-- How fresh are the prices and availability signals?
-- Is one-store convenience better than splitting the basket?
+## Текущее состояние
 
-The project will not hide incomplete matches or silently treat stale prices as current.
+Сейчас реализована и автоматически проверяется платформенная основа:
 
-## Current focus
+- Java 25 + Spring Boot 4.1 API;
+- PostgreSQL 18 + Flyway + jOOQ;
+- Spring Modulith architecture verification;
+- OpenAPI 3.1 как источник клиентского контракта;
+- генерируемый TypeScript API client;
+- Next.js 16 / React 19 responsive web shell;
+- Testcontainers с настоящим PostgreSQL;
+- Vitest + Testing Library + Playwright desktop/mobile;
+- безопасный Actuator health/readiness baseline;
+- воспроизводимый `./scripts/verify.sh`.
 
-The first milestone is **not** a full recipe application. M0 exists to prove the hardest assumption first: that at least two target retailers can provide sufficiently reliable, location-specific product, price, and availability data through technically and legally acceptable integration paths.
+**Ещё не реализованы:** retailer integrations, shopping-list domain, recipes, matching, basket optimization, auth и native mobile. Это запланированные этапы, а не скрытые незавершённые функции.
 
-M0 is split into:
+Фактический статус всегда фиксируется в [`docs/PROJECT_STATE.md`](docs/PROJECT_STATE.md).
 
-- **M0A — Platform Foundation:** executable monorepo, API/web foundations, database, contracts, observability, CI/security, and repository governance.
-- **M0B — Retailer Feasibility:** provider research, legal/technical evidence, probe harness, fixtures, and at least two proven retailer integrations.
+## Быстрый старт для разработки
 
-See:
-
-- [Project state](docs/PROJECT_STATE.md)
-- [Roadmap](docs/ROADMAP.md)
-- [Development](docs/DEVELOPMENT.md)
-- [Engineering policy](docs/ENGINEERING.md)
-- [Observability](docs/OBSERVABILITY.md)
-- [Foundation design](docs/superpowers/specs/2026-08-09-zakup-gotov-foundation-design.md)
-- [M0A implementation plan](docs/superpowers/plans/2026-08-09-m0a-platform-foundation.md)
-- [ADR-0001: Platform stack](docs/adr/0001-platform-stack.md)
-- [Changelog](CHANGELOG.md)
-
-## Approved technical foundation
-
-The approved baseline is:
-
-- **Backend:** Java 25 LTS, Spring Boot 4.1, Spring MVC, Virtual Threads, Spring Modulith
-- **Database:** PostgreSQL 18
-- **Persistence:** Flyway + jOOQ
-- **API:** REST/JSON + OpenAPI 3.1.x
-- **Web:** Next.js 16, React, TypeScript
-- **Future mobile:** Expo + React Native + TypeScript
-- **Testing:** JUnit 5, Testcontainers, Modulith tests, Vitest, Testing Library, Playwright
-- **Observability:** Micrometer/Actuator with OpenTelemetry-compatible telemetry
-- **Repository/CI:** GitHub Actions and GitHub-native security tooling
-
-The architecture was approved on 2026-08-09 and is recorded in accepted ADR-0001.
-
-## Development
-
-The supported developer workflow is documented in [docs/DEVELOPMENT.md](docs/DEVELOPMENT.md). With the pinned Java 25 / Node 24.18.1 / pnpm 11.4.0 toolchains and Docker running, the primary local verification entrypoint is:
+Требуются Java 25, Node.js 24.18.1, pnpm 11.4.0 и запущенный Docker.
 
 ```bash
+git clone https://github.com/True-Ruslan/zakup-gotov.git
+cd zakup-gotov
+pnpm install --frozen-lockfile
 ./scripts/verify.sh
 ```
 
-The command intentionally fails rather than silently skipping Testcontainers, generated-contract drift, type checks, tests, or production builds.
+Команда не пропускает молча недоступный Docker/Testcontainers, drift сгенерированного OpenAPI-клиента, type checks, tests или production builds.
 
-Responsive Playwright browser tests are an explicit additional gate; see the development guide for the Chromium setup and command.
+Полная настройка окружения, focused-команды и Playwright: [`docs/DEVELOPMENT.md`](docs/DEVELOPMENT.md).
 
-## Engineering principles
+> Готовый `docker compose` релиз без локальной сборки — утверждённое направление release engineering и будет добавлен отдельным этапом после repository baseline.
 
-1. **TDD by default.** Executable behavior follows RED -> GREEN -> REFACTOR, with the expected failure observed before production implementation.
-2. **Evidence before claims.** A change is complete only with fresh automated verification appropriate to that change.
-3. **Automation first.** Repeated manual verification is automation debt; deterministic CI should cover everything reasonably automatable.
-4. **Documentation is repository truth.** State, roadmap, ADRs, implementation plans, and changelog stay synchronized with actual work.
-5. **Clean Git history.** Short-lived branches, cohesive commits, small PRs, required checks, and squash-only target history.
-6. **Modular monolith first.** Preserve cheap refactoring while enforcing module boundaries.
-7. **Retailers are adapters.** External provider behavior must not leak into the product domain.
-8. **Freshness is data.** A comparable offer includes source, retailer context, availability, and observation time.
-9. **Uncertainty is visible.** Ambiguous matching and incomplete baskets are explicit states.
-10. **YAGNI infrastructure.** No Kafka, Kubernetes, Redis, Elasticsearch, vector DB, or microservices until evidence justifies them.
+## Архитектура
 
-Full rules: [docs/ENGINEERING.md](docs/ENGINEERING.md).
+```text
+┌──────────────────────┐          ┌──────────────────────┐
+│      Next.js Web     │          │  Future Expo Mobile  │
+└──────────┬───────────┘          └──────────┬───────────┘
+           └──────────────┬───────────────────┘
+                          │ OpenAPI
+                          ▼
+              ┌──────────────────────┐
+              │ Spring Boot / Java 25│
+              │   Modular Monolith   │
+              └──────────┬───────────┘
+                         │
+              ┌──────────▼───────────┐
+              │ PostgreSQL 18 / jOOQ │
+              └──────────────────────┘
+                         │
+              provider adapter boundary
+                         │
+          ┌──────────────┼──────────────┐
+          ▼              ▼              ▼
+       retailer A     retailer B     retailer ...
+```
+
+Основной путь retailer-интеграций — backend provider adapters. Client-side integration допускается только как осознанное исключение, если конкретный публичный API не требует секретов, разрешает CORS/browser use или действительно зависит от пользовательской browser-session.
+
+Архитектурные решения: [`docs/adr/`](docs/adr/) и [`docs/superpowers/specs/`](docs/superpowers/specs/).
+
+## Инженерный контракт
+
+Проект следует строгой политике из [`docs/ENGINEERING.md`](docs/ENGINEERING.md):
+
+- TDD: RED → проверка правильной причины → GREEN → regression → refactor;
+- evidence before claims;
+- automation first — повторяемая ручная проверка считается automation debt;
+- реальные PostgreSQL integration tests вместо H2-подмены;
+- provider fixtures/contracts вместо live retailer-зависимости обычного CI;
+- короткие ветки, небольшие PR, squash-only target history;
+- `PROJECT_STATE`, roadmap, ADR/spec/plan и changelog обновляются вместе с реальностью проекта.
+
+## Документация
+
+| Что нужно понять | Документ |
+|---|---|
+| Текущее фактическое состояние | [`PROJECT_STATE.md`](docs/PROJECT_STATE.md) |
+| Что делаем дальше | [`ROADMAP.md`](docs/ROADMAP.md) |
+| Карта всей документации | [`docs/README.md`](docs/README.md) |
+| Разработка и локальная проверка | [`DEVELOPMENT.md`](docs/DEVELOPMENT.md) |
+| Инженерные правила | [`ENGINEERING.md`](docs/ENGINEERING.md) |
+| Repository governance | [`REPOSITORY_GOVERNANCE.md`](docs/REPOSITORY_GOVERNANCE.md) |
+| Observability / privacy rules | [`OBSERVABILITY.md`](docs/OBSERVABILITY.md) |
+| История заметных изменений | [`CHANGELOG.md`](CHANGELOG.md) |
+| Участие в разработке | [`CONTRIBUTING.md`](CONTRIBUTING.md) |
+| Сообщение об уязвимостях | [`SECURITY.md`](SECURITY.md) |
+| Code of Conduct | [`CODE_OF_CONDUCT.md`](CODE_OF_CONDUCT.md) |
 
 ## Roadmap
 
-- **M0:** Product & Integration Discovery
-- **M1:** Shopping Core
-- **M2:** Recipes
-- **M3:** Weekly Planning
-- **M4:** Basket Optimization
-- **M5:** Productization
-- **M6:** Native Mobile
+- **M0A — Platform Foundation:** завершаем security/governance/release-ready repository baseline.
+- **M0B — Retailer Feasibility:** доказываем минимум две технически и юридически приемлемые интеграции.
+- **M1 — Shopping Core**
+- **M2 — Recipes**
+- **M3 — Weekly Planning**
+- **M4 — Basket Optimization**
+- **M5 — Productization**
+- **M6 — Native Mobile**
 
-Details: [docs/ROADMAP.md](docs/ROADMAP.md).
+Подробные scope и exit criteria: [`docs/ROADMAP.md`](docs/ROADMAP.md).
+
+## Security
+
+Не публикуйте credentials, provider tokens, точные пользовательские адреса, приватные endpoints или чувствительные provider payloads в issues, logs, fixtures и screenshots.
+
+Уязвимости **не следует** отправлять публичным issue. Порядок disclosure: [`SECURITY.md`](SECURITY.md).
 
 ## Contributing
 
-Read [CONTRIBUTING.md](CONTRIBUTING.md), [docs/DEVELOPMENT.md](docs/DEVELOPMENT.md), and [docs/ENGINEERING.md](docs/ENGINEERING.md) before proposing substantial changes. Security vulnerabilities must not be reported through public issues; see [SECURITY.md](SECURITY.md).
+Перед существенным изменением прочитайте [`CONTRIBUTING.md`](CONTRIBUTING.md), [`docs/DEVELOPMENT.md`](docs/DEVELOPMENT.md) и [`docs/ENGINEERING.md`](docs/ENGINEERING.md).
 
 ## License
 
-This repository is public, but no open-source license has been selected yet. Unless and until a license is added, no additional license grant should be assumed.
+Репозиторий публичный, но open-source license пока не выбран. До появления `LICENSE` не следует предполагать дополнительное разрешение на использование, распространение или создание производных работ.
