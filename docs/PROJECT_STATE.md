@@ -37,7 +37,7 @@ No retailer integration is considered supported until M0B proves it with accepta
 - PR #23 — consolidated `actions/setup-node` 7.0.0 and `dependency-review-action` 5.0.0 maintenance with corrected immutable-pin annotations and full CI/security verification.
 - PR #15 — CI-verified web dependency maintenance to Next.js 16.3.0, React/React DOM 19.2.8, and `eslint-config-next` 16.3.0.
 - PR #25 — production API/web Docker images, Next.js standalone runtime, PostgreSQL 18.4-compatible no-source-build Compose topology, and executable `Release Bundle CI` smoke verification.
-- PR #26 — versioned-release contract and release workflow implementation: strict SemVer/prerelease semantics, multi-platform GHCR candidates, per-platform vulnerability scans/SBOMs, immutable digest rendering, exact-published-bundle smoke verification, attestations, no-rebuild promotion, release assets, and stable-only `latest` policy. The workflow implementation is PR-verified but still requires its first real `release: published` runtime execution after merge.
+- PR #26 — merged versioned-release contract and release workflow implementation: strict SemVer/prerelease semantics, multi-platform GHCR candidates, per-platform vulnerability scans/SBOMs, immutable digest rendering, exact-published-bundle smoke verification, attestations, no-rebuild promotion, release assets, and stable-only `latest` policy. The workflow is merged and PR-verified but still requires its first real `release: published` runtime execution.
 
 ## Verified platform baseline
 
@@ -155,22 +155,23 @@ No required test, supply-chain, or security gate was weakened to make an automat
 - exact local production topology smoke verification is green;
 - PostgreSQL 18 volume-layout compatibility is covered by real Compose execution.
 
-### Implemented and PR-verified, awaiting first release event
+### Merged and PR-verified, awaiting first release event
 
 - authoritative trigger: published GitHub Release;
 - release commit must be contained in `main`;
 - strict SemVer + GitHub prerelease flag validation;
 - prereleases never move `latest`;
-- multi-platform `linux/amd64` + `linux/arm64` API/web candidate indexes;
+- unverified multi-platform `linux/amd64` + `linux/arm64` API/web candidates are isolated in staging packages;
 - BuildKit provenance and SBOM attestations;
 - per-platform `HIGH`/`CRITICAL` Trivy vulnerability gates;
 - per-platform SPDX JSON SBOM release evidence;
-- release-specific Compose rendered from exact GHCR digests;
-- authenticated pull and smoke test of the exact published candidate digests;
-- GitHub provenance attestations pushed for the verified image digests;
-- no-rebuild digest promotion via `docker buildx imagetools create`;
+- staging candidate and final-package Compose bundles are rendered from exact GHCR digests and smoke-tested in sequence;
+- verified staging digests are copied without rebuild into final packages under deterministic `verified-<source-sha>` tags;
+- GitHub provenance attestations are pushed for the final-package image digests;
+- SemVer tags are created only after final-package smoke verification and attestation;
+- stable `latest` promotion is conditional and unavailable to prereleases;
 - manifest verification for amd64/arm64;
-- release verification JSON, manifests, scans, SBOMs, checksums, and digest-pinned Compose attached as GitHub Release assets.
+- release verification JSON, manifests, scans, SBOMs, checksums, and digest-pinned Compose are attached as GitHub Release assets.
 
 A real `release: published` run is still required before these publishing claims move from implementation evidence to runtime evidence. GHCR package visibility must also be checked after first publication; a public source repository alone is not treated as proof of anonymous image pullability.
 
@@ -199,11 +200,10 @@ See [`RELEASES.md`](RELEASES.md).
 
 ## Immediate next work
 
-1. Merge the versioned-release implementation only after final PR verification/change review.
-2. Publish a first **prerelease** (not stable) to exercise the real release workflow; verify multi-platform GHCR digests, scans, attestations, attached evidence, exact digest-pinned Compose smoke test, and confirm that `latest` is untouched.
-3. Verify GHCR package visibility and make the intended public-consumption policy explicit; do not claim anonymous availability before it is proven.
-4. Add `Release Bundle CI` and `Release Contract CI` to the `main` ruleset when the settings API/UI change can be applied and independently verified.
-5. Run final M0A verification, then hand off to separately planned M0B Retailer Feasibility.
+1. Publish a first **prerelease** (not stable) to exercise the real release workflow; verify multi-platform GHCR digests, scans, attestations, attached evidence, both staging/final exact digest-pinned Compose smoke tests, and confirm that `latest` is untouched.
+2. Verify staging packages remain private and verify the intended final GHCR package visibility; do not claim anonymous availability before it is proven.
+3. Add `Release Bundle CI` and `Release Contract CI` to the `main` ruleset when the settings API/UI change can be applied and independently verified.
+4. Run final M0A verification, then hand off to separately planned M0B Retailer Feasibility.
 
 ## Definition of M0 success
 
