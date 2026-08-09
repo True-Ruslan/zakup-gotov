@@ -28,7 +28,7 @@ Durable decisions live in [`adr/`](adr/).
 Current accepted foundation decisions include:
 
 - [`adr/0001-platform-stack.md`](adr/0001-platform-stack.md) — long-term platform stack;
-- [`adr/0002-build-tooling.md`](adr/0002-build-tooling.md) — repository build/toolchain conventions.
+- [`adr/0002-build-and-workspace-tooling.md`](adr/0002-build-and-workspace-tooling.md) — repository build/toolchain conventions.
 
 An ADR records **why a durable decision was made**. It should not be used as a task tracker or current-state file.
 
