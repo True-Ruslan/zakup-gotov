@@ -40,17 +40,24 @@ The project will not hide incomplete matches or silently treat stale prices as c
 
 The first milestone is **not** a full recipe application. M0 exists to prove the hardest assumption first: that at least two target retailers can provide sufficiently reliable, location-specific product, price, and availability data through technically and legally acceptable integration paths.
 
+M0 is split into:
+
+- **M0A — Platform Foundation:** executable monorepo, API/web foundations, database, contracts, observability, CI/security, and repository governance.
+- **M0B — Retailer Feasibility:** provider research, legal/technical evidence, probe harness, fixtures, and at least two proven retailer integrations.
+
 See:
 
 - [Project state](docs/PROJECT_STATE.md)
 - [Roadmap](docs/ROADMAP.md)
+- [Engineering policy](docs/ENGINEERING.md)
 - [Foundation design](docs/superpowers/specs/2026-08-09-zakup-gotov-foundation-design.md)
+- [M0A implementation plan](docs/superpowers/plans/2026-08-09-m0a-platform-foundation.md)
 - [ADR-0001: Platform stack](docs/adr/0001-platform-stack.md)
 - [Changelog](CHANGELOG.md)
 
-## Proposed technical foundation
+## Approved technical foundation
 
-The current foundation proposal is:
+The approved baseline is:
 
 - **Backend:** Java 25 LTS, Spring Boot 4.1, Spring MVC, Virtual Threads, Spring Modulith
 - **Database:** PostgreSQL 18
@@ -62,16 +69,22 @@ The current foundation proposal is:
 - **Observability:** Micrometer/Actuator with OpenTelemetry-compatible telemetry
 - **Repository/CI:** GitHub Actions and GitHub-native security tooling
 
-No application implementation should be considered locked until the foundation design is reviewed and approved.
+The architecture was approved on 2026-08-09 and is recorded in accepted ADR-0001.
 
-## Architectural principles
+## Engineering principles
 
-1. **Modular monolith first.** Preserve cheap refactoring while enforcing module boundaries.
-2. **Retailers are adapters.** External provider behavior must not leak into the product domain.
-3. **Freshness is data.** A comparable offer includes source, retailer context, availability, and observation time.
-4. **Uncertainty is visible.** Ambiguous matching and incomplete baskets are explicit states.
-5. **Automate what can be automated.** Provider fixtures/contracts and critical user journeys should minimize repeated manual verification.
-6. **YAGNI infrastructure.** No Kafka, Kubernetes, Redis, Elasticsearch, vector DB, or microservices until evidence justifies them.
+1. **TDD by default.** Executable behavior follows RED -> GREEN -> REFACTOR, with the expected failure observed before production implementation.
+2. **Evidence before claims.** A change is complete only with fresh automated verification appropriate to that change.
+3. **Automation first.** Repeated manual verification is automation debt; deterministic CI should cover everything reasonably automatable.
+4. **Documentation is repository truth.** State, roadmap, ADRs, implementation plans, and changelog stay synchronized with actual work.
+5. **Clean Git history.** Short-lived branches, cohesive commits, small PRs, required checks, and squash-only target history.
+6. **Modular monolith first.** Preserve cheap refactoring while enforcing module boundaries.
+7. **Retailers are adapters.** External provider behavior must not leak into the product domain.
+8. **Freshness is data.** A comparable offer includes source, retailer context, availability, and observation time.
+9. **Uncertainty is visible.** Ambiguous matching and incomplete baskets are explicit states.
+10. **YAGNI infrastructure.** No Kafka, Kubernetes, Redis, Elasticsearch, vector DB, or microservices until evidence justifies them.
+
+Full rules: [docs/ENGINEERING.md](docs/ENGINEERING.md).
 
 ## Roadmap
 
@@ -87,7 +100,7 @@ Details: [docs/ROADMAP.md](docs/ROADMAP.md).
 
 ## Contributing
 
-Read [CONTRIBUTING.md](CONTRIBUTING.md) before proposing substantial changes. Security vulnerabilities must not be reported through public issues; see [SECURITY.md](SECURITY.md).
+Read [CONTRIBUTING.md](CONTRIBUTING.md) and [docs/ENGINEERING.md](docs/ENGINEERING.md) before proposing substantial changes. Security vulnerabilities must not be reported through public issues; see [SECURITY.md](SECURITY.md).
 
 ## License
 
