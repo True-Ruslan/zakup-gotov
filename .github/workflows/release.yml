@@ -1,0 +1,396 @@
+name: Release
+
+on:
+  release:
+    types: [published]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: release-${{ github.event.release.tag_name }}
+  cancel-in-progress: false
+
+env:
+  DOCKER_BUILDKIT: "1"
+
+jobs:
+  verify:
+    name: Release / Verify
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    permissions:
+      contents: read
+    steps:
+      - name: Check out tagged source
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+          fetch-depth: 0
+
+      - name: Validate release metadata
+        run: |
+          set -euo pipefail
+          python3 scripts/release/release_contract.py metadata \
+            --tag "${{ github.event.release.tag_name }}" \
+            --prerelease "${{ github.event.release.prerelease }}" \
+            --commit-sha "${GITHUB_SHA}" \
+            --owner "${{ github.repository_owner }}" \
+            --repository "${{ github.event.repository.name }}"
+
+      - name: Require release commit on main
+        run: |
+          set -euo pipefail
+          git fetch --no-tags origin main
+          git merge-base --is-ancestor "${GITHUB_SHA}" origin/main
+
+      - name: Set up Java 25
+        uses: actions/setup-java@b6effb05e454b25005698d916606bdc6ffcbf961 # v5
+        with:
+          distribution: temurin
+          java-version: "25"
+          cache: maven
+          cache-dependency-path: apps/api/pom.xml
+
+      - name: Set up Node 24
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version-file: .nvmrc
+
+      - name: Install pinned pnpm
+        run: npm install --global pnpm@11.4.0
+
+      - name: Verify pinned toolchain
+        run: |
+          set -euo pipefail
+          java -version
+          node --version
+          pnpm --version
+          test "$(node --version)" = "v24.18.1"
+          test "$(pnpm --version)" = "11.4.0"
+          java -version 2>&1 | grep -Eq 'version "25([.\"])'
+
+      - name: Run repository verification
+        run: ./scripts/verify.sh
+
+      - name: Install Chromium
+        run: pnpm --filter web exec playwright install --with-deps chromium
+
+      - name: Build shared API client
+        run: pnpm --filter @zakup-gotov/api-client build
+
+      - name: Build production web app
+        run: NEXT_TELEMETRY_DISABLED=1 pnpm --filter web build
+
+      - name: Run responsive browser tests
+        run: pnpm --filter web test:e2e
+
+      - name: Verify production container bundle
+        run: ./scripts/verify-release-bundle.sh
+
+  publish:
+    name: Release / Publish
+    needs: verify
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    permissions:
+      contents: write
+      packages: write
+      attestations: write
+      id-token: write
+    steps:
+      - name: Check out tagged source
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Resolve release metadata
+        id: release
+        run: |
+          set -euo pipefail
+          python3 scripts/release/release_contract.py metadata \
+            --tag "${{ github.event.release.tag_name }}" \
+            --prerelease "${{ github.event.release.prerelease }}" \
+            --commit-sha "${GITHUB_SHA}" \
+            --owner "${{ github.repository_owner }}" \
+            --repository "${{ github.event.repository.name }}" \
+            --github-output "${GITHUB_OUTPUT}"
+
+      - name: Log in to GHCR
+        uses: docker/login-action@dbcb813823bdd20940b903addbd779551569679f # v4.6.0
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ github.token }}
+
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@06116385d9baf250c9f4dcb4858b16962ea869c3 # v4.1.0
+        with:
+          image: tonistiigi/binfmt@sha256:465d3fdd28d0f2b871ba4b4ec98bd183292e96167f00d9fd40bd249f8632d705
+          platforms: arm64
+          cache-image: false
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@bb05f3f5519dd87d3ba754cc423b652a5edd6d2c # v4.2.0
+        with:
+          driver-opts: |
+            image=moby/buildkit@sha256:2f5adac4ecd194d9f8c10b7b5d7bceb5186853db1b26e5abd3a657af0b7e26ec
+
+      - name: Prepare release evidence directory
+        run: mkdir -p dist
+
+      - name: Build and push API candidate
+        id: api-build
+        uses: docker/build-push-action@f9f3042f7e2789586610d6e8b85c8f03e5195baf # v7.2.0
+        with:
+          context: .
+          file: apps/api/Dockerfile
+          platforms: linux/amd64,linux/arm64
+          push: true
+          tags: ${{ steps.release.outputs.api_candidate }}
+          labels: |
+            org.opencontainers.image.source=${{ github.server_url }}/${{ github.repository }}
+            org.opencontainers.image.revision=${{ github.sha }}
+            org.opencontainers.image.version=${{ steps.release.outputs.version }}
+          provenance: mode=max
+          sbom: true
+          cache-from: type=gha,scope=release-api
+          cache-to: type=gha,mode=max,scope=release-api
+
+      - name: Build and push web candidate
+        id: web-build
+        uses: docker/build-push-action@f9f3042f7e2789586610d6e8b85c8f03e5195baf # v7.2.0
+        with:
+          context: .
+          file: apps/web/Dockerfile
+          platforms: linux/amd64,linux/arm64
+          push: true
+          tags: ${{ steps.release.outputs.web_candidate }}
+          labels: |
+            org.opencontainers.image.source=${{ github.server_url }}/${{ github.repository }}
+            org.opencontainers.image.revision=${{ github.sha }}
+            org.opencontainers.image.version=${{ steps.release.outputs.version }}
+          provenance: mode=max
+          sbom: true
+          cache-from: type=gha,scope=release-web
+          cache-to: type=gha,mode=max,scope=release-web
+
+      - name: Scan API candidate for HIGH/CRITICAL vulnerabilities on amd64
+        uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
+        env:
+          TRIVY_USERNAME: ${{ github.actor }}
+          TRIVY_PASSWORD: ${{ github.token }}
+          TRIVY_PLATFORM: linux/amd64
+        with:
+          image-ref: ${{ steps.release.outputs.api_image }}@${{ steps.api-build.outputs.digest }}
+          format: json
+          output: dist/api-amd64-vulnerabilities.json
+          severity: CRITICAL,HIGH
+          exit-code: "1"
+          scanners: vuln
+
+      - name: Scan API candidate for HIGH/CRITICAL vulnerabilities on arm64
+        uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
+        env:
+          TRIVY_USERNAME: ${{ github.actor }}
+          TRIVY_PASSWORD: ${{ github.token }}
+          TRIVY_PLATFORM: linux/arm64
+        with:
+          image-ref: ${{ steps.release.outputs.api_image }}@${{ steps.api-build.outputs.digest }}
+          format: json
+          output: dist/api-arm64-vulnerabilities.json
+          severity: CRITICAL,HIGH
+          exit-code: "1"
+          scanners: vuln
+
+      - name: Scan web candidate for HIGH/CRITICAL vulnerabilities on amd64
+        uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
+        env:
+          TRIVY_USERNAME: ${{ github.actor }}
+          TRIVY_PASSWORD: ${{ github.token }}
+          TRIVY_PLATFORM: linux/amd64
+        with:
+          image-ref: ${{ steps.release.outputs.web_image }}@${{ steps.web-build.outputs.digest }}
+          format: json
+          output: dist/web-amd64-vulnerabilities.json
+          severity: CRITICAL,HIGH
+          exit-code: "1"
+          scanners: vuln
+
+      - name: Scan web candidate for HIGH/CRITICAL vulnerabilities on arm64
+        uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
+        env:
+          TRIVY_USERNAME: ${{ github.actor }}
+          TRIVY_PASSWORD: ${{ github.token }}
+          TRIVY_PLATFORM: linux/arm64
+        with:
+          image-ref: ${{ steps.release.outputs.web_image }}@${{ steps.web-build.outputs.digest }}
+          format: json
+          output: dist/web-arm64-vulnerabilities.json
+          severity: CRITICAL,HIGH
+          exit-code: "1"
+          scanners: vuln
+
+      - name: Generate API amd64 SPDX SBOM
+        uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
+        env:
+          TRIVY_USERNAME: ${{ github.actor }}
+          TRIVY_PASSWORD: ${{ github.token }}
+          TRIVY_PLATFORM: linux/amd64
+        with:
+          image-ref: ${{ steps.release.outputs.api_image }}@${{ steps.api-build.outputs.digest }}
+          format: spdx-json
+          output: dist/api-amd64-sbom.spdx.json
+          exit-code: "0"
+
+      - name: Generate API arm64 SPDX SBOM
+        uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
+        env:
+          TRIVY_USERNAME: ${{ github.actor }}
+          TRIVY_PASSWORD: ${{ github.token }}
+          TRIVY_PLATFORM: linux/arm64
+        with:
+          image-ref: ${{ steps.release.outputs.api_image }}@${{ steps.api-build.outputs.digest }}
+          format: spdx-json
+          output: dist/api-arm64-sbom.spdx.json
+          exit-code: "0"
+
+      - name: Generate web amd64 SPDX SBOM
+        uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
+        env:
+          TRIVY_USERNAME: ${{ github.actor }}
+          TRIVY_PASSWORD: ${{ github.token }}
+          TRIVY_PLATFORM: linux/amd64
+        with:
+          image-ref: ${{ steps.release.outputs.web_image }}@${{ steps.web-build.outputs.digest }}
+          format: spdx-json
+          output: dist/web-amd64-sbom.spdx.json
+          exit-code: "0"
+
+      - name: Generate web arm64 SPDX SBOM
+        uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
+        env:
+          TRIVY_USERNAME: ${{ github.actor }}
+          TRIVY_PASSWORD: ${{ github.token }}
+          TRIVY_PLATFORM: linux/arm64
+        with:
+          image-ref: ${{ steps.release.outputs.web_image }}@${{ steps.web-build.outputs.digest }}
+          format: spdx-json
+          output: dist/web-arm64-sbom.spdx.json
+          exit-code: "0"
+
+      - name: Render digest-pinned release Compose
+        run: |
+          set -euo pipefail
+          python3 scripts/release/release_contract.py render-compose \
+            --input compose.release.yaml \
+            --output dist/compose.release.yaml \
+            --api-ref "${{ steps.release.outputs.api_image }}@${{ steps.api-build.outputs.digest }}" \
+            --web-ref "${{ steps.release.outputs.web_image }}@${{ steps.web-build.outputs.digest }}"
+
+      - name: Verify exact published candidate bundle
+        run: bash scripts/release/verify-published-release.sh dist/compose.release.yaml
+
+      - name: Attest API candidate provenance
+        uses: actions/attest@508db95dd578ae2727ebd6217d5ba78e4fbda05d # v4.2.1
+        with:
+          subject-name: ${{ steps.release.outputs.api_image }}
+          subject-digest: ${{ steps.api-build.outputs.digest }}
+          push-to-registry: true
+
+      - name: Attest web candidate provenance
+        uses: actions/attest@508db95dd578ae2727ebd6217d5ba78e4fbda05d # v4.2.1
+        with:
+          subject-name: ${{ steps.release.outputs.web_image }}
+          subject-digest: ${{ steps.web-build.outputs.digest }}
+          push-to-registry: true
+
+      - name: Promote verified digests to release version
+        run: |
+          set -euo pipefail
+
+          docker buildx imagetools create \
+            --tag "${{ steps.release.outputs.api_image }}:${{ steps.release.outputs.version_tag }}" \
+            --metadata-file dist/api-promotion.json \
+            "${{ steps.release.outputs.api_image }}@${{ steps.api-build.outputs.digest }}"
+
+          docker buildx imagetools create \
+            --tag "${{ steps.release.outputs.web_image }}:${{ steps.release.outputs.version_tag }}" \
+            --metadata-file dist/web-promotion.json \
+            "${{ steps.release.outputs.web_image }}@${{ steps.web-build.outputs.digest }}"
+
+          test "$(jq -r '."containerimage.descriptor".digest' dist/api-promotion.json)" = "${{ steps.api-build.outputs.digest }}"
+          test "$(jq -r '."containerimage.descriptor".digest' dist/web-promotion.json)" = "${{ steps.web-build.outputs.digest }}"
+
+      - name: Promote stable release to latest
+        if: steps.release.outputs.publish_latest == 'true'
+        run: |
+          set -euo pipefail
+          docker buildx imagetools create \
+            --tag "${{ steps.release.outputs.api_image }}:latest" \
+            "${{ steps.release.outputs.api_image }}@${{ steps.api-build.outputs.digest }}"
+          docker buildx imagetools create \
+            --tag "${{ steps.release.outputs.web_image }}:latest" \
+            "${{ steps.release.outputs.web_image }}@${{ steps.web-build.outputs.digest }}"
+
+      - name: Capture published manifests
+        run: |
+          set -euo pipefail
+          docker buildx imagetools inspect \
+            "${{ steps.release.outputs.api_image }}@${{ steps.api-build.outputs.digest }}" \
+            --raw > dist/api-manifest.json
+          docker buildx imagetools inspect \
+            "${{ steps.release.outputs.web_image }}@${{ steps.web-build.outputs.digest }}" \
+            --raw > dist/web-manifest.json
+
+          for manifest in dist/api-manifest.json dist/web-manifest.json; do
+            jq -e '[.manifests[] | select(.platform.os == "linux" and .platform.architecture == "amd64")] | length >= 1' "$manifest" >/dev/null
+            jq -e '[.manifests[] | select(.platform.os == "linux" and .platform.architecture == "arm64")] | length >= 1' "$manifest" >/dev/null
+          done
+
+      - name: Write release verification metadata
+        run: |
+          set -euo pipefail
+          jq -n \
+            --arg version "${{ steps.release.outputs.version }}" \
+            --arg source_sha "${GITHUB_SHA}" \
+            --arg stable "${{ steps.release.outputs.stable }}" \
+            --arg api_image "${{ steps.release.outputs.api_image }}" \
+            --arg api_digest "${{ steps.api-build.outputs.digest }}" \
+            --arg web_image "${{ steps.release.outputs.web_image }}" \
+            --arg web_digest "${{ steps.web-build.outputs.digest }}" \
+            --arg workflow_run "${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}" \
+            '{
+              version: $version,
+              source_sha: $source_sha,
+              stable: ($stable == "true"),
+              platforms: ["linux/amd64", "linux/arm64"],
+              vulnerability_gate: "CRITICAL,HIGH",
+              api: {image: $api_image, digest: $api_digest},
+              web: {image: $web_image, digest: $web_digest},
+              workflow_run: $workflow_run
+            }' > dist/release-verification.json
+
+          sha256sum \
+            dist/compose.release.yaml \
+            dist/release-verification.json \
+            dist/api-manifest.json \
+            dist/web-manifest.json \
+            dist/*-vulnerabilities.json \
+            dist/*-sbom.spdx.json \
+            > dist/SHA256SUMS
+
+      - name: Attach verified release assets
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          gh release upload "${{ github.event.release.tag_name }}" \
+            dist/compose.release.yaml \
+            dist/release-verification.json \
+            dist/SHA256SUMS \
+            dist/api-manifest.json \
+            dist/web-manifest.json \
+            dist/*-vulnerabilities.json \
+            dist/*-sbom.spdx.json \
+            --clobber
