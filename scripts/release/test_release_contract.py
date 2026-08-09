@@ -107,8 +107,12 @@ class ComposeRenderTest(unittest.TestCase):
 
 
 class PublishingWorkflowContractTest(unittest.TestCase):
+    @staticmethod
+    def _workflow() -> str:
+        return (ROOT / ".github/workflows/release.yml").read_text(encoding="utf-8")
+
     def test_release_workflow_preserves_supply_chain_boundary(self):
-        workflow = (ROOT / ".github/workflows/release.yml").read_text(encoding="utf-8")
+        workflow = self._workflow()
 
         required_fragments = (
             "release:\n    types: [published]",
@@ -134,13 +138,54 @@ class PublishingWorkflowContractTest(unittest.TestCase):
                 self.assertIn(fragment, workflow)
 
     def test_release_workflow_does_not_use_mutable_action_tags(self):
-        workflow = (ROOT / ".github/workflows/release.yml").read_text(encoding="utf-8")
+        workflow = self._workflow()
 
         for line in workflow.splitlines():
             stripped = line.strip()
             if stripped.startswith("uses:"):
                 with self.subTest(line=stripped):
                     self.assertRegex(stripped, r"@[0-9a-f]{40}(?:\s+#.*)?$")
+
+    def test_release_workflow_pins_qemu_and_buildkit_helper_images(self):
+        workflow = self._workflow()
+
+        self.assertRegex(
+            workflow,
+            r"image: tonistiigi/binfmt@sha256:[0-9a-f]{64}",
+        )
+        self.assertRegex(
+            workflow,
+            r"image=moby/buildkit@sha256:[0-9a-f]{64}",
+        )
+        self.assertNotIn("tonistiigi/binfmt:latest", workflow)
+        self.assertNotIn("moby/buildkit:buildx-stable-1", workflow)
+
+    def test_verification_and_security_gates_precede_promotion(self):
+        workflow = self._workflow()
+
+        build_position = workflow.index("Build and push API candidate")
+        scan_position = workflow.index(
+            "Scan API candidate for HIGH/CRITICAL vulnerabilities on amd64"
+        )
+        smoke_position = workflow.index("Verify exact published candidate bundle")
+        attest_position = workflow.index("Attest API candidate provenance")
+        promote_position = workflow.index("Promote verified digests to release version")
+        latest_position = workflow.index("Promote stable release to latest")
+        upload_position = workflow.index("Attach verified release assets")
+
+        self.assertLess(build_position, scan_position)
+        self.assertLess(scan_position, smoke_position)
+        self.assertLess(smoke_position, attest_position)
+        self.assertLess(attest_position, promote_position)
+        self.assertLess(promote_position, latest_position)
+        self.assertLess(latest_position, upload_position)
+
+    def test_latest_promotion_is_explicitly_conditional(self):
+        workflow = self._workflow()
+        latest_section = workflow[workflow.index("Promote stable release to latest") :]
+
+        self.assertIn("if: steps.release.outputs.publish_latest == 'true'", latest_section)
+        self.assertIn(":latest", latest_section)
 
 
 if __name__ == "__main__":
