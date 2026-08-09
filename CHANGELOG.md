@@ -27,6 +27,11 @@ The format follows the spirit of Keep a Changelog and semantic versioning will b
 - Flyway migration baseline creating the application-owned `app` schema and maintaining schema history.
 - jOOQ PostgreSQL integration as the primary SQL access layer.
 - Testcontainers-backed PostgreSQL 18.4 integration environment shared by Spring application and persistence tests.
+- Contract-first OpenAPI 3.1 product API baseline with `GET /api/v1/system`.
+- MVC contract test for the system endpoint against the real application/PostgreSQL integration context.
+- Generated `@zakup-gotov/api-client` TypeScript package using `openapi-typescript` + `openapi-fetch`.
+- Committed generated API schema and deterministic root `pnpm-lock.yaml`.
+- Read-only `Contract CI` that verifies pinned Node/pnpm, frozen dependency installation, generated-schema drift, strict typecheck, Vitest, and package build.
 
 ### Changed
 
@@ -36,12 +41,16 @@ The format follows the spirit of Keep a Changelog and semantic versioning will b
 - API CI was introduced earlier than the original M0A sequencing so backend TDD could be proven on the exact Java 25 toolchain instead of inferred from an incompatible local runtime.
 - Spring application-context verification now boots against real PostgreSQL rather than a database-free context.
 - Test JVM explicitly enables native access required by Testcontainers/JNA on Java 25 to avoid unsupported-access warning noise.
+- TypeScript for the generated API-client toolchain is pinned to compatible 5.9.3 after CI proved that TypeScript 7.0.2 violates `openapi-typescript 7.13.0`'s supported peer range.
+- Permanent Contract CI installs exact pnpm 11.4.0 after Node setup instead of using `pnpm/action-setup`, removing the known PNPM_HOME layout warning while keeping the toolchain pin explicit.
 
 ### Fixed
 
 - Corrected the Spring Boot 4 Flyway wiring after the persistence test proved that adding Flyway libraries alone did not activate Boot's separated Flyway auto-configuration module; the project now uses `spring-boot-starter-flyway` plus the PostgreSQL Flyway module.
+- Corrected Spring Boot 4 MVC test wiring by adding the focused `spring-boot-starter-webmvc-test` test module after the first controller test compile attempt exposed the split test auto-configuration.
 
 ### Security
 
 - Established security-reporting and secret/privacy handling policy; broader repository security automation will be activated during M0A.
 - Production database credentials are required through external environment configuration and are not stored in source control.
+- Contract CI uses read-only repository permissions and verifies the lockfile through pnpm's supply-chain policy check during frozen installation.

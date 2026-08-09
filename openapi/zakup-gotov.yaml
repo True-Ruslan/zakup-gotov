@@ -1,0 +1,32 @@
+openapi: 3.1.0
+info:
+  title: Zakup Gotov API
+  version: 0.0.0
+paths:
+  /api/v1/system:
+    get:
+      operationId: getSystemInfo
+      summary: Get product API availability information
+      responses:
+        '200':
+          description: API availability information
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SystemInfo'
+components:
+  schemas:
+    SystemInfo:
+      type: object
+      additionalProperties: false
+      required:
+        - name
+        - status
+      properties:
+        name:
+          type: string
+          const: zakup-gotov-api
+        status:
+          type: string
+          enum:
+            - UP
