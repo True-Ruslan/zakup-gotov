@@ -48,6 +48,7 @@ The format follows the spirit of Keep a Changelog and semantic versioning will b
 - `.github/SUPPORT.md` routing bugs, proposals, contributions, and confidential security reports to appropriate channels.
 - Approved repository-governance and Docker/GHCR release-engineering specification, including multi-platform images, Compose distribution, supply-chain evidence, and backend-first provider policy.
 - Repository-hardening implementation plan covering deterministic required checks, immutable Actions, GitHub-native security, rulesets, branch cleanup, and social-preview handoff.
+- Permanent CodeQL scanning for Java and JavaScript/TypeScript, Dependency Review, and weekly Dependabot version-update configuration.
 
 ### Changed
 
@@ -73,6 +74,8 @@ The format follows the spirit of Keep a Changelog and semantic versioning will b
 - Recurring workflows now cancel superseded runs for the same PR/ref and have finite job timeouts.
 - Web package agent guidance now points to repository engineering/development rules and current Next.js docs instead of relying on a minimal generated warning.
 - Web-specific ignore rules were centralized into the root `.gitignore` so the monorepo has one authoritative ignore policy.
+- Repository merge policy is now squash-only; merge commits and rebase merge are disabled, auto-merge/update-branch are enabled, and merged source branches are deleted automatically.
+- Historical merged branches were removed so the steady state is `main` plus active pull-request branches only.
 
 ### Fixed
 
@@ -86,11 +89,16 @@ The format follows the spirit of Keep a Changelog and semantic versioning will b
 
 ### Security
 
-- Established security-reporting and secret/privacy handling policy; broader repository security automation will be activated during M0A.
+- Established security-reporting and secret/privacy handling policy.
 - Production database credentials are required through external environment configuration and are not stored in source control.
 - Contract CI and Web CI use read-only repository permissions and verify the lockfile through pnpm's supply-chain policy check during frozen installation.
 - Actuator environment/configuration/metrics endpoints remain unavailable over public HTTP, and request logging defaults are restricted to reduce accidental credential/location leakage.
-- Repository governance now explicitly requires least-privilege Actions, no silent security-check bypasses, Dependency Graph/Dependabot/CodeQL/Dependency Review/secret scanning/push protection/PVR where available, and immutable full-SHA action pins.
+- Repository governance requires least-privilege Actions, no silent security-check bypasses, Dependency Graph/Dependabot/CodeQL/Dependency Review/secret scanning/push protection/PVR where available, and immutable full-SHA action pins.
 - Permanent API/Contract/Web Actions are pinned to full commit SHAs verified from successful repository runs instead of mutable major tags.
 - Read-only checkout steps disable persisted Git credentials after source retrieval.
-- PR #8 CodeQL and Dependency Review workflows were likewise hardened with full-SHA pins, non-persisted checkout credentials, concurrency control, and finite timeouts while preserving the real Dependency Graph blocker.
+- CodeQL and Dependency Review workflows use full-SHA pins, non-persisted checkout credentials, concurrency control, and finite timeouts.
+- Dependency Graph is enabled and the repository SBOM endpoint is available, allowing Dependency Review to run successfully.
+- Dependabot alerts and security updates are enabled.
+- Secret scanning and secret-scanning push protection are enabled.
+- Private vulnerability reporting is enabled for confidential security reports.
+- Default GitHub Actions workflow token permissions are read-only and workflows cannot approve pull requests.
