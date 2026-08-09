@@ -41,6 +41,12 @@ The format follows the spirit of Keep a Changelog and semantic versioning will b
 - Safe Actuator operational surface exposing only health, liveness, readiness, and non-sensitive info over HTTP.
 - Executable Actuator security test that rejects HTTP exposure of environment, configuration-properties, and metrics endpoints.
 - `docs/OBSERVABILITY.md` defining telemetry naming, low-cardinality constraints, provider redaction rules, and liveness/readiness semantics.
+- Reproducible `./scripts/verify.sh` developer verification entrypoint covering backend, real PostgreSQL/Testcontainers, generated OpenAPI drift, client checks, and web checks/build.
+- `docs/DEVELOPMENT.md` with pinned prerequisites, local run instructions, focused verification commands, Playwright setup, and Docker/Testcontainers troubleshooting.
+- `docs/README.md` documentation index separating current state, roadmap, ADRs, specifications, implementation plans, and history.
+- `docs/REPOSITORY_GOVERNANCE.md` defining merge, branch, Actions, security-feature, and future release-governance policy.
+- `.github/SUPPORT.md` routing bugs, proposals, contributions, and confidential security reports to appropriate channels.
+- Approved repository-governance and Docker/GHCR release-engineering specification, including multi-platform images, Compose distribution, supply-chain evidence, and backend-first provider policy.
 
 ### Changed
 
@@ -58,6 +64,9 @@ The format follows the spirit of Keep a Changelog and semantic versioning will b
 - Next.js anonymous telemetry is disabled in CI.
 - Spring MVC request-detail logging is explicitly disabled by default.
 - Health component/details disclosure is explicitly disabled while Kubernetes-style liveness/readiness probe groups are enabled.
+- Public README was reorganized around product value, honest implementation status, CI visibility, quick verification, architecture, security, and a compact documentation map.
+- `PROJECT_STATE.md` was converted from a stale task diary into a factual snapshot of merged work, open blockers, verified gates, and next actions.
+- Repository branch lifecycle now explicitly keeps only `main` plus active pull-request branches; merged source branches are treated as disposable after squash merge.
 
 ### Fixed
 
@@ -65,6 +74,7 @@ The format follows the spirit of Keep a Changelog and semantic versioning will b
 - Corrected Spring Boot 4 MVC test wiring by adding the focused `spring-boot-starter-webmvc-test` test module after the first controller test compile attempt exposed the split test auto-configuration.
 - Corrected the initial web-test dependency updater to operate from the root pnpm workspace after local-directory installation could not resolve the shared workspace protocol package.
 - Removed an unused-variable lint warning from the initial component test rather than accepting warning noise.
+- Corrected `PROJECT_STATE.md` references that still described already-merged PR #7 and the pre-Task-8 repository state as current.
 
 ### Security
 
@@ -72,3 +82,4 @@ The format follows the spirit of Keep a Changelog and semantic versioning will b
 - Production database credentials are required through external environment configuration and are not stored in source control.
 - Contract CI and Web CI use read-only repository permissions and verify the lockfile through pnpm's supply-chain policy check during frozen installation.
 - Actuator environment/configuration/metrics endpoints remain unavailable over public HTTP, and request logging defaults are restricted to reduce accidental credential/location leakage.
+- Repository governance now explicitly requires least-privilege Actions, no silent security-check bypasses, Dependency Graph/Dependabot/CodeQL/Dependency Review/secret scanning/push protection/PVR where available, and convergence on immutable full-SHA action pins.
