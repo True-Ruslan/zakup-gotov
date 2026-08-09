@@ -106,5 +106,42 @@ class ComposeRenderTest(unittest.TestCase):
                     render_release_compose(source, api_ref=ref, web_ref=valid)
 
 
+class PublishingWorkflowContractTest(unittest.TestCase):
+    def test_release_workflow_preserves_supply_chain_boundary(self):
+        workflow = (ROOT / ".github/workflows/release.yml").read_text(encoding="utf-8")
+
+        required_fragments = (
+            "release:\n    types: [published]",
+            "permissions:\n  contents: read",
+            "packages: write",
+            "attestations: write",
+            "id-token: write",
+            "linux/amd64,linux/arm64",
+            "provenance: mode=max",
+            "sbom: true",
+            "severity: CRITICAL,HIGH",
+            "TRIVY_PLATFORM: linux/amd64",
+            "TRIVY_PLATFORM: linux/arm64",
+            "docker buildx imagetools create",
+            "publish_latest",
+            "render-compose",
+            "verify-published-release.sh",
+            "gh release upload",
+        )
+
+        for fragment in required_fragments:
+            with self.subTest(fragment=fragment):
+                self.assertIn(fragment, workflow)
+
+    def test_release_workflow_does_not_use_mutable_action_tags(self):
+        workflow = (ROOT / ".github/workflows/release.yml").read_text(encoding="utf-8")
+
+        for line in workflow.splitlines():
+            stripped = line.strip()
+            if stripped.startswith("uses:"):
+                with self.subTest(line=stripped):
+                    self.assertRegex(stripped, r"@[0-9a-f]{40}(?:\s+#.*)?$")
+
+
 if __name__ == "__main__":
     unittest.main()
