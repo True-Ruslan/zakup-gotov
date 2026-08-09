@@ -1,0 +1,44 @@
+name: Generate Maven Wrapper
+
+on:
+  push:
+    branches:
+      - feat/m0a-api-bootstrap
+    paths:
+      - ".github/workflows/generate-maven-wrapper.yml"
+
+permissions:
+  contents: write
+
+jobs:
+  generate:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out branch
+        uses: actions/checkout@v6
+        with:
+          ref: feat/m0a-api-bootstrap
+
+      - name: Set up Java 25
+        uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: "25"
+
+      - name: Generate canonical Maven Wrapper 3.3.4
+        working-directory: apps/api
+        run: |
+          mvn --batch-mode --no-transfer-progress \
+            org.apache.maven.plugins:maven-wrapper-plugin:3.3.4:wrapper \
+            -Dmaven=3.9.16 \
+            -Dtype=only-script
+          chmod +x mvnw
+
+      - name: Commit generated wrapper
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add apps/api/mvnw apps/api/mvnw.cmd apps/api/.mvn/wrapper/maven-wrapper.properties
+          git diff --cached --quiet && exit 0
+          git commit -m "chore: add Maven wrapper"
+          git push origin HEAD:feat/m0a-api-bootstrap
