@@ -8,9 +8,6 @@ updates:
       time: "06:15"
       timezone: Europe/Berlin
     open-pull-requests-limit: 5
-    labels:
-      - dependencies
-      - java
     groups:
       maven-minor-patch:
         applies-to: version-updates
@@ -28,9 +25,6 @@ updates:
       time: "06:30"
       timezone: Europe/Berlin
     open-pull-requests-limit: 5
-    labels:
-      - dependencies
-      - javascript
     groups:
       npm-minor-patch:
         applies-to: version-updates
@@ -48,9 +42,6 @@ updates:
       time: "06:45"
       timezone: Europe/Berlin
     open-pull-requests-limit: 5
-    labels:
-      - dependencies
-      - github-actions
     groups:
       actions-minor-patch:
         applies-to: version-updates
