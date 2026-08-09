@@ -38,7 +38,7 @@ Target rules for `main`:
 - no mandatory second-human approval while the project has one maintainer;
 - administrators should normally follow the same rules rather than silently bypass them.
 
-Required checks are activated only after they have completed successfully at least once in the repository. Current/target check families are:
+Required checks are activated only after they have completed successfully at least once in the repository. The currently enforced baseline is:
 
 - `API CI`;
 - `Contract CI`;
@@ -46,8 +46,9 @@ Required checks are activated only after they have completed successfully at lea
 - `Web E2E`;
 - CodeQL Java;
 - CodeQL JavaScript/TypeScript;
-- `Dependency Review` once GitHub Dependency Graph is operational;
-- future container/release checks after their workflows are proven.
+- `Dependency Review`.
+
+`Release Bundle CI` is now a **proven successful check candidate**: it builds the production API/web images and executes the full PostgreSQL → API → web Compose topology. It should be added to `main` required checks once the repository ruleset is updated and that setting is independently verified. Until then, documentation must not describe it as already enforced by the ruleset.
 
 ## Branch lifecycle
 
@@ -67,6 +68,8 @@ Default workflow permissions should be read-only. A workflow receives write perm
 Third-party and GitHub-owned actions should ultimately be pinned by full commit SHA in permanent security-sensitive workflows. Dependabot for `github-actions` keeps those pins reviewable and current.
 
 Do not grant workflows permission to approve pull requests.
+
+`Release Bundle CI` follows the normal read-only workflow baseline. Future versioned publishing is a separate workflow boundary and may receive package/attestation write permissions only where publishing actually requires them; those permissions must not be moved into ordinary PR CI.
 
 ## Security features
 
@@ -107,17 +110,27 @@ Repository visibility and software licensing are separate decisions. The reposit
 
 ## Releases and packages
 
-The approved next release-engineering direction is:
+The production container topology is now implemented and verified in PR CI:
+
+- separate production `api` and `web` images;
+- Next.js standalone runtime;
+- a no-source-build Compose definition for `web + api + PostgreSQL 18.4`;
+- persistent PostgreSQL named volume;
+- explicit health/readiness dependencies;
+- API kept internal to the Compose network while the web port is host-published;
+- automated exact-topology startup/smoke verification with failure diagnostics.
+
+The remaining approved versioned release-engineering direction is:
 
 - versioned GitHub Releases;
 - prebuilt `api` and `web` OCI images published to GitHub Container Registry;
 - multi-platform `linux/amd64` and `linux/arm64` images;
-- a release Compose bundle that starts `web + api + PostgreSQL` without local builds;
-- release verification against the exact container set that users will run;
+- a release-specific Compose asset pinned to immutable application-image digests;
+- release verification against the exact published container set that users will run;
 - vulnerability scanning, SBOM, provenance/attestation, and immutable image digests;
 - prereleases do not update the stable `latest` tag.
 
-This design is specified separately before implementation and is not considered implemented merely because it is documented here.
+The local/CI container baseline must not be confused with a consumable public release: GHCR publication and release-specific supply-chain evidence remain incomplete until a separately verified release workflow lands.
 
 ## Audit cadence
 
