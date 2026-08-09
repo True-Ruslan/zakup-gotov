@@ -10,12 +10,18 @@
 
 <!-- What is intentionally not included? -->
 
-## Verification
+## TDD / verification evidence
 
-- [ ] Automated tests added/updated where applicable
-- [ ] Relevant test suites pass
+- [ ] Behavioral changes were developed RED -> GREEN -> REFACTOR where applicable
+- [ ] The new/changed test was observed failing for the expected reason before production implementation
+- [ ] Focused tests pass
+- [ ] Relevant regression suites pass
+- [ ] Build/static checks pass
 - [ ] Provider fixtures/contracts updated if integration behavior changed
-- [ ] UI changes checked on desktop and mobile widths where applicable
+- [ ] Critical browser/responsive tests updated where applicable
+- [ ] Any remaining manual verification is documented with why reliable automation is not reasonable
+
+<!-- Include exact commands/checks and relevant results. -->
 
 ## Security / privacy
 
@@ -25,8 +31,11 @@
 ## Documentation
 
 - [ ] API/OpenAPI updated if the public contract changed
-- [ ] ADR/spec/roadmap/state/changelog updated where the change affects them
+- [ ] ADR/spec/plan updated if a decision or implementation contract changed
+- [ ] `docs/PROJECT_STATE.md` reflects current repository truth where applicable
+- [ ] `docs/ROADMAP.md` reflects planning changes where applicable
+- [ ] `CHANGELOG.md` records notable changes under `[Unreleased]`
 
 ## Related work
 
-<!-- Issue, ADR, spec, discussion, or context. -->
+<!-- Issue, ADR, spec, plan, discussion, or context. -->
