@@ -52,7 +52,10 @@ The format follows the spirit of Keep a Changelog and semantic versioning will b
 - Production multi-stage Docker images for the Java API and Next.js standalone web runtime, both running as non-root users.
 - `compose.release.yaml` no-source-build production topology for PostgreSQL 18.4 → API → web with persistent database storage and health/readiness dependencies.
 - `Release Bundle CI` and `./scripts/verify-release-bundle.sh`, which build both application images, start the complete container topology, wait for health, smoke-test API/web boundaries, and emit Compose diagnostics on failure.
-- `docs/RELEASES.md` documenting the verified container bundle and explicitly separating it from the still-pending versioned GHCR publication workflow.
+- `docs/RELEASES.md` documenting the verified container bundle and explicitly separating it from the versioned GHCR publication workflow.
+- `Release Contract CI` and `scripts/release/release_contract.py`, providing read-only PR verification for strict SemVer/prerelease rules, lower-case GHCR names, digest-only release Compose rendering, immutable release dependencies, and release-workflow trust ordering.
+- `scripts/release/verify-published-release.sh`, which rejects mutable/local-build release Compose files and smoke-tests the exact digest-pinned images pulled from the registry.
+- Versioned `release: published` workflow implementing source verification, `linux/amd64` + `linux/arm64` GHCR candidate builds, per-platform Trivy vulnerability gates and SPDX SBOMs, exact-digest Compose smoke verification, GitHub attestations, no-rebuild digest promotion, stable-only `latest`, manifest verification, checksums, and GitHub Release evidence assets.
 
 ### Changed
 
@@ -87,6 +90,9 @@ The format follows the spirit of Keep a Changelog and semantic versioning will b
 - Next.js production output now uses standalone mode with monorepo tracing configured so the runtime image contains only the server/runtime artifacts needed by the web container.
 - The release Compose topology publishes only the web port by default; API and PostgreSQL remain on the internal Compose network, while web health verifies real API reachability through runtime `API_BASE_URL`.
 - Container-bundle verification is a distinct gate from source/unit/build verification so a healthy source build cannot mask broken Docker/Compose behavior.
+- Versioned release publication now uses candidate image digests as the security boundary: scan, SBOM, exact-bundle smoke verification, and attestation happen before version-tag promotion, and promotion copies the verified image index without rebuild.
+- Stable and prerelease semantics are explicit: a GitHub prerelease must use a SemVer prerelease tag and can never update `latest`; stable releases may update `latest` only after the same verification path succeeds.
+- Release verification is intentionally split between read-only PR contract tests and the write-capable release-event workflow so package/OIDC permissions are never granted to ordinary pull-request CI.
 
 ### Fixed
 
@@ -119,4 +125,6 @@ The format follows the spirit of Keep a Changelog and semantic versioning will b
 - Default GitHub Actions workflow token permissions are read-only and workflows cannot approve pull requests.
 - No dependency update was allowed to weaken the pnpm minimum-release-age policy, required status checks, CodeQL, Dependency Review, contract generation, linting, or browser verification in order to become mergeable.
 - Application container runtimes use non-root users, Compose requires the database password at runtime instead of committing one, and only the web service is host-published by default.
-- `Release Bundle CI` remains read-only; future GHCR/package and attestation write permissions are reserved for a separate versioned release workflow rather than broadening ordinary pull-request CI.
+- `Release Bundle CI` and `Release Contract CI` remain read-only; package and OIDC write permissions exist only on the downstream release-publish job after read-only release verification succeeds.
+- Release Docker/GitHub Actions are pinned to full commit SHAs, and the QEMU binfmt and BuildKit helper images are additionally pinned by digest to avoid mutable helper-image drift.
+- Both target image architectures are scanned for `HIGH` and `CRITICAL` vulnerabilities before version promotion, and release consumers are bound to immutable application-image digests through the attached Compose asset.
