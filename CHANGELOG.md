@@ -32,6 +32,12 @@ The format follows the spirit of Keep a Changelog and semantic versioning will b
 - Generated `@zakup-gotov/api-client` TypeScript package using `openapi-typescript` + `openapi-fetch`.
 - Committed generated API schema and deterministic root `pnpm-lock.yaml`.
 - Read-only `Contract CI` that verifies pinned Node/pnpm, frozen dependency installation, generated-schema drift, strict typecheck, Vitest, and package build.
+- Responsive Next.js 16.2 / React 19.2 web application scaffold linked to the shared API-client workspace package.
+- Honest M0 landing shell that states retailer integrations and price freshness are still being validated instead of presenting unavailable comparison functionality.
+- Vitest + Testing Library component test for the web shell.
+- Playwright production-browser coverage for desktop and mobile viewports, horizontal-overflow protection, and keyboard-focus visibility.
+- Read-only `Web CI` covering frozen dependency installation, shared-client build, ESLint, TypeScript, component tests, production Next.js build, and responsive Chromium E2E.
+- Next.js build-cache persistence through GitHub Actions.
 
 ### Changed
 
@@ -43,14 +49,20 @@ The format follows the spirit of Keep a Changelog and semantic versioning will b
 - Test JVM explicitly enables native access required by Testcontainers/JNA on Java 25 to avoid unsupported-access warning noise.
 - TypeScript for the generated API-client toolchain is pinned to compatible 5.9.3 after CI proved that TypeScript 7.0.2 violates `openapi-typescript 7.13.0`'s supported peer range.
 - Permanent Contract CI installs exact pnpm 11.4.0 after Node setup instead of using `pnpm/action-setup`, removing the known PNPM_HOME layout warning while keeping the toolchain pin explicit.
+- pnpm supply-chain policy explicitly allows only the `sharp` and `unrs-resolver` dependency build scripts required by the generated Next.js toolchain; global build-script bypasses remain disabled.
+- The generated nested web pnpm workspace file was removed so the repository has one authoritative workspace root and Next.js no longer reports ambiguous workspace-root detection.
+- The default generated Geist webfont was replaced with a reliable Cyrillic-capable system UI font stack until typography is explicitly decided as part of the design system.
+- Next.js anonymous telemetry is disabled in CI.
 
 ### Fixed
 
 - Corrected the Spring Boot 4 Flyway wiring after the persistence test proved that adding Flyway libraries alone did not activate Boot's separated Flyway auto-configuration module; the project now uses `spring-boot-starter-flyway` plus the PostgreSQL Flyway module.
 - Corrected Spring Boot 4 MVC test wiring by adding the focused `spring-boot-starter-webmvc-test` test module after the first controller test compile attempt exposed the split test auto-configuration.
+- Corrected the initial web-test dependency updater to operate from the root pnpm workspace after local-directory installation could not resolve the shared workspace protocol package.
+- Removed an unused-variable lint warning from the initial component test rather than accepting warning noise.
 
 ### Security
 
 - Established security-reporting and secret/privacy handling policy; broader repository security automation will be activated during M0A.
 - Production database credentials are required through external environment configuration and are not stored in source control.
-- Contract CI uses read-only repository permissions and verifies the lockfile through pnpm's supply-chain policy check during frozen installation.
+- Contract CI and Web CI use read-only repository permissions and verify the lockfile through pnpm's supply-chain policy check during frozen installation.
