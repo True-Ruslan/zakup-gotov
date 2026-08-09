@@ -24,6 +24,7 @@ class ReleaseMetadataTest(unittest.TestCase):
                 stable=True,
                 version_tag="1.2.3",
                 candidate_tag=f"candidate-{'a' * 40}",
+                verified_tag=f"verified-{'a' * 40}",
                 publish_latest=True,
             ),
         )
@@ -169,26 +170,28 @@ class PublishingWorkflowContractTest(unittest.TestCase):
         self.assertNotIn("tonistiigi/binfmt:latest", workflow)
         self.assertNotIn("moby/buildkit:buildx-stable-1", workflow)
 
-    def test_verification_and_security_gates_precede_final_publication(self):
+    def test_verification_and_security_gates_precede_version_publication(self):
         workflow = self._workflow()
 
         build_position = workflow.index("Build and push API candidate")
         scan_position = workflow.index(
             "Scan API candidate for HIGH/CRITICAL vulnerabilities on amd64"
         )
-        candidate_smoke_position = workflow.index("Verify staging candidate bundle")
-        promote_position = workflow.index("Promote verified digests to release version")
-        final_smoke_position = workflow.index("Verify exact promoted release bundle")
+        staging_smoke_position = workflow.index("Verify staging candidate bundle")
+        copy_position = workflow.index("Copy verified digests into final packages")
+        final_smoke_position = workflow.index("Verify exact final-package candidate bundle")
         attest_position = workflow.index("Attest final API provenance")
+        version_position = workflow.index("Promote verified final digests to release version")
         latest_position = workflow.index("Promote stable release to latest")
         upload_position = workflow.index("Attach verified release assets")
 
         self.assertLess(build_position, scan_position)
-        self.assertLess(scan_position, candidate_smoke_position)
-        self.assertLess(candidate_smoke_position, promote_position)
-        self.assertLess(promote_position, final_smoke_position)
+        self.assertLess(scan_position, staging_smoke_position)
+        self.assertLess(staging_smoke_position, copy_position)
+        self.assertLess(copy_position, final_smoke_position)
         self.assertLess(final_smoke_position, attest_position)
-        self.assertLess(attest_position, latest_position)
+        self.assertLess(attest_position, version_position)
+        self.assertLess(version_position, latest_position)
         self.assertLess(latest_position, upload_position)
 
     def test_latest_promotion_is_explicitly_conditional(self):
@@ -205,6 +208,8 @@ class PublishingWorkflowContractTest(unittest.TestCase):
         self.assertIn("steps.release.outputs.web_candidate", workflow)
         self.assertIn("steps.release.outputs.api_staging_image", workflow)
         self.assertIn("steps.release.outputs.web_staging_image", workflow)
+        self.assertIn("steps.release.outputs.api_verified_candidate", workflow)
+        self.assertIn("steps.release.outputs.web_verified_candidate", workflow)
 
 
 if __name__ == "__main__":
