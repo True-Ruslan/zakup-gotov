@@ -19,11 +19,17 @@ The format follows the spirit of Keep a Changelog and semantic versioning will b
 - Security, contribution, and conduct policies.
 - Structured pull request and issue templates.
 - M0A toolchain/workspace baseline: Java 25, Node.js 24 LTS, pnpm 11 workspace, repository text/ignore rules, and ADR-0002 for build tooling.
+- First executable API foundation on Spring Boot 4.1 / Java 25 with Virtual Threads enabled and Actuator health exposure.
+- Spring Modulith architecture verification test and Spring application-context bootstrap test.
+- Apache Maven Wrapper 3.3.4 generated from the official plugin with Maven 3.9.16 pinned.
+- Early `API CI` workflow verifying Java 25, the pinned Maven Wrapper, and backend tests on every affected pull request/main change.
 
 ### Changed
 
 - Foundation architecture was approved on 2026-08-09.
 - Project execution entered M0A Platform Foundation before retailer feasibility work.
+- API bootstrap dependencies were reduced after regression evidence exposed unnecessary zero-module Modulith runtime and unused Mockito warning noise.
+- API CI was introduced earlier than the original M0A sequencing so backend TDD could be proven on the exact Java 25 toolchain instead of inferred from an incompatible local runtime.
 
 ### Fixed
 
@@ -31,4 +37,4 @@ The format follows the spirit of Keep a Changelog and semantic versioning will b
 
 ### Security
 
-- Established security-reporting and secret/privacy handling policy; repository security automation will be activated during M0A.
+- Established security-reporting and secret/privacy handling policy; broader repository security automation will be activated during M0A.
