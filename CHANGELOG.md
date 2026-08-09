@@ -12,13 +12,17 @@ The format follows the spirit of Keep a Changelog and semantic versioning will b
 
 - Initial public repository.
 - Foundation product and architecture specification.
-- Platform stack ADR.
-- Initial project state and roadmap.
+- Accepted platform stack ADR.
+- Initial project state and evidence-driven roadmap.
+- M0A Platform Foundation implementation plan.
+- Engineering policy defining mandatory TDD, evidence-based verification, automation-first testing, documentation synchronization, clean Git/PR discipline, and changelog maintenance.
 - Security, contribution, and conduct policies.
+- Structured pull request and issue templates.
 
 ### Changed
 
-- Nothing yet.
+- Foundation architecture was approved on 2026-08-09.
+- Project execution is now entering M0A Platform Foundation before retailer feasibility work.
 
 ### Fixed
 
@@ -26,4 +30,4 @@ The format follows the spirit of Keep a Changelog and semantic versioning will b
 
 ### Security
 
-- Nothing yet.
+- Established security-reporting and secret/privacy handling policy; repository security automation will be activated during M0A.
