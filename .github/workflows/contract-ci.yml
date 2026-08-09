@@ -33,16 +33,13 @@ jobs:
       - name: Check out repository
         uses: actions/checkout@v6
 
-      - name: Set up pnpm
-        uses: pnpm/action-setup@v6
-        with:
-          standalone: true
-          cache: true
-
       - name: Set up Node 24
         uses: actions/setup-node@v6
         with:
           node-version-file: .nvmrc
+
+      - name: Install pinned pnpm
+        run: npm install --global pnpm@11.4.0
 
       - name: Verify toolchain
         run: |
