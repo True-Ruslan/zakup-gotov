@@ -51,7 +51,7 @@ services:
           "CMD",
           "node",
           "-e",
-          "fetch('http://127.0.0.1:3000/').then(r => { if (!r.ok) process.exit(1) }).catch(() => process.exit(1))",
+          "Promise.all([fetch('http://127.0.0.1:3000/'), fetch(new URL('/api/v1/system', process.env.API_BASE_URL))]).then(rs => { if (rs.some(r => !r.ok)) process.exit(1) }).catch(() => process.exit(1))",
         ]
       interval: 5s
       timeout: 3s
