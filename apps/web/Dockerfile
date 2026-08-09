@@ -30,7 +30,6 @@ RUN groupadd --system --gid 1001 nextjs \
     && useradd --system --uid 1001 --gid nextjs nextjs
 
 COPY --from=build --chown=nextjs:nextjs /workspace/apps/web/.next/standalone ./
-COPY --from=build --chown=nextjs:nextjs /workspace/apps/web/.next/static /app/.next/static
 COPY --from=build --chown=nextjs:nextjs /workspace/apps/web/.next/static /app/apps/web/.next/static
 
 USER nextjs
