@@ -76,6 +76,10 @@ The format follows the spirit of Keep a Changelog and semantic versioning will b
 - Web-specific ignore rules were centralized into the root `.gitignore` so the monorepo has one authoritative ignore policy.
 - Repository merge policy is now squash-only; merge commits and rebase merge are disabled, auto-merge/update-branch are enabled, and merged source branches are deleted automatically.
 - Historical merged branches were removed so the steady state is `main` plus active pull-request branches only.
+- The first dependency-maintenance cycle upgraded `actions/cache` to 6.1.0, `actions/checkout` to 7.0.1, `actions/setup-node` to 7.0.0, and `dependency-review-action` to 5.0.0 using immutable full-SHA pins and the complete required-check gate.
+- The web dependency baseline advanced to Next.js 16.3.0, React/React DOM 19.2.8, and `eslint-config-next` 16.3.0 after a refreshed full CI/security run including production Web E2E.
+- `main` merge protection is actively enforcing the seven proven required checks; maintenance merges were blocked while checks were stale or missing and admitted only after refresh plus a full pass.
+- Incompatible automated major updates are intentionally deferred instead of bypassing quality gates: TypeScript 7.0.2 breaks the current OpenAPI generator, ESLint 10 breaks the current lint configuration, and `@types/node` 26 is deferred while the runtime remains Node 24.
 
 ### Fixed
 
@@ -86,6 +90,8 @@ The format follows the spirit of Keep a Changelog and semantic versioning will b
 - Corrected `PROJECT_STATE.md` references that still described already-merged PR #7 and the pre-Task-8 repository state as current.
 - Removed the future protected-branch deadlock risk caused by path-filtered required-check candidates.
 - Removed stale `create-next-app` README content that advertised unsupported npm/yarn/bun workflows, Geist usage, and Vercel deployment after the project had already chosen different repository conventions.
+- Corrected the Dependency Review v5 immutable-pin annotation so the human-readable workflow comment matches the actual pinned action release.
+- Closed the obsolete Next.js 16.2.11 dependency PR after the verified 16.3.0 update superseded it.
 
 ### Security
 
@@ -102,3 +108,4 @@ The format follows the spirit of Keep a Changelog and semantic versioning will b
 - Secret scanning and secret-scanning push protection are enabled.
 - Private vulnerability reporting is enabled for confidential security reports.
 - Default GitHub Actions workflow token permissions are read-only and workflows cannot approve pull requests.
+- No dependency update was allowed to weaken the pnpm minimum-release-age policy, required status checks, CodeQL, Dependency Review, contract generation, linting, or browser verification in order to become mergeable.
