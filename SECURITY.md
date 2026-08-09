@@ -39,6 +39,22 @@ The repository uses GitHub-native Dependency Review, Dependabot, secret scanning
 
 Production container topology is exercised by `Release Bundle CI` with read-only repository permissions. The release Compose file requires externally supplied application-image references and a database password; it contains no real committed secret and publishes only the web service to the host by default.
 
-Versioned public release publishing is intentionally a separate trust boundary. When implemented, only that release workflow may receive the narrowly required package/attestation write permissions. It must produce immutable application-image digests, vulnerability-scan results, SBOM, source/build provenance or equivalent attestations, and a tested release-specific Compose bundle before a release is considered consumable.
+Versioned publishing is a separate trust boundary:
 
-Do not weaken required checks, dependency freshness policy, vulnerability thresholds, or image verification merely to make a release publish. Any security exception must be explicit, narrow, justified, and reviewable.
+- ordinary pull-request and source-verification workflows remain read-only;
+- `Release / Verify` remains read-only and reruns source, browser, and container verification for the tagged commit;
+- only `Release / Publish`, after verification succeeds, receives the narrowly scoped `contents: write`, `packages: write`, `attestations: write`, and `id-token: write` permissions needed for release publication;
+- Docker/GitHub Actions in the release path use immutable full commit SHAs;
+- QEMU binfmt and BuildKit helper images are pinned by digest rather than mutable helper tags;
+- candidate application images are built before public version-tag promotion;
+- both `linux/amd64` and `linux/arm64` variants are scanned for `HIGH` and `CRITICAL` vulnerabilities before promotion;
+- the exact candidate digests are rendered into Compose and smoke-tested before promotion;
+- version tags are created from the already verified digests without rebuild;
+- prereleases are contractually prevented from updating `latest`;
+- BuildKit/GitHub provenance and SBOM/scan evidence are retained with the release.
+
+The versioned workflow is implemented and statically/TDD verified in pull-request CI, but its registry/OIDC behavior is not considered proven until the first real published prerelease succeeds.
+
+GHCR publication does not by itself prove anonymous public pull access. Package visibility must be verified explicitly after first publication before documentation promises a publicly consumable image.
+
+Do not weaken required checks, dependency freshness policy, vulnerability thresholds, image verification, provenance/attestation requirements, or exact-digest smoke tests merely to make a release publish. Any security exception must be explicit, narrow, justified, and reviewable.
