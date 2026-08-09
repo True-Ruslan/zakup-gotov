@@ -1,9 +1,7 @@
 name: Generate API Client Artifacts
 
 on:
-  push:
-    branches:
-      - feat/m0a-api-contract
+  pull_request:
     paths:
       - ".github/workflows/generate-api-client.yml"
 
@@ -12,9 +10,10 @@ permissions:
 
 jobs:
   generate:
+    if: github.repository == 'True-Ruslan/zakup-gotov' && github.head_ref == 'feat/m0a-api-contract'
     runs-on: ubuntu-latest
     steps:
-      - name: Check out branch
+      - name: Check out source branch
         uses: actions/checkout@v6
         with:
           ref: feat/m0a-api-contract
