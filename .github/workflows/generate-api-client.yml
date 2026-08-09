@@ -1,0 +1,47 @@
+name: Generate API Client Artifacts
+
+on:
+  push:
+    branches:
+      - feat/m0a-api-contract
+    paths:
+      - ".github/workflows/generate-api-client.yml"
+
+permissions:
+  contents: write
+
+jobs:
+  generate:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out branch
+        uses: actions/checkout@v6
+        with:
+          ref: feat/m0a-api-contract
+
+      - name: Set up pnpm 11.4.0
+        uses: pnpm/action-setup@v4
+        with:
+          version: 11.4.0
+          run_install: false
+
+      - name: Set up Node 24
+        uses: actions/setup-node@v6
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+
+      - name: Install workspace dependencies
+        run: pnpm install --no-frozen-lockfile
+
+      - name: Generate TypeScript schema
+        run: pnpm --filter @zakup-gotov/api-client generate
+
+      - name: Commit generated artifacts
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add pnpm-lock.yaml packages/api-client/src/schema.d.ts
+          git diff --cached --quiet && exit 0
+          git commit -m "chore: generate API client schema"
+          git push origin HEAD:feat/m0a-api-contract
