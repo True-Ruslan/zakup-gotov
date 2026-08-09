@@ -1,0 +1,58 @@
+name: Add Web Test Dependencies
+
+on:
+  pull_request:
+    paths:
+      - ".github/workflows/add-web-test-deps.yml"
+
+permissions:
+  contents: write
+
+jobs:
+  update:
+    if: github.repository == 'True-Ruslan/zakup-gotov' && github.head_ref == 'feat/m0a-web-shell'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out source branch
+        uses: actions/checkout@v6
+        with:
+          ref: feat/m0a-web-shell
+
+      - name: Set up Node 24
+        uses: actions/setup-node@v6
+        with:
+          node-version-file: .nvmrc
+
+      - name: Install pinned pnpm
+        run: npm install --global pnpm@11.4.0
+
+      - name: Install web test dependencies
+        run: |
+          pnpm --dir apps/web add --save-dev \
+            vitest@4.1.10 \
+            @vitejs/plugin-react@latest \
+            jsdom@latest \
+            @testing-library/react@latest \
+            @playwright/test@latest
+
+      - name: Add test scripts
+        run: |
+          node - <<'NODE'
+          const fs = require('fs');
+          const path = 'apps/web/package.json';
+          const pkg = JSON.parse(fs.readFileSync(path, 'utf8'));
+          pkg.scripts.test = 'vitest run';
+          pkg.scripts.typecheck = 'tsc --noEmit';
+          pkg.scripts['test:e2e'] = 'playwright test';
+          fs.writeFileSync(path, JSON.stringify(pkg, null, 2) + '\n');
+          NODE
+          pnpm install --no-frozen-lockfile
+
+      - name: Commit package and lockfile
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add apps/web/package.json pnpm-lock.yaml
+          git diff --cached --quiet && exit 0
+          git commit -m "chore: add web test toolchain"
+          git push origin HEAD:feat/m0a-web-shell
