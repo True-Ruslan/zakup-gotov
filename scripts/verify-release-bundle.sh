@@ -25,10 +25,19 @@ WEB_IMAGE="${WEB_IMAGE:-zakup-gotov-web:ci}"
 POSTGRES_PASSWORD="${POSTGRES_PASSWORD:-release-ci-password}"
 export API_IMAGE WEB_IMAGE POSTGRES_PASSWORD
 
-cleanup() {
+on_exit() {
+  local status=$?
+
+  if (( status != 0 )); then
+    echo "release bundle verification failed; collecting compose diagnostics" >&2
+    docker compose -f compose.release.yaml ps --all || true
+    docker compose -f compose.release.yaml logs --no-color || true
+  fi
+
   docker compose -f compose.release.yaml down --volumes --remove-orphans >/dev/null 2>&1 || true
+  exit "$status"
 }
-trap cleanup EXIT
+trap on_exit EXIT
 
 docker build --tag "$API_IMAGE" --file apps/api/Dockerfile .
 docker build --tag "$WEB_IMAGE" --file apps/web/Dockerfile .
