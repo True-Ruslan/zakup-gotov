@@ -5,6 +5,7 @@
 [![API CI](https://github.com/True-Ruslan/zakup-gotov/actions/workflows/api-ci.yml/badge.svg)](https://github.com/True-Ruslan/zakup-gotov/actions/workflows/api-ci.yml)
 [![Contract CI](https://github.com/True-Ruslan/zakup-gotov/actions/workflows/contract-ci.yml/badge.svg)](https://github.com/True-Ruslan/zakup-gotov/actions/workflows/contract-ci.yml)
 [![Web CI](https://github.com/True-Ruslan/zakup-gotov/actions/workflows/web-ci.yml/badge.svg)](https://github.com/True-Ruslan/zakup-gotov/actions/workflows/web-ci.yml)
+[![Release Bundle CI](https://github.com/True-Ruslan/zakup-gotov/actions/workflows/release-bundle-ci.yml/badge.svg)](https://github.com/True-Ruslan/zakup-gotov/actions/workflows/release-bundle-ci.yml)
 
 **Status:** M0 — Product & Integration Discovery · **pre-release**
 
@@ -51,13 +52,14 @@ Zakup Gotov — сервис, который должен превращать �
 - Spring Modulith architecture verification;
 - OpenAPI 3.1 как источник клиентского контракта;
 - генерируемый TypeScript API client;
-- Next.js 16 / React 19 responsive web shell;
+- Next.js 16.3 / React 19.2 responsive web shell;
 - Testcontainers с настоящим PostgreSQL;
 - Vitest + Testing Library + Playwright desktop/mobile;
 - безопасный Actuator health/readiness baseline;
-- воспроизводимый `./scripts/verify.sh`.
+- воспроизводимый `./scripts/verify.sh`;
+- production Docker images для API/web и no-source-build `web + api + PostgreSQL` Compose topology, проверяемая отдельным `Release Bundle CI`.
 
-**Ещё не реализованы:** retailer integrations, shopping-list domain, recipes, matching, basket optimization, auth и native mobile. Это запланированные этапы, а не скрытые незавершённые функции.
+**Ещё не реализованы:** реальные retailer integrations, shopping-list domain, recipes, matching, basket optimization, auth и native mobile. Также пока не опубликован versioned GHCR release с multi-platform images, immutable release digests, SBOM, vulnerability report и provenance/attestation.
 
 Фактический статус всегда фиксируется в [`docs/PROJECT_STATE.md`](docs/PROJECT_STATE.md).
 
@@ -74,9 +76,13 @@ pnpm install --frozen-lockfile
 
 Команда не пропускает молча недоступный Docker/Testcontainers, drift сгенерированного OpenAPI-клиента, type checks, tests или production builds.
 
-Полная настройка окружения, focused-команды и Playwright: [`docs/DEVELOPMENT.md`](docs/DEVELOPMENT.md).
+Контейнерную production topology можно отдельно проверить тем же executable contract, что используется в CI:
 
-> Готовый `docker compose` релиз без локальной сборки — утверждённое направление release engineering и будет добавлен отдельным этапом после repository baseline.
+```bash
+./scripts/verify-release-bundle.sh
+```
+
+Полная настройка окружения и focused-команды: [`docs/DEVELOPMENT.md`](docs/DEVELOPMENT.md). Контейнерный/release contract и граница между уже проверенным bundle и ещё не реализованным GHCR publishing: [`docs/RELEASES.md`](docs/RELEASES.md).
 
 ## Архитектура
 
@@ -127,6 +133,7 @@ pnpm install --frozen-lockfile
 | Что делаем дальше | [`ROADMAP.md`](docs/ROADMAP.md) |
 | Карта всей документации | [`docs/README.md`](docs/README.md) |
 | Разработка и локальная проверка | [`DEVELOPMENT.md`](docs/DEVELOPMENT.md) |
+| Контейнеры и релизы | [`RELEASES.md`](docs/RELEASES.md) |
 | Инженерные правила | [`ENGINEERING.md`](docs/ENGINEERING.md) |
 | Repository governance | [`REPOSITORY_GOVERNANCE.md`](docs/REPOSITORY_GOVERNANCE.md) |
 | Observability / privacy rules | [`OBSERVABILITY.md`](docs/OBSERVABILITY.md) |
@@ -137,7 +144,7 @@ pnpm install --frozen-lockfile
 
 ## Roadmap
 
-- **M0A — Platform Foundation:** завершаем security/governance/release-ready repository baseline.
+- **M0A — Platform Foundation:** завершаем versioned GHCR/supply-chain release engineering и финальную проверку платформы.
 - **M0B — Retailer Feasibility:** доказываем минимум две технически и юридически приемлемые интеграции.
 - **M1 — Shopping Core**
 - **M2 — Recipes**
