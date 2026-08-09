@@ -291,24 +291,24 @@ jobs:
       - name: Verify staging candidate bundle
         run: bash scripts/release/verify-published-release.sh dist/compose.candidate.yaml
 
-      - name: Promote verified digests to release version
+      - name: Copy verified digests into final packages
         run: |
           set -euo pipefail
 
           docker buildx imagetools create \
-            --tag "${{ steps.release.outputs.api_image }}:${{ steps.release.outputs.version_tag }}" \
-            --metadata-file dist/api-promotion.json \
+            --tag "${{ steps.release.outputs.api_verified_candidate }}" \
+            --metadata-file dist/api-final-copy.json \
             "${{ steps.release.outputs.api_staging_image }}@${{ steps.api-build.outputs.digest }}"
 
           docker buildx imagetools create \
-            --tag "${{ steps.release.outputs.web_image }}:${{ steps.release.outputs.version_tag }}" \
-            --metadata-file dist/web-promotion.json \
+            --tag "${{ steps.release.outputs.web_verified_candidate }}" \
+            --metadata-file dist/web-final-copy.json \
             "${{ steps.release.outputs.web_staging_image }}@${{ steps.web-build.outputs.digest }}"
 
-          test "$(jq -r '."containerimage.descriptor".digest' dist/api-promotion.json)" = "${{ steps.api-build.outputs.digest }}"
-          test "$(jq -r '."containerimage.descriptor".digest' dist/web-promotion.json)" = "${{ steps.web-build.outputs.digest }}"
+          test "$(jq -r '."containerimage.descriptor".digest' dist/api-final-copy.json)" = "${{ steps.api-build.outputs.digest }}"
+          test "$(jq -r '."containerimage.descriptor".digest' dist/web-final-copy.json)" = "${{ steps.web-build.outputs.digest }}"
 
-      - name: Render digest-pinned release Compose
+      - name: Render digest-pinned final-package Compose
         run: |
           set -euo pipefail
           python3 scripts/release/release_contract.py render-compose \
@@ -317,7 +317,7 @@ jobs:
             --api-ref "${{ steps.release.outputs.api_image }}@${{ steps.api-build.outputs.digest }}" \
             --web-ref "${{ steps.release.outputs.web_image }}@${{ steps.web-build.outputs.digest }}"
 
-      - name: Verify exact promoted release bundle
+      - name: Verify exact final-package candidate bundle
         run: bash scripts/release/verify-published-release.sh dist/compose.release.yaml
 
       - name: Attest final API provenance
@@ -333,6 +333,23 @@ jobs:
           subject-name: ${{ steps.release.outputs.web_image }}
           subject-digest: ${{ steps.web-build.outputs.digest }}
           push-to-registry: true
+
+      - name: Promote verified final digests to release version
+        run: |
+          set -euo pipefail
+
+          docker buildx imagetools create \
+            --tag "${{ steps.release.outputs.api_image }}:${{ steps.release.outputs.version_tag }}" \
+            --metadata-file dist/api-promotion.json \
+            "${{ steps.release.outputs.api_image }}@${{ steps.api-build.outputs.digest }}"
+
+          docker buildx imagetools create \
+            --tag "${{ steps.release.outputs.web_image }}:${{ steps.release.outputs.version_tag }}" \
+            --metadata-file dist/web-promotion.json \
+            "${{ steps.release.outputs.web_image }}@${{ steps.web-build.outputs.digest }}"
+
+          test "$(jq -r '."containerimage.descriptor".digest' dist/api-promotion.json)" = "${{ steps.api-build.outputs.digest }}"
+          test "$(jq -r '."containerimage.descriptor".digest' dist/web-promotion.json)" = "${{ steps.web-build.outputs.digest }}"
 
       - name: Promote stable release to latest
         if: steps.release.outputs.publish_latest == 'true'
