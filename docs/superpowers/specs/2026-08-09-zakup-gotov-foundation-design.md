@@ -1,7 +1,8 @@
 # Zakup Gotov — Foundation Design
 
 Date: 2026-08-09
-Status: Proposed for foundation approval
+Status: Approved
+Approved: 2026-08-09
 
 ## 1. Goal
 
@@ -403,7 +404,7 @@ Rejected because the domain boundaries and scaling needs are not yet proven. The
 
 ## 17. Acceptance criteria for foundation approval
 
-The foundation is approved when:
+The foundation is approved because:
 
 - product promise and initial user journey are agreed;
 - modular-monolith architecture is accepted;
@@ -413,8 +414,8 @@ The foundation is approved when:
 - REST/OpenAPI is accepted as the client contract;
 - provider adapters are accepted as the core external-integration boundary;
 - M0 explicitly prioritizes provider feasibility over recipe feature implementation;
-- no unresolved architectural blocker remains before writing the implementation plan.
+- no unresolved architectural blocker remains before implementation planning.
 
 ## 18. Recommended next step
 
-After this specification is reviewed and approved, write a detailed implementation plan for M0. The first executable work should establish repository quality gates and build an integration feasibility harness, not the complete application UI.
+Execute the approved M0A Platform Foundation implementation plan task-by-task under `docs/ENGINEERING.md`. M0B retailer feasibility follows only after M0A is verified.
