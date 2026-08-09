@@ -1,0 +1,118 @@
+name: Web CI
+
+on:
+  pull_request:
+    paths:
+      - "apps/web/**"
+      - "packages/api-client/**"
+      - "openapi/**"
+      - "package.json"
+      - "pnpm-lock.yaml"
+      - "pnpm-workspace.yaml"
+      - ".nvmrc"
+      - ".github/workflows/web-ci.yml"
+  push:
+    branches:
+      - main
+    paths:
+      - "apps/web/**"
+      - "packages/api-client/**"
+      - "openapi/**"
+      - "package.json"
+      - "pnpm-lock.yaml"
+      - "pnpm-workspace.yaml"
+      - ".nvmrc"
+      - ".github/workflows/web-ci.yml"
+
+permissions:
+  contents: read
+
+env:
+  NEXT_TELEMETRY_DISABLED: "1"
+
+jobs:
+  verify:
+    name: Web CI
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v6
+
+      - name: Set up Node 24
+        uses: actions/setup-node@v6
+        with:
+          node-version-file: .nvmrc
+
+      - name: Install pinned pnpm
+        run: npm install --global pnpm@11.4.0
+
+      - name: Verify toolchain
+        run: |
+          set -euo pipefail
+          test "$(node --version)" = "v24.18.1"
+          test "$(pnpm --version)" = "11.4.0"
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Restore Next.js build cache
+        uses: actions/cache@v5
+        with:
+          path: apps/web/.next/cache
+          key: ${{ runner.os }}-next-${{ hashFiles('pnpm-lock.yaml') }}-${{ hashFiles('apps/web/src/**', 'apps/web/next.config.*', 'apps/web/postcss.config.*', 'apps/web/tsconfig.json') }}
+          restore-keys: |
+            ${{ runner.os }}-next-${{ hashFiles('pnpm-lock.yaml') }}-
+
+      - name: Build shared API client
+        run: pnpm --filter @zakup-gotov/api-client build
+
+      - name: Lint web
+        run: pnpm --filter web lint
+
+      - name: Typecheck web
+        run: pnpm --filter web typecheck
+
+      - name: Test web components
+        run: pnpm --filter web test
+
+      - name: Build web
+        run: pnpm --filter web build
+
+  e2e:
+    name: Web E2E
+    needs: verify
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v6
+
+      - name: Set up Node 24
+        uses: actions/setup-node@v6
+        with:
+          node-version-file: .nvmrc
+
+      - name: Install pinned pnpm
+        run: npm install --global pnpm@11.4.0
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Restore Next.js build cache
+        uses: actions/cache@v5
+        with:
+          path: apps/web/.next/cache
+          key: ${{ runner.os }}-next-${{ hashFiles('pnpm-lock.yaml') }}-${{ hashFiles('apps/web/src/**', 'apps/web/next.config.*', 'apps/web/postcss.config.*', 'apps/web/tsconfig.json') }}
+          restore-keys: |
+            ${{ runner.os }}-next-${{ hashFiles('pnpm-lock.yaml') }}-
+
+      - name: Build shared API client
+        run: pnpm --filter @zakup-gotov/api-client build
+
+      - name: Build production web app
+        run: pnpm --filter web build
+
+      - name: Install Chromium
+        run: pnpm --filter web exec playwright install --with-deps chromium
+
+      - name: Run responsive browser tests
+        run: pnpm --filter web test:e2e
