@@ -1,0 +1,67 @@
+name: Contract CI
+
+on:
+  pull_request:
+    paths:
+      - "openapi/**"
+      - "packages/api-client/**"
+      - "package.json"
+      - "pnpm-lock.yaml"
+      - "pnpm-workspace.yaml"
+      - ".nvmrc"
+      - ".github/workflows/contract-ci.yml"
+  push:
+    branches:
+      - main
+    paths:
+      - "openapi/**"
+      - "packages/api-client/**"
+      - "package.json"
+      - "pnpm-lock.yaml"
+      - "pnpm-workspace.yaml"
+      - ".nvmrc"
+      - ".github/workflows/contract-ci.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    name: Contract CI
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v6
+
+      - name: Set up pnpm
+        uses: pnpm/action-setup@v6
+        with:
+          cache: true
+
+      - name: Set up Node 24
+        uses: actions/setup-node@v6
+        with:
+          node-version-file: .nvmrc
+
+      - name: Verify toolchain
+        run: |
+          set -euo pipefail
+          node --version
+          pnpm --version
+          test "$(node --version)" = "v24.18.1"
+          test "$(pnpm --version)" = "11.4.0"
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Verify generated schema is current
+        run: pnpm --filter @zakup-gotov/api-client check:generated
+
+      - name: Typecheck API client
+        run: pnpm --filter @zakup-gotov/api-client typecheck
+
+      - name: Test API client
+        run: pnpm --filter @zakup-gotov/api-client test
+
+      - name: Build API client
+        run: pnpm --filter @zakup-gotov/api-client build
