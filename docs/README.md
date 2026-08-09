@@ -9,6 +9,7 @@ This directory is the durable documentation entry point for Zakup Gotov. Documen
 | Current factual state | [`PROJECT_STATE.md`](PROJECT_STATE.md) |
 | Product and engineering roadmap | [`ROADMAP.md`](ROADMAP.md) |
 | Local setup and verification | [`DEVELOPMENT.md`](DEVELOPMENT.md) |
+| Container/release workflow | [`RELEASES.md`](RELEASES.md) |
 | Mandatory engineering policy | [`ENGINEERING.md`](ENGINEERING.md) |
 | Repository governance and security controls | [`REPOSITORY_GOVERNANCE.md`](REPOSITORY_GOVERNANCE.md) |
 | Operational telemetry and privacy baseline | [`OBSERVABILITY.md`](OBSERVABILITY.md) |
