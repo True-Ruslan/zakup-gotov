@@ -21,6 +21,7 @@ GHCR_DIGEST_REF_RE = re.compile(
     r"(?:/[a-z0-9][a-z0-9._-]*)+"
     r"@sha256:[0-9a-f]{64}$"
 )
+GHCR_SLUG_RE = re.compile(r"^[a-z0-9][a-z0-9._-]*$")
 
 API_IMAGE_TOKEN = "image: ${API_IMAGE:?API_IMAGE must be set}"
 WEB_IMAGE_TOKEN = "image: ${WEB_IMAGE:?WEB_IMAGE must be set}"
@@ -75,18 +76,26 @@ def parse_release(tag: str, *, prerelease: bool, commit_sha: str) -> ReleaseMeta
     )
 
 
-def build_image_names(owner: str, repository: str) -> tuple[str, str]:
+def _build_image_prefix(owner: str, repository: str) -> str:
     owner_slug = owner.strip().lower()
     repository_slug = repository.strip().lower()
 
-    slug_re = re.compile(r"^[a-z0-9][a-z0-9._-]*$")
-    if slug_re.fullmatch(owner_slug) is None:
+    if GHCR_SLUG_RE.fullmatch(owner_slug) is None:
         raise ValueError("repository owner cannot be represented safely in a GHCR name")
-    if slug_re.fullmatch(repository_slug) is None:
+    if GHCR_SLUG_RE.fullmatch(repository_slug) is None:
         raise ValueError("repository name cannot be represented safely in a GHCR name")
 
-    prefix = f"ghcr.io/{owner_slug}/{repository_slug}"
+    return f"ghcr.io/{owner_slug}/{repository_slug}"
+
+
+def build_image_names(owner: str, repository: str) -> tuple[str, str]:
+    prefix = _build_image_prefix(owner, repository)
     return f"{prefix}-api", f"{prefix}-web"
+
+
+def build_staging_image_names(owner: str, repository: str) -> tuple[str, str]:
+    prefix = _build_image_prefix(owner, repository)
+    return f"{prefix}-staging-api", f"{prefix}-staging-web"
 
 
 def _validate_digest_ref(ref: str) -> None:
@@ -140,6 +149,9 @@ def _metadata_command(args: argparse.Namespace) -> None:
         commit_sha=args.commit_sha,
     )
     api_image, web_image = build_image_names(args.owner, args.repository)
+    api_staging_image, web_staging_image = build_staging_image_names(
+        args.owner, args.repository
+    )
 
     values = {
         "version": metadata.version,
@@ -149,8 +161,10 @@ def _metadata_command(args: argparse.Namespace) -> None:
         "publish_latest": str(metadata.publish_latest).lower(),
         "api_image": api_image,
         "web_image": web_image,
-        "api_candidate": f"{api_image}:{metadata.candidate_tag}",
-        "web_candidate": f"{web_image}:{metadata.candidate_tag}",
+        "api_staging_image": api_staging_image,
+        "web_staging_image": web_staging_image,
+        "api_candidate": f"{api_staging_image}:{metadata.candidate_tag}",
+        "web_candidate": f"{web_staging_image}:{metadata.candidate_tag}",
     }
 
     if args.github_output is not None:
