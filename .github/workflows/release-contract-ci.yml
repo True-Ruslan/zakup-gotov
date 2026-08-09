@@ -24,5 +24,8 @@ jobs:
         with:
           persist-credentials: false
 
+      - name: Parse release workflow YAML
+        run: ruby -e 'require "yaml"; YAML.load_file(ARGV.fetch(0), aliases: true)' .github/workflows/release.yml
+
       - name: Verify release semantics
         run: python3 -m unittest discover -s scripts/release -p 'test_*.py' -v
