@@ -10,9 +10,7 @@ Once public releases begin, this section will list supported versions and securi
 
 Please do **not** open a public issue for a suspected vulnerability.
 
-Preferred reporting path: GitHub Private Vulnerability Reporting for this repository once it is enabled in repository settings.
-
-Until that feature is enabled, contact the repository owner privately through an appropriate verified channel rather than publishing exploit details.
+Preferred reporting path: GitHub Private Vulnerability Reporting for this repository. It is enabled and should be used for confidential vulnerability reports.
 
 A useful report should include:
 
@@ -37,4 +35,10 @@ Secrets must never be committed to the repository. Logs, traces, fixtures, and t
 
 ## Dependency and supply-chain policy
 
-The project intends to use GitHub-native dependency review, Dependabot, secret scanning/push protection, and CodeQL as repository quality gates. High-severity security issues block release until triaged and resolved or explicitly documented with a justified exception.
+The repository uses GitHub-native Dependency Review, Dependabot, secret scanning/push protection, and CodeQL as quality/security controls. High-severity security issues block release until triaged and resolved or explicitly documented with a justified exception.
+
+Production container topology is exercised by `Release Bundle CI` with read-only repository permissions. The release Compose file requires externally supplied application-image references and a database password; it contains no real committed secret and publishes only the web service to the host by default.
+
+Versioned public release publishing is intentionally a separate trust boundary. When implemented, only that release workflow may receive the narrowly required package/attestation write permissions. It must produce immutable application-image digests, vulnerability-scan results, SBOM, source/build provenance or equivalent attestations, and a tested release-specific Compose bundle before a release is considered consumable.
+
+Do not weaken required checks, dependency freshness policy, vulnerability thresholds, or image verification merely to make a release publish. Any security exception must be explicit, narrow, justified, and reviewable.
