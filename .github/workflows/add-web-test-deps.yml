@@ -28,7 +28,7 @@ jobs:
 
       - name: Install web test dependencies
         run: |
-          pnpm --dir apps/web add --save-dev \
+          pnpm --filter web add --save-dev \
             vitest@4.1.10 \
             @vitejs/plugin-react@latest \
             jsdom@latest \
