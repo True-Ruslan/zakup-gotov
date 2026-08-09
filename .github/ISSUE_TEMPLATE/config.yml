@@ -1,5 +1,8 @@
 blank_issues_enabled: false
 contact_links:
+  - name: Support and contribution guidance
+    url: https://github.com/True-Ruslan/zakup-gotov/blob/main/.github/SUPPORT.md
+    about: Choose the right channel before opening an issue or pull request.
   - name: Security vulnerability
     url: https://github.com/True-Ruslan/zakup-gotov/blob/main/SECURITY.md
     about: Do not report vulnerabilities publicly; follow the security policy.
