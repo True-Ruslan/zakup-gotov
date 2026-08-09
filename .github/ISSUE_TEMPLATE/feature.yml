@@ -1,0 +1,49 @@
+name: Feature proposal
+description: Propose a product or engineering improvement
+title: "[Feature]: "
+labels: []
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem or user need
+      description: Describe the concrete problem before proposing the solution.
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposed behavior
+      description: What should become possible and for whom?
+    validations:
+      required: true
+  - type: textarea
+    id: success
+    attributes:
+      label: Success criteria
+      description: How would we know this solved the problem?
+    validations:
+      required: true
+  - type: dropdown
+    id: area
+    attributes:
+      label: Area
+      options:
+        - Shopping core
+        - Recipes
+        - Weekly planning
+        - Product matching
+        - Basket optimization
+        - Retailer/provider integration
+        - Web UX
+        - Mobile
+        - Platform/tooling
+        - Documentation
+        - Other
+    validations:
+      required: true
+  - type: textarea
+    id: constraints
+    attributes:
+      label: Constraints and alternatives
+      description: Note important privacy, security, retailer, API, legal, performance, or scope constraints.
