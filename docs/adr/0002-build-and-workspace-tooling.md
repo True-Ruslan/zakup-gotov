@@ -13,10 +13,12 @@ Use:
 
 - Java 25 as the Java runtime/toolchain baseline;
 - Apache Maven 3.9.16 for the Java build, pinned through Maven Wrapper once the API project is created;
-- Node.js 24.18.0 LTS for TypeScript tooling;
+- Node.js 24.18.1 LTS for TypeScript tooling;
 - pnpm 11.4.0 with a root workspace for web/shared TypeScript packages;
 - repository-level version pins in `.java-version`, `.nvmrc`, and `package.json#packageManager`;
 - native Maven and pnpm commands rather than introducing a polyglot orchestration layer in M0A.
+
+This ADR intentionally refines the original M0A plan's Node.js `24.18.0` execution pin to `24.18.1`: execution-time verification found `24.18.1` to be the latest Node 24 LTS patch available before Task 1 was merged. The architectural major-line decision remains unchanged.
 
 ## Rationale
 
@@ -26,7 +28,7 @@ Maven 3.9.16 is the current maintained GA line at the time of this decision. Mav
 
 ### Node.js 24 LTS
 
-Node.js 24 is an active LTS line. We prefer an LTS runtime over the newer Current line for repeatable CI and lower upgrade churn.
+Node.js 24 is an active LTS line. We prefer an LTS runtime over the newer Current line for repeatable CI and lower upgrade churn, and pin the latest verified patch at the time of foundation execution.
 
 ### pnpm 11
 
