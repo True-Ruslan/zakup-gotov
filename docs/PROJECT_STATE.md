@@ -10,18 +10,13 @@ Repository: `True-Ruslan/zakup-gotov`
 Visibility: Public
 Current phase: **M0 — Product & Integration Discovery**
 Current execution stage: **M0A — Platform Foundation**
+Current task: **Task 1 — Toolchains and monorepo workspace**
 
 ## Product status
 
-No production application code has been merged yet.
+No production application behavior has been implemented yet.
 
-The foundation direction was approved on 2026-08-09:
-
-- responsive web first;
-- native Android/iOS later;
-- retailer-provider abstraction as the critical integration boundary;
-- full-basket comparison rather than cheapest-single-item search;
-- transparency around missing items, matching confidence, and offer freshness.
+Foundation PR #1 was squash-merged on 2026-08-09. The foundation specification is Approved and ADR-0001 is Accepted.
 
 ## Approved platform baseline
 
@@ -51,15 +46,16 @@ Mandatory defaults include:
 - deterministic provider fixtures/contract tests and opt-in live probes rather than live-service-dependent normal CI;
 - small reviewable branches/PRs and a squash-only target history;
 - continuous `CHANGELOG.md` maintenance under `[Unreleased]`;
-- `PROJECT_STATE.md`, roadmap, ADRs/specs/plans, and public documentation synchronized with repository reality in the same PR that changes that reality.
+- project state, roadmap, ADRs/specs/plans, and public documentation synchronized with repository reality.
 
 ## Current repository state
 
-- `main` contains only the initial README until foundation PR #1 is merged.
-- PR #1 contains the approved foundation documentation, M0A implementation plan, engineering policy, and repository community files.
-- M0A Platform Foundation implementation plan is `docs/superpowers/plans/2026-08-09-m0a-platform-foundation.md`.
-- Execution mode in this ChatGPT environment is Inline Execution because independent subagent dispatch is not exposed here; task/review gates from the plan remain mandatory.
-- No production application code or CI has been merged yet.
+- `main` contains the approved foundation from PR #1.
+- Task 1 is being implemented on `chore/m0a-toolchains`.
+- Java, Node, pnpm, line-ending/editor, ignore, and workspace pins are being established together with ADR-0002.
+- M0A implementation plan is `docs/superpowers/plans/2026-08-09-m0a-platform-foundation.md`.
+- Execution mode in this ChatGPT environment is Inline Execution because independent subagent dispatch is not exposed here; task/review gates remain mandatory.
+- No backend/web application code or CI has been merged yet.
 - No license decision has been made.
 - No external retailer integration has been proven yet.
 
@@ -73,10 +69,9 @@ Mandatory defaults include:
 
 ## Immediate next work
 
-1. Finish and merge foundation PR #1 after documentation verification.
-2. Create an isolated M0A implementation branch from the updated `main`.
-3. Execute `docs/superpowers/plans/2026-08-09-m0a-platform-foundation.md` task-by-task using TDD and fresh verification evidence.
-4. Do not begin retailer-specific provider implementation until M0A is verified and the separate M0B plan exists.
+1. Verify and merge M0A Task 1 toolchain/workspace PR.
+2. Start Task 2 from updated `main`: bootstrap the Spring Boot API with failing application/Modulith tests first.
+3. Continue M0A task-by-task; do not begin retailer-specific provider implementation before M0A verification and a separate M0B plan.
 
 ## Definition of M0 success
 
