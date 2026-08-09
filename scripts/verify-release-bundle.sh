@@ -22,7 +22,8 @@ docker compose version
 
 API_IMAGE="${API_IMAGE:-zakup-gotov-api:ci}"
 WEB_IMAGE="${WEB_IMAGE:-zakup-gotov-web:ci}"
-export API_IMAGE WEB_IMAGE
+POSTGRES_PASSWORD="${POSTGRES_PASSWORD:-release-ci-password}"
+export API_IMAGE WEB_IMAGE POSTGRES_PASSWORD
 
 cleanup() {
   docker compose -f compose.release.yaml down --volumes --remove-orphans >/dev/null 2>&1 || true
@@ -37,3 +38,5 @@ docker compose -f compose.release.yaml up --detach --wait --wait-timeout 120
 
 curl --fail --silent --show-error http://127.0.0.1:8080/actuator/health/readiness | grep -q '"status":"UP"'
 curl --fail --silent --show-error http://127.0.0.1:3000/ | grep -q 'Закуп готов'
+curl --fail --silent --show-error http://127.0.0.1:3000/api/system | grep -q '"name":"zakup-gotov-api"'
+curl --fail --silent --show-error http://127.0.0.1:3000/api/system | grep -q '"status":"UP"'
