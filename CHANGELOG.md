@@ -49,6 +49,10 @@ The format follows the spirit of Keep a Changelog and semantic versioning will b
 - Approved repository-governance and Docker/GHCR release-engineering specification, including multi-platform images, Compose distribution, supply-chain evidence, and backend-first provider policy.
 - Repository-hardening implementation plan covering deterministic required checks, immutable Actions, GitHub-native security, rulesets, branch cleanup, and social-preview handoff.
 - Permanent CodeQL scanning for Java and JavaScript/TypeScript, Dependency Review, and weekly Dependabot version-update configuration.
+- Production multi-stage Docker images for the Java API and Next.js standalone web runtime, both running as non-root users.
+- `compose.release.yaml` no-source-build production topology for PostgreSQL 18.4 → API → web with persistent database storage and health/readiness dependencies.
+- `Release Bundle CI` and `./scripts/verify-release-bundle.sh`, which build both application images, start the complete container topology, wait for health, smoke-test API/web boundaries, and emit Compose diagnostics on failure.
+- `docs/RELEASES.md` documenting the verified container bundle and explicitly separating it from the still-pending versioned GHCR publication workflow.
 
 ### Changed
 
@@ -80,6 +84,9 @@ The format follows the spirit of Keep a Changelog and semantic versioning will b
 - The web dependency baseline advanced to Next.js 16.3.0, React/React DOM 19.2.8, and `eslint-config-next` 16.3.0 after a refreshed full CI/security run including production Web E2E.
 - `main` merge protection is actively enforcing the seven proven required checks; maintenance merges were blocked while checks were stale or missing and admitted only after refresh plus a full pass.
 - Incompatible automated major updates are intentionally deferred instead of bypassing quality gates: TypeScript 7.0.2 breaks the current OpenAPI generator, ESLint 10 breaks the current lint configuration, and `@types/node` 26 is deferred while the runtime remains Node 24.
+- Next.js production output now uses standalone mode with monorepo tracing configured so the runtime image contains only the server/runtime artifacts needed by the web container.
+- The release Compose topology publishes only the web port by default; API and PostgreSQL remain on the internal Compose network, while web health verifies real API reachability through runtime `API_BASE_URL`.
+- Container-bundle verification is a distinct gate from source/unit/build verification so a healthy source build cannot mask broken Docker/Compose behavior.
 
 ### Fixed
 
@@ -92,6 +99,8 @@ The format follows the spirit of Keep a Changelog and semantic versioning will b
 - Removed stale `create-next-app` README content that advertised unsupported npm/yarn/bun workflows, Geist usage, and Vercel deployment after the project had already chosen different repository conventions.
 - Corrected the Dependency Review v5 immutable-pin annotation so the human-readable workflow comment matches the actual pinned action release.
 - Closed the obsolete Next.js 16.2.11 dependency PR after the verified 16.3.0 update superseded it.
+- Corrected the release PostgreSQL volume from the pre-18 `/var/lib/postgresql/data` mount to the PostgreSQL 18-compatible `/var/lib/postgresql` mount after the first real Compose run exposed the upstream data-layout change.
+- Release-bundle failures now print Compose service state and logs before cleanup instead of losing the root-cause evidence during teardown.
 
 ### Security
 
@@ -109,3 +118,5 @@ The format follows the spirit of Keep a Changelog and semantic versioning will b
 - Private vulnerability reporting is enabled for confidential security reports.
 - Default GitHub Actions workflow token permissions are read-only and workflows cannot approve pull requests.
 - No dependency update was allowed to weaken the pnpm minimum-release-age policy, required status checks, CodeQL, Dependency Review, contract generation, linting, or browser verification in order to become mergeable.
+- Application container runtimes use non-root users, Compose requires the database password at runtime instead of committing one, and only the web service is host-published by default.
+- `Release Bundle CI` remains read-only; future GHCR/package and attestation write permissions are reserved for a separate versioned release workflow rather than broadening ordinary pull-request CI.

@@ -10,7 +10,7 @@ Repository: `True-Ruslan/zakup-gotov`
 Visibility: Public  
 Current phase: **M0 — Product & Integration Discovery**  
 Current execution stage: **M0A — Platform Foundation**  
-Current focus: **implement release engineering and complete final M0A verification, then enter M0B retailer feasibility**
+Current focus: **finish versioned GHCR/supply-chain release publishing and final M0A verification, then enter M0B retailer feasibility**
 
 ## Product status
 
@@ -36,6 +36,7 @@ No retailer integration is considered supported until M0B proves it with accepta
 - PR #20 — `actions/checkout` 7.0.1 maintenance after a fresh required-check pass on current `main`.
 - PR #23 — consolidated `actions/setup-node` 7.0.0 and `dependency-review-action` 5.0.0 maintenance with corrected immutable-pin annotations and full CI/security verification.
 - PR #15 — CI-verified web dependency maintenance to Next.js 16.3.0, React/React DOM 19.2.8, and `eslint-config-next` 16.3.0.
+- PR #25 — production API/web Docker images, Next.js standalone runtime, PostgreSQL 18.4-compatible no-source-build Compose topology, and executable `Release Bundle CI` smoke verification.
 
 ## Verified platform baseline
 
@@ -62,10 +63,11 @@ No retailer integration is considered supported until M0B proves it with accepta
 - Next.js 16.3.0;
 - React 19.2.8;
 - TypeScript 5.x compatibility line;
+- Next.js standalone production-container output;
 - Vitest + Testing Library;
 - Playwright production-browser coverage for desktop and mobile viewports.
 
-### Operations
+### Operations and container topology
 
 Public management HTTP surface is intentionally limited to:
 
@@ -76,6 +78,17 @@ Public management HTTP surface is intentionally limited to:
 
 Environment, configuration-properties, and metrics Actuator endpoints remain HTTP-inaccessible. Request-detail logging is disabled by default. Provider credentials, raw payloads, authorization material, precise user addresses, and arbitrary user input must not become telemetry labels/log content by default.
 
+Production container baseline:
+
+- separate multi-stage API and web Dockerfiles;
+- non-root runtime users for both application images;
+- `compose.release.yaml` contains no local source `build:` directives;
+- PostgreSQL 18.4 uses a persistent named volume at the PostgreSQL 18-compatible `/var/lib/postgresql` path;
+- PostgreSQL health gates API startup, API readiness gates web startup;
+- web health verifies both its own HTTP surface and API reachability over `API_BASE_URL` on the Compose network;
+- only the web service publishes a host port by default; API remains internal to the Compose network;
+- failures in release-bundle verification automatically emit Compose status/log diagnostics before cleanup.
+
 ## Automated gates on `main`
 
 - **API CI** — Java 25, pinned Maven Wrapper/Maven 3.9.16, PostgreSQL/Testcontainers, backend tests, packaged JAR via Maven `verify`;
@@ -85,9 +98,13 @@ Environment, configuration-properties, and metrics Actuator endpoints remain HTT
 - **CodeQL / Java**;
 - **CodeQL / JavaScript-TypeScript**;
 - **Dependency Review**;
-- local/clean-runner **`./scripts/verify.sh`** — unified backend/contract/web verification.
+- **Release Bundle CI** — builds production API/web images, validates Compose, starts PostgreSQL → API → web, waits for health/readiness, smoke-tests API inside its container boundary and the public web surface;
+- local/clean-runner **`./scripts/verify.sh`** — unified backend/contract/web verification;
+- local/CI **`./scripts/verify-release-bundle.sh`** — exact production-container topology verification.
 
 Recurring CI Actions are pinned to immutable full commit SHAs where introduced by the project, use non-persisted checkout credentials for read-only jobs, have finite timeouts, and cancel superseded PR/ref runs. The current maintenance baseline includes `actions/cache` 6.1.0, `actions/checkout` 7.0.1, `actions/setup-node` 7.0.0, and `dependency-review-action` 5.0.0.
+
+`Release Bundle CI` is proven green but is not yet independently verified as part of the `main` required-check ruleset. The currently verified ruleset still enforces the original seven CI/security checks.
 
 ## Repository governance and security state
 
@@ -97,7 +114,7 @@ Verified repository-admin baseline:
 - auto-merge and update-branch enabled;
 - merged source branches are deleted automatically;
 - only `main` plus active PR branches are retained;
-- `main` merge protection actively requires the seven proven CI/security checks listed above, and stale/missing required checks block merge;
+- `main` merge protection actively requires the seven previously proven CI/security checks, and stale/missing required checks block merge;
 - default workflow token permissions are read-only and Actions cannot approve pull requests;
 - Dependency Graph enabled and SBOM endpoint available;
 - Dependabot alerts/security updates enabled;
@@ -106,7 +123,7 @@ Verified repository-admin baseline:
 - private vulnerability reporting enabled;
 - CodeQL and Dependency Review are operational and green after Dependency Graph enablement.
 
-Required-check enforcement was exercised during dependency maintenance rather than inferred from configuration: direct merge attempts were rejected until the candidate was refreshed against current `main` and all required checks had passed. The repository-governance baseline is therefore active; remaining governance work is limited to any release-specific permissions/settings introduced by the release-engineering subsystem.
+Required-check enforcement was exercised during dependency maintenance rather than inferred from configuration: direct merge attempts were rejected until the candidate was refreshed against current `main` and all required checks had passed. `Release Bundle CI` should be added to the ruleset only after its successful check name is applied and the resulting repository setting is independently verified.
 
 ## Dependency maintenance state
 
@@ -121,6 +138,32 @@ The first Dependabot maintenance cycle was intentionally triaged rather than bli
 
 No required test, supply-chain, or security gate was weakened to make an automated dependency update pass.
 
+## Release-engineering state
+
+The first release-engineering slice is now executable and verified:
+
+- Dockerfiles are exercised by CI rather than reviewed statically;
+- the no-source-build Compose topology is exercised end-to-end;
+- a TDD RED run failed on the intentionally missing API Dockerfile before implementation;
+- the first implementation run exposed the PostgreSQL 18 data-layout change and failed because the volume used the pre-18 path;
+- the Compose volume was corrected to `/var/lib/postgresql` according to the PostgreSQL 18 image layout;
+- subsequent runs proved PostgreSQL, API, and web become healthy in dependency order;
+- final GREEN keeps API internal to Compose while web health proves actual web → API network connectivity.
+
+This does **not** yet satisfy the complete public release design. Still pending:
+
+- published GitHub Release trigger;
+- GHCR publication;
+- `linux/amd64` + `linux/arm64` application images;
+- vulnerability scanning of release images;
+- SBOM and provenance/attestation evidence;
+- immutable digest resolution;
+- generated release-specific Compose pinned to application-image digests;
+- smoke verification of the exact published artifact set;
+- release asset attachment and stable/prerelease `latest` semantics.
+
+See [`RELEASES.md`](RELEASES.md) for the current verified boundary.
+
 ## Approved engineering policy
 
 [`ENGINEERING.md`](ENGINEERING.md) is mandatory repository policy:
@@ -134,16 +177,6 @@ No required test, supply-chain, or security gate was weakened to make an automat
 - no silent security/test bypasses;
 - no retailer live calls in normal deterministic CI.
 
-## Approved next platform direction
-
-Repository governance and release engineering direction is approved and documented in:
-
-- [`REPOSITORY_GOVERNANCE.md`](REPOSITORY_GOVERNANCE.md);
-- [`superpowers/specs/2026-08-09-repository-governance-and-release-design.md`](superpowers/specs/2026-08-09-repository-governance-and-release-design.md);
-- [`superpowers/plans/2026-08-09-repository-hardening.md`](superpowers/plans/2026-08-09-repository-hardening.md).
-
-The intended release experience is a ready Docker Compose bundle using prebuilt `web` and `api` GHCR images plus PostgreSQL, with multi-platform images, exact-bundle smoke tests, vulnerability scanning, SBOM, provenance/attestations, and immutable digests. This is **approved design, not implemented functionality yet**.
-
 ## Current critical unknowns
 
 1. Which target retailers expose a technically stable and legally acceptable path to location-specific catalog, price, and availability data?
@@ -154,9 +187,9 @@ The intended release experience is a ready Docker Compose bundle using prebuilt 
 
 ## Immediate next work
 
-1. Implement the approved Docker/GHCR release-engineering subsystem with multi-platform images, Compose smoke tests, scanning, SBOM/provenance/attestations, and stable/prerelease semantics.
-2. Verify any release-specific GitHub permissions/settings introduced by those workflows without broadening the default least-privilege baseline.
-3. Run final M0A verification across repository checks and the exact distributable Compose bundle.
+1. Implement the versioned GitHub Release → GHCR publishing subsystem with multi-platform API/web images, vulnerability scanning, SBOM/provenance/attestations, immutable digest resolution, release-specific Compose generation, exact-published-bundle smoke tests, release assets, and stable/prerelease semantics.
+2. Add the proven `Release Bundle CI` check to the `main` ruleset and independently verify the ruleset change; verify any narrowly scoped release-workflow permissions without broadening the default read-only Actions baseline.
+3. Run final M0A verification across repository checks and the exact distributable published Compose bundle.
 4. Hand off to a separately planned M0B Retailer Feasibility phase.
 
 ## Definition of M0 success

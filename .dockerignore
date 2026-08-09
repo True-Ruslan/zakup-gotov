@@ -1,0 +1,13 @@
+.git
+.github
+.idea
+.vscode
+**/.next
+**/node_modules
+apps/api/target
+coverage
+playwright-report
+test-results
+*.log
+.env
+.env.*
