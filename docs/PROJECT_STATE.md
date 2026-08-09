@@ -10,67 +10,50 @@ Repository: `True-Ruslan/zakup-gotov`
 Visibility: Public
 Current phase: **M0 — Product & Integration Discovery**
 Current execution stage: **M0A — Platform Foundation**
-Current task: **Task 2 — Java/Spring API bootstrap**
+Current task: **Task 3 — PostgreSQL/Flyway/jOOQ persistence baseline**
 
 ## Product status
 
-The first executable platform behavior is implemented on PR #3: a minimal Spring Boot 4.1 API bootstrap with Java 25, Virtual Threads enabled, an Actuator health surface, and automated Spring context + Modulith architecture verification.
-
-No shopping, recipe, retailer, matching, persistence, or user-facing web behavior is implemented yet.
+No shopping, recipe, retailer, matching, or user-facing web behavior is implemented yet. The platform foundation now has an executable Spring Boot API and a verified PostgreSQL persistence baseline.
 
 ## Completed foundation work
 
 - PR #1: approved product/architecture/engineering foundation, squash-merged.
-- PR #2 / M0A Task 1: Java/Node/pnpm toolchain pins, monorepo workspace hygiene, and ADR-0002, squash-merged.
+- PR #2 / M0A Task 1: Java/Node/pnpm toolchains, monorepo workspace hygiene, ADR-0002, squash-merged.
+- PR #3 / M0A Task 2: Java 25 + Spring Boot 4.1 API bootstrap, Maven Wrapper, architecture/context tests, early API CI, squash-merged.
 
-## Task 2 TDD evidence
+## Task 3 TDD evidence
 
-Task 2 was developed through an observed RED -> GREEN cycle in GitHub Actions:
+Task 3 was developed with an observed RED -> GREEN cycle against a real PostgreSQL container in GitHub Actions.
 
-- **RED:** API CI run `31306570727`, job `93227791164` ran successfully on Temurin Java 25.0.3 and Maven 3.9.16, then failed the new `@SpringBootTest` exactly because no `@SpringBootConfiguration` existed.
-- Minimal `ZakupGotovApplication` production code was added only after that expected failure was observed.
-- A Modulith architecture test verifies `ApplicationModules.of(ZakupGotovApplication.class).verify()`.
-- **GREEN:** subsequent runs passed both bootstrap and architecture tests.
-- Premature runtime Modulith insight and unused Mockito dependencies were removed after the first green run exposed avoidable warning noise.
-- **Final regression:** API CI run `31306909477`, job `93228622348` verified Temurin Java 25.0.3, the generated Apache Maven Wrapper 3.3.4 selecting Maven 3.9.16, and `2/2` tests passing with `BUILD SUCCESS` and no prior Mockito/zero-module warning noise.
+- Initial test-only scaffolding added Testcontainers and a `PostgresIntegrationTest`; production jOOQ/Flyway/PostgreSQL dependencies and migrations did not exist yet.
+- An initial compile failure caused by test assertion typing was rejected as an invalid RED and fixed without changing production code.
+- **Valid RED:** API CI run `31307158160`, job `93229212970` started Docker/Testcontainers and `postgres:18.4`, reached the Spring context, then failed exactly because no `DSLContext` bean existed.
+- Production persistence dependencies, required environment-based datasource configuration, shared PostgreSQL integration test support, and `V1__baseline.sql` were added only after the valid RED.
+- The first GREEN attempt exposed a real wiring defect: jOOQ connected to PostgreSQL, but the `app` schema was absent because Flyway auto-configuration had not been enabled under Spring Boot 4 modularization. The test was kept strict.
+- The Flyway dependency was corrected to Spring Boot 4.1's `spring-boot-starter-flyway` plus `flyway-database-postgresql`.
+- **GREEN:** API CI run `31307410620`, job `93229821357` verified PostgreSQL 18.4, Flyway validation and application of `V1 - baseline`, jOOQ PostgreSQL 18.4 support, `3/3` tests passing, and `BUILD SUCCESS`.
+- Java 25/Testcontainers native-access warning was removed by explicitly granting native access to the test JVM through Surefire.
 
-## Approved platform baseline
+## Persistence baseline
 
-- Java 25 LTS
-- Spring Boot 4.1
-- Spring Modulith
-- Spring MVC + Virtual Threads
-- PostgreSQL 18
-- Flyway + jOOQ
-- REST/OpenAPI 3.1.x
-- Next.js 16 + React + TypeScript
-- Expo + React Native for future native clients
-- OpenTelemetry-compatible observability
-- GitHub Actions and GitHub security tooling
-
-See accepted `docs/adr/0001-platform-stack.md`.
+- PostgreSQL target: 18; integration image pinned to `postgres:18.4`.
+- Flyway owns schema evolution; history currently lives in `public.flyway_schema_history`.
+- `V1__baseline.sql` creates the application-owned `app` schema.
+- jOOQ is the primary SQL access layer and is configured for the PostgreSQL dialect.
+- Production datasource URL/username/password are required from environment configuration; no credentials are committed.
+- Spring application-context tests now bootstrap against real PostgreSQL rather than H2 or mocked persistence.
 
 ## Approved engineering policy
 
-The project follows `docs/ENGINEERING.md`.
-
-Mandatory defaults include:
-
-- TDD for executable behavior: RED -> verify expected failure -> GREEN -> regression suite -> REFACTOR;
-- evidence before completion claims;
-- automation-first testing and CI, with recurring manual checks treated as automation debt;
-- deterministic provider fixtures/contract tests and opt-in live probes rather than live-service-dependent normal CI;
-- small reviewable branches/PRs and a squash-only target history;
-- continuous `CHANGELOG.md` maintenance under `[Unreleased]`;
-- project state, roadmap, ADRs/specs/plans, and public documentation synchronized with repository reality.
+The project follows `docs/ENGINEERING.md`: TDD, evidence-before-claims, automation-first verification, clean Git/PR discipline, continuous changelog maintenance, and documentation synchronized with repository reality.
 
 ## Current repository state
 
-- `main` contains the approved foundation and completed M0A Task 1.
-- PR #3 `feat: bootstrap M0A API foundation` contains Task 2 and is green pending final documentation/PR gate and merge.
-- `API CI` is already present earlier than originally sequenced in the plan because a real Java 25 CI environment was required to make Task 2 TDD evidence honest; broader CI/security work remains Task 7.
-- Apache Maven Wrapper 3.3.4 is generated from the official Maven Wrapper plugin with Maven 3.9.16 pinned; the final API CI uses `./mvnw`, not a runner-provided Maven installation.
-- M0A implementation plan is `docs/superpowers/plans/2026-08-09-m0a-platform-foundation.md`.
+- `main` contains the approved foundation and completed M0A Tasks 1-2.
+- PR #4 contains verified Task 3 persistence work and is green pending final documentation/current-head gate and merge.
+- `API CI` verifies Java 25, Maven 3.9.16 through the generated Maven Wrapper, and the full backend test suite on affected PRs/main changes.
+- M0A plan: `docs/superpowers/plans/2026-08-09-m0a-platform-foundation.md`.
 - Execution mode in this ChatGPT environment is Inline Execution because independent subagent dispatch is not exposed here; task/review gates remain mandatory.
 - No license decision has been made.
 - No external retailer integration has been proven yet.
@@ -85,10 +68,10 @@ Mandatory defaults include:
 
 ## Immediate next work
 
-1. Merge verified PR #3 / M0A Task 2.
-2. Start Task 3 from updated `main`: PostgreSQL 18 + Flyway + jOOQ persistence baseline, beginning with a failing Testcontainers-backed migration test.
-3. Continue M0A task-by-task; do not begin retailer-specific provider implementation before M0A verification and a separate M0B plan.
+1. Merge verified PR #4 / M0A Task 3.
+2. Start Task 4 from updated `main`: contract-first OpenAPI baseline and generated TypeScript API client, beginning with an automated contract/generation check before adding client consumption.
+3. Continue M0A task-by-task; retailer-specific implementation waits for M0A verification and a separate M0B plan.
 
 ## Definition of M0 success
 
-M0 is complete only when the project has evidence—not assumptions—that at least two retailer integrations can support a repeatable comparison flow for one supported city/location context, with automated fixtures/tests and documented legal/technical constraints.
+M0 is complete only when evidence shows that at least two retailer integrations can support a repeatable comparison flow for one supported city/location context, with automated fixtures/tests and documented legal/technical constraints.

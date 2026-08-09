@@ -23,6 +23,10 @@ The format follows the spirit of Keep a Changelog and semantic versioning will b
 - Spring Modulith architecture verification test and Spring application-context bootstrap test.
 - Apache Maven Wrapper 3.3.4 generated from the official plugin with Maven 3.9.16 pinned.
 - Early `API CI` workflow verifying Java 25, the pinned Maven Wrapper, and backend tests on every affected pull request/main change.
+- PostgreSQL 18 persistence baseline with environment-supplied datasource configuration.
+- Flyway migration baseline creating the application-owned `app` schema and maintaining schema history.
+- jOOQ PostgreSQL integration as the primary SQL access layer.
+- Testcontainers-backed PostgreSQL 18.4 integration environment shared by Spring application and persistence tests.
 
 ### Changed
 
@@ -30,11 +34,14 @@ The format follows the spirit of Keep a Changelog and semantic versioning will b
 - Project execution entered M0A Platform Foundation before retailer feasibility work.
 - API bootstrap dependencies were reduced after regression evidence exposed unnecessary zero-module Modulith runtime and unused Mockito warning noise.
 - API CI was introduced earlier than the original M0A sequencing so backend TDD could be proven on the exact Java 25 toolchain instead of inferred from an incompatible local runtime.
+- Spring application-context verification now boots against real PostgreSQL rather than a database-free context.
+- Test JVM explicitly enables native access required by Testcontainers/JNA on Java 25 to avoid unsupported-access warning noise.
 
 ### Fixed
 
-- Nothing yet.
+- Corrected the Spring Boot 4 Flyway wiring after the persistence test proved that adding Flyway libraries alone did not activate Boot's separated Flyway auto-configuration module; the project now uses `spring-boot-starter-flyway` plus the PostgreSQL Flyway module.
 
 ### Security
 
 - Established security-reporting and secret/privacy handling policy; broader repository security automation will be activated during M0A.
+- Production database credentials are required through external environment configuration and are not stored in source control.
