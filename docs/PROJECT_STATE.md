@@ -9,10 +9,11 @@ Updated: 2026-08-09
 Repository: `True-Ruslan/zakup-gotov`
 Visibility: Public
 Current phase: **M0 — Product & Integration Discovery**
+Current execution stage: **M0A — Platform Foundation**
 
 ## Product status
 
-No production code has been implemented yet.
+No production application code has been merged yet.
 
 The foundation direction was approved on 2026-08-09:
 
@@ -38,12 +39,27 @@ The foundation direction was approved on 2026-08-09:
 
 See accepted `docs/adr/0001-platform-stack.md`.
 
+## Approved engineering policy
+
+The project follows `docs/ENGINEERING.md`.
+
+Mandatory defaults include:
+
+- TDD for executable behavior: RED -> verify expected failure -> GREEN -> regression suite -> REFACTOR;
+- evidence before completion claims;
+- automation-first testing and CI, with recurring manual checks treated as automation debt;
+- deterministic provider fixtures/contract tests and opt-in live probes rather than live-service-dependent normal CI;
+- small reviewable branches/PRs and a squash-only target history;
+- continuous `CHANGELOG.md` maintenance under `[Unreleased]`;
+- `PROJECT_STATE.md`, roadmap, ADRs/specs/plans, and public documentation synchronized with repository reality in the same PR that changes that reality.
+
 ## Current repository state
 
 - `main` contains only the initial README until foundation PR #1 is merged.
-- Draft PR #1 contains the approved foundation documentation and repository community files.
-- M0A Platform Foundation implementation plan is documented at `docs/superpowers/plans/2026-08-09-m0a-platform-foundation.md`.
-- No production application code or CI has been implemented yet.
+- PR #1 contains the approved foundation documentation, M0A implementation plan, engineering policy, and repository community files.
+- M0A Platform Foundation implementation plan is `docs/superpowers/plans/2026-08-09-m0a-platform-foundation.md`.
+- Execution mode in this ChatGPT environment is Inline Execution because independent subagent dispatch is not exposed here; task/review gates from the plan remain mandatory.
+- No production application code or CI has been merged yet.
 - No license decision has been made.
 - No external retailer integration has been proven yet.
 
@@ -55,9 +71,12 @@ See accepted `docs/adr/0001-platform-stack.md`.
 4. How should delivery fees/minimum order constraints be obtained and normalized per retailer?
 5. What baseline matching accuracy is achievable with deterministic normalization/ranking before AI-assisted matching is justified?
 
-## Immediate next decision gate
+## Immediate next work
 
-Review the M0A Platform Foundation implementation plan. After approval, execute it task-by-task with TDD and verification checkpoints. M0B retailer feasibility is planned separately so volatile external integration experiments do not distort the platform foundation.
+1. Finish and merge foundation PR #1 after documentation verification.
+2. Create an isolated M0A implementation branch from the updated `main`.
+3. Execute `docs/superpowers/plans/2026-08-09-m0a-platform-foundation.md` task-by-task using TDD and fresh verification evidence.
+4. Do not begin retailer-specific provider implementation until M0A is verified and the separate M0B plan exists.
 
 ## Definition of M0 success
 
