@@ -9,8 +9,6 @@ public interface RetailerProvider {
 
     ProviderAccessType accessType();
 
-    ProviderExecutionMode executionMode();
-
     Set<ProviderCapability> capabilities();
 
     List<ObservedOffer> search(LocationContext location, ProductQuery query);
