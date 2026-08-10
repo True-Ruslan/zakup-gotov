@@ -79,9 +79,11 @@ The reference identifies these store-scoped consumer-backend requests:
 
 The same third-party client is **not** suitable as a production dependency for our policy: before making those requests it starts Camoufox, opens the main site, optionally attempts to interact with a robot/CAPTCHA control, and captures `x-app-version`, `x-device-id`, and `x-platform` from browser traffic. Those steps are research evidence that access may be guarded, not techniques Zakup Gotov is allowed to inherit.
 
-PR #39 therefore implements a separate plain-HTTP Phase A probe using the JDK HTTP client only. Its deterministic tests prove exact URI construction and that the request policy contains only `Accept` and a transparent Zakup Gotov `User-Agent`; it contains no Cookie, Authorization, captured app/device/platform headers, browser automation, proxy support or retry loop. The live test is disabled by default and requires the explicit `zakup.live.pyaterochka=true` opt-in.
+PR #39 implements a separate plain-HTTP Phase A probe using the JDK HTTP client only. Its deterministic tests prove exact URI construction and that the request policy contains only `Accept` and a transparent Zakup Gotov `User-Agent`; it contains no Cookie, Authorization, captured app/device/platform headers, browser automation, proxy support or retry loop. The live test is disabled by default and requires the explicit `zakup.live.pyaterochka=true` opt-in.
 
-A dedicated `Provider Live Probe` GitHub Actions workflow runs the live test only via manual dispatch or the exact `/provider-probe pyaterochka` command on tracking issue #38 from repository owner `True-Ruslan`. The workflow has `contents: read`, no secrets, a finite timeout, and publishes only a sanitized status line: HTTP status plus booleans indicating whether `sapCode`, PLU and price evidence were found. Response bodies and exact store/product IDs are not emitted as evidence.
+A dedicated `Provider Live Probe` GitHub Actions workflow runs the live test only via manual dispatch or the exact `/provider-probe pyaterochka` command on tracking issue #38 from repository owner `True-Ruslan`. The workflow uses least privilege: `contents: read` plus `statuses: write` solely to attach one sanitized `Provider Live Probe / Pyaterochka` commit status to the default-branch SHA. It uses only GitHub's ephemeral workflow token for that status write and has **no retailer credentials or retailer secrets**. The status description and job summary contain only HTTP status codes plus booleans indicating whether `sapCode`, PLU and price evidence were found; response bodies and exact store/product IDs are not emitted.
+
+The commit-status channel exists so automated tooling can retrieve issue-comment-triggered probe evidence without manual Actions UI access. A status is `success` only when store/search HTTP gates are 2xx and `sapCode`, PLU and price evidence are all present; every other outcome is published as `failure` with sanitized evidence.
 
 Current status: **Phase A implementation ready, live proof pending.** The public 5ka catalog surface returned HTTP 403 from an independent direct request during this research pass, so failure of the live raw-HTTP probe would be consistent with an access-control/anti-bot dependency and must not be worked around.
 
@@ -185,7 +187,7 @@ A single successful manual request is not provider support.
 ## Implementation sequence
 
 1. Shared feasibility harness — merged in PR #37.
-2. **Pyaterochka Phase A** — PR #39: merge the non-evasive probe/workflow after full CI, then run the explicit live probe. Continue to fixtures/corpus only on raw-HTTP PASS.
+2. **Pyaterochka Phase A** — probe/workflow merged in PR #39; add machine-readable status evidence, then run the explicit live probe. Continue to fixtures/corpus only on raw-HTTP PASS.
 3. **Perekrestok** — controlled provider spike using the same harness.
 4. **Magnit** — priority independent non-X5 path.
 5. **Chizhik** — evaluate only under the plain-HTTP gate.
