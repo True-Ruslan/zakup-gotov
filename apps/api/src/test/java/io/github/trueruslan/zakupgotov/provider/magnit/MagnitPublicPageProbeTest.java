@@ -3,6 +3,7 @@ package io.github.trueruslan.zakupgotov.provider.magnit;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assumptions.assumeTrue;
 
+import java.math.BigDecimal;
 import java.util.Set;
 import org.junit.jupiter.api.Test;
 
@@ -33,6 +34,21 @@ class MagnitPublicPageProbeTest {
                         "X-Api-Key",
                         "X-Auth-Token",
                         "Sec-CH-UA"));
+    }
+
+    @Test
+    void bindsPriceEvidenceToTheExpectedSkuInsteadOfFirstPagePrice() {
+        var html = """
+                <div>Реклама другого товара 1 ₽</div>
+                <section>
+                  <div>129,99 ₽</div>
+                  <div>Артикул 1000379971</div>
+                </section>
+                <footer>999 ₽</footer>
+                """;
+
+        assertThat(MagnitPublicPageProbe.closestPriceToSku(html, "1000379971"))
+                .contains(new BigDecimal("129.99"));
     }
 
     @Test
