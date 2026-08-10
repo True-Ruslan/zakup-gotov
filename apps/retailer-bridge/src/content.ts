@@ -15,6 +15,7 @@ let collectionInFlight = false;
 let collectionPending = false;
 let collectionSucceeded = false;
 let resourceObserver: PerformanceObserver | null = null;
+let domObserver: MutationObserver | null = null;
 
 function publishDiagnostics(status: string, observationCount: number): void {
   document.documentElement.dataset.zgBridgeStatus = status;
@@ -62,6 +63,7 @@ async function collectCurrentPage(): Promise<void> {
     if (result.status === "ok") {
       collectionSucceeded = true;
       resourceObserver?.disconnect();
+      domObserver?.disconnect();
     } else {
       await clearObservations();
     }
@@ -93,6 +95,13 @@ resourceObserver = new PerformanceObserver((list) => {
   }
 });
 resourceObserver.observe({ type: "resource", buffered: true });
+
+domObserver = new MutationObserver((mutations) => {
+  if (mutations.some((mutation) => mutation.addedNodes.length > 0 || mutation.removedNodes.length > 0)) {
+    requestCollection();
+  }
+});
+domObserver.observe(document.documentElement, { childList: true, subtree: true });
 
 rememberResourceEntries(performance.getEntriesByType("resource"));
 requestCollection();
