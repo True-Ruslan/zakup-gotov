@@ -88,3 +88,62 @@ test("stores only sanitized data and clears stale observations when context disa
     await rm(userDataDir, { recursive: true, force: true });
   }
 });
+
+test("collects current catalog DOM after async shop and DOM evidence resolve", async () => {
+  const userDataDir = await mkdtemp(join(tmpdir(), "zg-retailer-bridge-live-dom-"));
+  const context = await chromium.launchPersistentContext(userDataDir, {
+    channel: "chromium",
+    headless: true,
+    args: [
+      `--disable-extensions-except=${extensionPath}`,
+      `--load-extension=${extensionPath}`,
+    ],
+  });
+
+  try {
+    const liveFixture = await readFile(
+      resolve(fixtureDir, "perekrestok-live-dom-async-state.html"),
+      "utf8",
+    );
+
+    await context.route("https://www.perekrestok.ru/**", async (route) => {
+      const pathname = new URL(route.request().url()).pathname;
+      if (pathname === "/api/customer/1.4.1.0/shop/656") {
+        await route.fulfill({
+          status: 200,
+          contentType: "application/json; charset=utf-8",
+          body: "{}",
+        });
+        return;
+      }
+
+      await route.fulfill({
+        status: 200,
+        contentType: "text/html; charset=utf-8",
+        body: liveFixture,
+      });
+    });
+
+    const page = await context.newPage();
+    await page.goto("https://www.perekrestok.ru/cat/fixture-live-dom");
+
+    await expect.poll(() => page.locator("html").getAttribute("data-zg-bridge-status")).toBe("ok");
+    await expect.poll(() => page.locator("html").getAttribute("data-zg-bridge-count")).toBe("1");
+
+    const worker = context.serviceWorkers()[0] ?? (await context.waitForEvent("serviceworker"));
+    const stored = await worker.evaluate(async () =>
+      chrome.storage.local.get("zg.latestObservations"),
+    );
+    const serialized = JSON.stringify(stored);
+
+    expect(serialized).toContain("\"fulfillmentContextId\":\"656\"");
+    expect(serialized).toContain("\"sku\":\"4408829\"");
+    expect(serialized).toContain("\"priceMinor\":19999");
+    expect(serialized).toContain("\"adapterVersion\":\"2\"");
+    expect(serialized).not.toContain("SECRET_RESOURCE_QUERY");
+    expect(serialized).not.toContain("session=");
+  } finally {
+    await context.close();
+    await rm(userDataDir, { recursive: true, force: true });
+  }
+});

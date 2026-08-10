@@ -91,13 +91,14 @@ export class BrowserObservationCollector {
     document: Document,
     url: URL,
     observedAt: string,
+    resourceUrls: readonly string[] = [],
   ): Promise<CollectorResult> {
     const adapter = this.adapters.find((candidate) => candidate.supports(url));
     if (!adapter) {
       return { status: "unsupported-page", observationCount: 0 };
     }
 
-    const result = adapter.collect({ document, url, observedAt });
+    const result = adapter.collect({ document, url, observedAt, resourceUrls });
     if (result.status !== "ok") {
       return { status: result.status, observationCount: 0 };
     }
