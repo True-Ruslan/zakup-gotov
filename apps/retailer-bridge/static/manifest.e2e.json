@@ -1,0 +1,21 @@
+{
+  "manifest_version": 3,
+  "name": "Zakup Gotov Retailer Bridge E2E",
+  "version": "0.1.0",
+  "description": "Local fixture build for deterministic extension tests.",
+  "permissions": ["storage"],
+  "background": {
+    "service_worker": "service-worker.js"
+  },
+  "content_scripts": [
+    {
+      "matches": [
+        "https://www.perekrestok.ru/*",
+        "http://127.0.0.1:4174/*"
+      ],
+      "js": ["content.js"],
+      "run_at": "document_idle",
+      "world": "ISOLATED"
+    }
+  ]
+}
