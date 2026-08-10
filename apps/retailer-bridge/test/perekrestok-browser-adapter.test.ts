@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 
 import { readFileSync } from "node:fs";
-import { fileURLToPath } from "node:url";
+import { resolve } from "node:path";
 import { describe, expect, it } from "vitest";
 import { perekrestokBrowserAdapter } from "../src/adapters/perekrestok-browser-adapter";
 
@@ -9,7 +9,7 @@ const OBSERVED_AT = "2026-08-10T11:00:00Z";
 const PAGE_URL = new URL("https://www.perekrestok.ru/cat/1?session=secret#fragment");
 
 function fixture(name: string): Document {
-  const path = fileURLToPath(new URL(`./fixtures/${name}`, import.meta.url));
+  const path = resolve(process.cwd(), "test/fixtures", name);
   return new DOMParser().parseFromString(readFileSync(path, "utf8"), "text/html");
 }
 
