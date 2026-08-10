@@ -8,8 +8,9 @@ This directory is the durable documentation entry point for Zakup Gotov. Documen
 |---|---|
 | Current factual state | [`PROJECT_STATE.md`](PROJECT_STATE.md) |
 | Product and engineering roadmap | [`ROADMAP.md`](ROADMAP.md) |
+| Universal retailer connectivity design | [`superpowers/specs/2026-08-10-universal-retailer-connectivity-design.md`](superpowers/specs/2026-08-10-universal-retailer-connectivity-design.md) |
 | Retailer integration feasibility evidence | [`integrations/retailer-feasibility.md`](integrations/retailer-feasibility.md) |
-| Mandatory Pyaterochka/Perekrestok coverage strategy | [`integrations/x5-mandatory-coverage.md`](integrations/x5-mandatory-coverage.md) |
+| Mandatory Pyaterochka/Perekrestok strategy | [`integrations/x5-mandatory-coverage.md`](integrations/x5-mandatory-coverage.md) |
 | Local setup and verification | [`DEVELOPMENT.md`](DEVELOPMENT.md) |
 | Container/release workflow | [`RELEASES.md`](RELEASES.md) |
 | Mandatory engineering policy | [`ENGINEERING.md`](ENGINEERING.md) |
