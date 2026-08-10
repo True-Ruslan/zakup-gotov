@@ -34,14 +34,15 @@ describe("Chrome observation messaging", () => {
     });
   });
 
-  it("sends a payload-free clear message for fail-closed pages", async () => {
+  it("replaces stale observations with an empty normalized payload", async () => {
     const sendMessage = vi.fn().mockResolvedValue(undefined);
     const clear = createChromeObservationClearer(sendMessage);
 
     await clear();
 
     expect(sendMessage).toHaveBeenCalledExactlyOnceWith({
-      type: "ZG_CLEAR_OBSERVATIONS",
+      type: "ZG_STORE_OBSERVATIONS",
+      observations: [],
     });
   });
 });
