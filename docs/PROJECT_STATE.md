@@ -10,7 +10,7 @@ Repository: `True-Ruslan/zakup-gotov`
 Visibility: Public  
 Current phase: **M0 — Product & Integration Discovery**  
 Current execution stage: **M0A closure + M0B Retailer Feasibility (parallel)**  
-Current focus: **prove the first real retailer path with the Pyaterochka plain-HTTP Phase A gate while keeping the still-outstanding `v0.1.0-rc.3` release proof explicit**
+Current focus: **obtain the first machine-readable Pyaterochka plain-HTTP Phase A result while keeping the still-outstanding `v0.1.0-rc.3` release proof explicit**
 
 ## Product status
 
@@ -20,7 +20,8 @@ M0B is now executable rather than research-only:
 
 - PR #35 established the normalized `ObservedOffer` trust boundary;
 - PR #37 established the reusable provider feasibility harness and was squash-merged to `main` as `e318c8ee92ab5f62dd593f4fd214735eb8c59750` after full CI/security verification;
-- PR #39 is the first concrete retailer spike and implements a non-evasive Pyaterochka Phase A probe plus an explicit live-probe workflow.
+- PR #39 implemented the first concrete retailer spike — a non-evasive Pyaterochka Phase A probe plus an opt-in live-probe workflow — and was squash-merged to `main` as `4efabe78f82d23fb24f58aa4c6a4a0e15cd93af0` after full CI/security verification;
+- PR #40 adds a narrow commit-status evidence channel so issue-comment-triggered live results can be retrieved by connected tooling without manual Actions UI access.
 
 **No retailer/provider is supported yet.** Pyaterochka remains `SPIKE_IF_RAW_HTTP_WORKS` until the real live Phase A request proves that store lookup, store-scoped product search, SKU/PLU identity and price evidence are available through ordinary HTTP without prohibited circumvention.
 
@@ -141,7 +142,7 @@ Detailed evidence is in [`integrations/retailer-feasibility.md`](integrations/re
 
 ## Pyaterochka / 5ka Phase A
 
-Tracking: issue #38 and draft PR #39.
+Tracking: issue #38; probe/workflow implementation merged in PR #39; evidence transport hardening is PR #40.
 
 Current research identifies the consumer-backend base `https://5d.5ka.ru/api` and these hypotheses:
 
@@ -153,7 +154,7 @@ Current research identifies the consumer-backend base `https://5d.5ka.ru/api` an
 
 The current Open-Inflation reference obtains these calls through a Camoufox browser warm-up, optional robot/CAPTCHA interaction, and captured `x-app-version`, `x-device-id`, and `x-platform` request headers. **Zakup Gotov does not inherit those techniques.** A separate direct request to the public 5ka catalog surface also returned HTTP 403 during research, so raw HTTP viability must be tested rather than assumed.
 
-PR #39 therefore implements a separate JDK `HttpClient` Phase A probe with:
+PR #39 implements a separate JDK `HttpClient` Phase A probe with:
 
 - only `Accept` and a transparent Zakup Gotov `User-Agent`;
 - fixed connect/request timeouts;
@@ -165,18 +166,19 @@ PR #39 therefore implements a separate JDK `HttpClient` Phase A probe with:
 - store lookup → search only, stopping at the first failed gate;
 - sanitized evidence only: status codes plus booleans for `sapCode`, PLU and price evidence.
 
-TDD evidence so far:
+TDD and merge evidence:
 
 - RED commit `099cb2ace80e7492b9ed0279f82420ec39106fd4`: API CI failed at `testCompile` only because `PyaterochkaPlainHttpProbe` did not yet exist;
 - GREEN implementation commit `e91e6bfab20d5a700cbb08fc0c2b1a8193f82a3b`: `PyaterochkaPlainHttpProbeTest` ran **3 tests, 0 failures/errors, 1 intentionally skipped live test**; complete API suite ran **25 tests, 0 failures/errors, 1 skipped**; PostgreSQL 18.4 and JAR build passed;
-- a new read-only `Provider Live Probe` workflow is opt-in only and is not part of normal PR CI;
-- normal repository workflows on the workflow-introduction head passed API, Contract, Web, CodeQL, Dependency Review, Release Bundle, Release Contract and Container Security.
+- final PR #39 head passed API, Contract, Web + Web E2E, CodeQL, Dependency Review, Release Bundle, Release Contract and both production-image Container Security scans before squash merge.
 
-Current result: **Phase A implementation is ready; live raw-HTTP proof is still pending.** This is not provider support and no fixtures/20-item corpus are justified until Phase A passes.
+The opt-in `Provider Live Probe` workflow is not part of ordinary PR CI. PR #40 keeps `contents: read` and adds only `statuses: write` so the workflow can attach context `Provider Live Probe / Pyaterochka` to the default-branch SHA. The status description contains only the same compact sanitized evidence; no response body or exact store/product ID is published. GitHub's ephemeral workflow token is used only for the status write; there are no retailer credentials/secrets.
+
+Current result: **Phase A implementation is merged; machine-readable live raw-HTTP proof is still pending.** An initial issue-comment trigger was sent after PR #39, but the connected tooling cannot enumerate issue-comment workflow runs. PR #40 exists specifically so the next run publishes a retrievable commit status. This is not provider support and no fixtures/20-item corpus are justified until Phase A passes.
 
 ## Current retailer priorities
 
-- **Pyaterochka / 5ka** — `SPIKE_IF_RAW_HTTP_WORKS`; active Phase A, live proof pending.
+- **Pyaterochka / 5ka** — `SPIKE_IF_RAW_HTTP_WORKS`; active Phase A, machine-readable live proof pending.
 - **Perekrestok** — `SPIKE_NOW`; next controlled provider spike.
 - **Magnit** — `SPIKE_NOW`; priority independent non-X5 proof path.
 - **Chizhik** — `SPIKE_IF_RAW_HTTP_WORKS`; reject if browser/proxy evasion is required.
@@ -211,9 +213,9 @@ Known incompatible major updates remain deferred rather than bypassing checks:
 
 ## Immediate next work
 
-1. Finish PR #39 with documentation synchronization, full CI/security verification and final read-only review.
-2. Merge PR #39 so the opt-in `Provider Live Probe` workflow exists on the default branch.
-3. Trigger the exact Pyaterochka Phase A live probe from issue #38.
+1. Finish PR #40 with full CI/security verification and read-only review, then squash-merge it.
+2. Re-trigger exactly `/provider-probe pyaterochka` on issue #38.
+3. Read `Provider Live Probe / Pyaterochka` from the new `main` commit status and record the sanitized Phase A result.
 4. If raw HTTP passes, record sanitized fixtures and run the fixed 20-item corpus against two stores; if access requires prohibited browser/CAPTCHA/stealth/proxy behavior, mark `UNSUITABLE_PUBLIC_PATH` and move on without bypassing it.
 5. Start Perekrestok and prioritize Magnit as the independent non-X5 path.
 6. Continue Kuper issue #36 and second-wave Ozon Fresh/Samokat research in parallel.

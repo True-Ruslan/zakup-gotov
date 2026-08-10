@@ -7,6 +7,7 @@ on:
 
 permissions:
   contents: read
+  statuses: write
 
 concurrency:
   group: provider-live-probe-${{ github.event.issue.number || github.ref }}
@@ -57,19 +58,41 @@ jobs:
             -Dzakup.live.pyaterochka=true \
             test 2>&1 | tee "$RUNNER_TEMP/pyaterochka-live-probe.log"
 
-      - name: Publish sanitized evidence summary
+      - name: Publish sanitized evidence
         if: always()
         shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
         run: |
           set -euo pipefail
           echo '## Pyaterochka plain HTTP Phase A' >> "$GITHUB_STEP_SUMMARY"
+
+          evidence=''
           if [[ -f "$RUNNER_TEMP/pyaterochka-live-probe.log" ]]; then
             evidence="$(grep -F 'PYATEROCHKA_PHASE_A' "$RUNNER_TEMP/pyaterochka-live-probe.log" | tail -n 1 || true)"
-            if [[ -n "$evidence" ]]; then
-              printf '`%s`\n' "$evidence" >> "$GITHUB_STEP_SUMMARY"
-            else
-              echo 'No successful Phase A evidence line was emitted; inspect the test failure/status without copying response bodies.' >> "$GITHUB_STEP_SUMMARY"
+          fi
+
+          state='failure'
+          description='PYATEROCHKA_PHASE_A no_sanitized_evidence=true'
+          if [[ -n "$evidence" ]]; then
+            description="$evidence"
+            printf '`%s`\n' "$evidence" >> "$GITHUB_STEP_SUMMARY"
+            if [[ "$evidence" == *'store_status=2'* \
+               && "$evidence" == *'sap_code_present=true'* \
+               && "$evidence" == *'search_status=2'* \
+               && "$evidence" == *'plu_present=true'* \
+               && "$evidence" == *'price_evidence=true'* ]]; then
+              state='success'
             fi
           else
-            echo 'Probe log was not created.' >> "$GITHUB_STEP_SUMMARY"
+            echo 'No sanitized Phase A evidence line was emitted.' >> "$GITHUB_STEP_SUMMARY"
           fi
+
+          # Commit statuses have a 140-character description limit. The evidence line is intentionally compact.
+          description="${description:0:140}"
+          gh api \
+            --method POST \
+            "repos/${GITHUB_REPOSITORY}/statuses/${GITHUB_SHA}" \
+            -f state="$state" \
+            -f context='Provider Live Probe / Pyaterochka' \
+            -f description="$description" >/dev/null
