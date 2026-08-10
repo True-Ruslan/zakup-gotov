@@ -51,6 +51,32 @@ describe("perekrestokBrowserAdapter", () => {
     ]);
   });
 
+  it("extracts current live DOM products with store context from first-party resource paths", () => {
+    const result = perekrestokBrowserAdapter.collect({
+      document: fixture("perekrestok-live-dom-state.html"),
+      url: new URL("https://www.perekrestok.ru/cat/mc/25/gotovaa-eda"),
+      observedAt: OBSERVED_AT,
+      resourceUrls: [
+        "https://www.perekrestok.ru/api/customer/1.4.1.0/basket?session=secret",
+        "https://www.perekrestok.ru/api/customer/1.4.1.0/shop/656?address=secret#fragment",
+      ],
+    });
+
+    expect(result.status).toBe("ok");
+    if (result.status !== "ok") return;
+
+    expect(result.observations).toEqual([
+      expect.objectContaining({
+        fulfillmentContextId: "656",
+        sku: "4408829",
+        productName: "Санитизированный готовый продукт",
+        priceMinor: 19999,
+        currencyCode: "RUB",
+        availability: "UNKNOWN",
+      }),
+    ]);
+  });
+
   it("requires a unique store context before emitting product observations", () => {
     expect(
       perekrestokBrowserAdapter.collect({
