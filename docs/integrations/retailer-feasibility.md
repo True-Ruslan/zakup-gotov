@@ -38,12 +38,13 @@ The executable provider model distinguishes:
 - `PARTNER_SIDE_ONLY` — official API exists, but its documented direction is for a retailer/merchant partner rather than a read-side comparison client.
 - `BLOCKED_WITHOUT_AGREEMENT` — public consumer data exists, but current terms do not provide an acceptable production assumption for automated reuse.
 - `RESEARCH_REQUIRED` — public surface exists but the location/catalog/price path is not sufficiently characterized yet.
+- `UNSUITABLE_PUBLIC_PATH` — the required consumer path cannot be exercised without prohibited circumvention; do not build a production adapter from it.
 
 ## Current matrix
 
 | Candidate | Technical evidence | Location / store evidence | Current decision | Next proof required |
 |---|---|---|---|---|
-| **Pyaterochka / 5ka** | Public 5ka catalog exposes prices. Open-Inflation `pyaterochka_api` documents store-scoped category/product calls and PLU identity. | Wrapper obtains the selected delivery store `sapCode` and passes it into catalog/product calls; geolocation suggest/geocode are also exposed. | `SPIKE_IF_RAW_HTTP_WORKS` | Reproduce selected-store + 20-item corpus using ordinary HTTP without Camoufox/stealth; capture sanitized fixtures; compare two stores. |
+| **Pyaterochka / 5ka** | Open-Inflation `pyaterochka_api` identifies `5d.5ka.ru/api` store lookup, store-scoped catalog/search/product routes and PLU identity. The same client performs Camoufox warm-up, optional CAPTCHA interaction and captures `x-app-version`, `x-device-id`, `x-platform`; those behaviors are excluded from Zakup Gotov. A dedicated JDK `HttpClient` probe now models the same minimal store→search path with only `Accept` plus a transparent Zakup Gotov `User-Agent`, fixed timeouts and no retry/evasion loop. | Store lookup route accepts coordinates and search is explicitly scoped by `{sapCode}`. A separate direct request to the public 5ka catalog surface returned HTTP 403 during research, so the raw-HTTP gate is materially necessary. | `SPIKE_IF_RAW_HTTP_WORKS` — Phase A code ready; live result not yet proven. | Run the explicit GitHub `Provider Live Probe`. PASS requires ordinary HTTP store lookup → `sapCode` → `молоко` search → PLU + price evidence. Any required CAPTCHA/browser/stealth/proxy circumvention results in `UNSUITABLE_PUBLIC_PATH`. |
 | **Perekrestok** | Open-Inflation `perekrestok_api` reproduces ordinary site network calls, exposes geolocation, category tree and product feed/IDs, with schema-snapshot tests. | City/session context is demonstrated; exact store-level price/availability semantics still need independent proof. | `SPIKE_NOW` | Identify fulfillment/store selector, run fixed corpus, prove price/store linkage and availability semantics, save fixtures. |
 | **Magnit** | Official public catalog exposes current product prices and supports a `shopCode` query parameter. | Public catalog pages with different `shopCode` values return different catalog sizes/content, strong evidence that store context matters. | `SPIKE_NOW` | Discover the ordinary backend calls used by the public catalog, then test two explicit stores with a 20-item corpus using non-evasive HTTP. |
 | **Chizhik** | Open-Inflation `chizhik_api` exposes cities, categories, products and active offers. | Geolocation/catalog APIs exist in the wrapper, but the README installs Camoufox and explicitly discusses optional proxies/imitating a regular user. | `SPIKE_IF_RAW_HTTP_WORKS` | Determine whether required catalog calls work with a plain HTTP client. If stealth/proxy rotation is required, mark the path unsuitable. |
@@ -68,7 +69,21 @@ Independent technical reference:
 
 - https://github.com/Open-Inflation/pyaterochka_api
 
-The reference documents a public-site network client that obtains a selected delivery store `sapCode`, uses that store ID for catalog/product calls, exposes PLU product identity, and includes geolocation calls. Its README also installs Camoufox. Zakup Gotov will therefore use it only to identify hypotheses/endpoints; the first spike must prove that plain HTTP is sufficient before this path can advance.
+The reference identifies these store-scoped consumer-backend requests:
+
+- catalog base: `https://5d.5ka.ru/api`;
+- nearest store: `GET /orders/v1/orders/stores/?lon={longitude}&lat={latitude}`;
+- categories: `GET /catalog/v2/stores/{sapCode}/categories?...`;
+- search: `GET /catalog/v3/stores/{sapCode}/search?mode=store&include_restrict=true&q={query}&limit={limit}`;
+- product: `GET /catalog/v2/stores/{sapCode}/products/{plu}?mode=store&include_restrict=true`.
+
+The same third-party client is **not** suitable as a production dependency for our policy: before making those requests it starts Camoufox, opens the main site, optionally attempts to interact with a robot/CAPTCHA control, and captures `x-app-version`, `x-device-id`, and `x-platform` from browser traffic. Those steps are research evidence that access may be guarded, not techniques Zakup Gotov is allowed to inherit.
+
+PR #39 therefore implements a separate plain-HTTP Phase A probe using the JDK HTTP client only. Its deterministic tests prove exact URI construction and that the request policy contains only `Accept` and a transparent Zakup Gotov `User-Agent`; it contains no Cookie, Authorization, captured app/device/platform headers, browser automation, proxy support or retry loop. The live test is disabled by default and requires the explicit `zakup.live.pyaterochka=true` opt-in.
+
+A dedicated `Provider Live Probe` GitHub Actions workflow runs the live test only via manual dispatch or the exact `/provider-probe pyaterochka` command on tracking issue #38 from repository owner `True-Ruslan`. The workflow has `contents: read`, no secrets, a finite timeout, and publishes only a sanitized status line: HTTP status plus booleans indicating whether `sapCode`, PLU and price evidence were found. Response bodies and exact store/product IDs are not emitted as evidence.
+
+Current status: **Phase A implementation ready, live proof pending.** The public 5ka catalog surface returned HTTP 403 from an independent direct request during this research pass, so failure of the live raw-HTTP probe would be consistent with an access-control/anti-bot dependency and must not be worked around.
 
 ### Perekrestok
 
@@ -169,11 +184,11 @@ A single successful manual request is not provider support.
 
 ## Implementation sequence
 
-1. Land the shared feasibility harness (`feat/m0b-provider-feasibility-harness`).
-2. First retailer spike: **Pyaterochka**, but only after proving the relevant calls work without Camoufox/stealth/proxy rotation.
-3. In parallel or immediately after: **Perekrestok**.
-4. Use **Magnit** as the priority independent non-X5 path.
-5. Evaluate **Chizhik** only under the plain-HTTP gate.
-6. Research **Ozon Fresh** and **Samokat** as the second wave.
-7. Keep **Kuper** official-access work active in parallel through issue #36.
+1. Shared feasibility harness — merged in PR #37.
+2. **Pyaterochka Phase A** — PR #39: merge the non-evasive probe/workflow after full CI, then run the explicit live probe. Continue to fixtures/corpus only on raw-HTTP PASS.
+3. **Perekrestok** — controlled provider spike using the same harness.
+4. **Magnit** — priority independent non-X5 path.
+5. **Chizhik** — evaluate only under the plain-HTTP gate.
+6. **Ozon Fresh** and **Samokat** — second-wave discovery.
+7. **Kuper** — keep official-access work active in parallel through issue #36.
 8. Do not enter M1 Shopping Core until at least two acceptable provider paths satisfy the M0 exit criteria, preferably including one non-X5 provider.
