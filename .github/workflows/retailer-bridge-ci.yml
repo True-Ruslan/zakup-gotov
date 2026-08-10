@@ -36,4 +36,4 @@ jobs:
         run: pnpm install --frozen-lockfile
 
       - name: Run manifest security contract
-        run: pnpm --dir apps/web exec vitest run ../retailer-bridge/test/manifest-security.test.ts --environment node
+        run: pnpm --dir apps/web exec vitest run --root ../retailer-bridge --config ../retailer-bridge/vitest.config.mjs
