@@ -136,15 +136,18 @@ Current agreement restrictions make undocumented production scraping/reuse an un
 
 M0B uses a shared provider contract before any retailer-specific implementation:
 
-- provider access type;
-- provider execution mode (`FIXTURE` or `LIVE`);
+- provider access type (`OFFICIAL_API`, `PUBLIC_UNOFFICIAL_API`, `PARTNER_API`);
 - declared capabilities (`LOCATION_RESOLUTION`, `CATALOG`, `PRODUCT_SEARCH`, `PRICE`, `AVAILABILITY`);
 - provider-scoped `LocationContext`;
 - normalized `ProductQuery`;
-- `RetailerProvider` port;
-- `ProviderFeasibilityHarness` provenance checks.
+- common `RetailerProvider` port;
+- deterministic `FixtureRetailerProvider` type accepted by `ProviderFeasibilityHarness.offline()`;
+- network-capable `LiveRetailerProvider` type accepted only by the separate explicit `ProviderLiveProbe` entry point;
+- shared provenance/capability validation for both fixture and live probes.
 
-The offline harness must reject a `LIVE` provider before its network-capable method can execute. Normal PR CI therefore tests fixtures only. A live probe is always an explicit separate action.
+The fixture/live boundary is structural rather than a provider-supplied enum flag. Ordinary deterministic CI instantiates fixture-backed providers and uses the offline harness. Live probes are separate opt-in actions and are never part of the normal PR verification path.
+
+Offer search requires both `PRODUCT_SEARCH` and `PRICE` capabilities. Every returned offer must match the provider and requested fulfillment context before the harness accepts it.
 
 ## Provider-spike acceptance test
 
