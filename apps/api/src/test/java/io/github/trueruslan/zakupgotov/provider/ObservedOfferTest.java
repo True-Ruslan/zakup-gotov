@@ -9,62 +9,92 @@ import org.junit.jupiter.api.Test;
 class ObservedOfferTest {
 
     private static final Instant OBSERVED_AT = Instant.parse("2026-08-10T07:00:00Z");
+    private static final String SOURCE_REFERENCE = "fixture://provider-a/search/milk.json";
 
     @Test
     void acceptsCompleteLocationSpecificOffer() {
-        new ObservedOffer(
-                "provider-a",
-                "fulfillment-context-1",
-                "sku-1",
-                new BigDecimal("149.90"),
-                "RUB",
-                AvailabilityStatus.AVAILABLE,
-                OBSERVED_AT,
-                "fixture://provider-a/search/milk.json");
+        offer("provider-a", "fulfillment-context-1", "sku-1", new BigDecimal("149.90"), "RUB",
+                AvailabilityStatus.AVAILABLE, OBSERVED_AT, SOURCE_REFERENCE);
+    }
+
+    @Test
+    void rejectsOfferWithoutProvider() {
+        assertInvalid("providerId", () -> offer(" ", "fulfillment-context-1", "sku-1", new BigDecimal("149.90"),
+                "RUB", AvailabilityStatus.AVAILABLE, OBSERVED_AT, SOURCE_REFERENCE));
     }
 
     @Test
     void rejectsOfferWithoutFulfillmentContext() {
-        assertThatThrownBy(() -> new ObservedOffer(
-                        "provider-a",
-                        " ",
-                        "sku-1",
-                        new BigDecimal("149.90"),
-                        "RUB",
-                        AvailabilityStatus.AVAILABLE,
-                        OBSERVED_AT,
-                        "fixture://provider-a/search/milk.json"))
-                .isInstanceOf(IllegalArgumentException.class)
-                .hasMessageContaining("fulfillmentContextId");
+        assertInvalid("fulfillmentContextId", () -> offer("provider-a", " ", "sku-1", new BigDecimal("149.90"),
+                "RUB", AvailabilityStatus.AVAILABLE, OBSERVED_AT, SOURCE_REFERENCE));
+    }
+
+    @Test
+    void rejectsOfferWithoutSku() {
+        assertInvalid("sku", () -> offer("provider-a", "fulfillment-context-1", " ", new BigDecimal("149.90"),
+                "RUB", AvailabilityStatus.AVAILABLE, OBSERVED_AT, SOURCE_REFERENCE));
+    }
+
+    @Test
+    void rejectsOfferWithoutPrice() {
+        assertInvalid("price", () -> offer("provider-a", "fulfillment-context-1", "sku-1", null,
+                "RUB", AvailabilityStatus.AVAILABLE, OBSERVED_AT, SOURCE_REFERENCE));
+    }
+
+    @Test
+    void rejectsNegativePrice() {
+        assertInvalid("price", () -> offer("provider-a", "fulfillment-context-1", "sku-1", new BigDecimal("-0.01"),
+                "RUB", AvailabilityStatus.AVAILABLE, OBSERVED_AT, SOURCE_REFERENCE));
+    }
+
+    @Test
+    void rejectsInvalidCurrencyCode() {
+        assertInvalid("currencyCode", () -> offer("provider-a", "fulfillment-context-1", "sku-1",
+                new BigDecimal("149.90"), "NOT-A-CURRENCY", AvailabilityStatus.AVAILABLE, OBSERVED_AT,
+                SOURCE_REFERENCE));
+    }
+
+    @Test
+    void rejectsOfferWithoutAvailability() {
+        assertInvalid("availability", () -> offer("provider-a", "fulfillment-context-1", "sku-1",
+                new BigDecimal("149.90"), "RUB", null, OBSERVED_AT, SOURCE_REFERENCE));
     }
 
     @Test
     void rejectsOfferWithoutObservationTime() {
-        assertThatThrownBy(() -> new ObservedOffer(
-                        "provider-a",
-                        "fulfillment-context-1",
-                        "sku-1",
-                        new BigDecimal("149.90"),
-                        "RUB",
-                        AvailabilityStatus.AVAILABLE,
-                        null,
-                        "fixture://provider-a/search/milk.json"))
-                .isInstanceOf(IllegalArgumentException.class)
-                .hasMessageContaining("observedAt");
+        assertInvalid("observedAt", () -> offer("provider-a", "fulfillment-context-1", "sku-1",
+                new BigDecimal("149.90"), "RUB", AvailabilityStatus.AVAILABLE, null, SOURCE_REFERENCE));
     }
 
     @Test
     void rejectsOfferWithoutSourceReference() {
-        assertThatThrownBy(() -> new ObservedOffer(
-                        "provider-a",
-                        "fulfillment-context-1",
-                        "sku-1",
-                        new BigDecimal("149.90"),
-                        "RUB",
-                        AvailabilityStatus.AVAILABLE,
-                        OBSERVED_AT,
-                        ""))
+        assertInvalid("sourceReference", () -> offer("provider-a", "fulfillment-context-1", "sku-1",
+                new BigDecimal("149.90"), "RUB", AvailabilityStatus.AVAILABLE, OBSERVED_AT, ""));
+    }
+
+    private static ObservedOffer offer(
+            String providerId,
+            String fulfillmentContextId,
+            String sku,
+            BigDecimal price,
+            String currencyCode,
+            AvailabilityStatus availability,
+            Instant observedAt,
+            String sourceReference) {
+        return new ObservedOffer(
+                providerId,
+                fulfillmentContextId,
+                sku,
+                price,
+                currencyCode,
+                availability,
+                observedAt,
+                sourceReference);
+    }
+
+    private static void assertInvalid(String field, Runnable construction) {
+        assertThatThrownBy(construction::run)
                 .isInstanceOf(IllegalArgumentException.class)
-                .hasMessageContaining("sourceReference");
+                .hasMessageContaining(field);
     }
 }
