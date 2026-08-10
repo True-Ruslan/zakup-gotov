@@ -85,6 +85,29 @@ final class MagnitPublicPageProbe {
         return httpClient.send(builder.build(), HttpResponse.BodyHandlers.ofString(StandardCharsets.UTF_8));
     }
 
+    static Optional<BigDecimal> closestPriceToSku(String html, String expectedSku) {
+        if (expectedSku == null || expectedSku.isBlank()) {
+            throw new IllegalArgumentException("expectedSku must not be blank");
+        }
+        var text = visibleText(html);
+        var skuIndex = text.indexOf(expectedSku);
+        if (skuIndex < 0) {
+            return Optional.empty();
+        }
+
+        var matcher = PRICE.matcher(text);
+        BigDecimal bestPrice = null;
+        var bestDistance = Integer.MAX_VALUE;
+        while (matcher.find()) {
+            var distance = Math.abs(matcher.start() - skuIndex);
+            if (distance < bestDistance) {
+                bestDistance = distance;
+                bestPrice = new BigDecimal(matcher.group(1).replace(',', '.'));
+            }
+        }
+        return Optional.ofNullable(bestPrice);
+    }
+
     private static String visibleText(String html) {
         return (html == null ? "" : html)
                 .replace("&nbsp;", " ")
@@ -99,12 +122,9 @@ final class MagnitPublicPageProbe {
 
         static PageEvidence from(HttpResponse<String> response, String expectedSku) {
             var body = response.body() == null ? "" : response.body();
-            var text = visibleText(body);
-            var priceMatcher = PRICE.matcher(text);
-            Optional<BigDecimal> price = priceMatcher.find()
-                    ? Optional.of(new BigDecimal(priceMatcher.group(1).replace(',', '.')))
-                    : Optional.empty();
-            return new PageEvidence(response.statusCode(), body.contains(expectedSku), price);
+            var skuEvidence = body.contains(expectedSku);
+            var price = skuEvidence ? closestPriceToSku(body, expectedSku) : Optional.<BigDecimal>empty();
+            return new PageEvidence(response.statusCode(), skuEvidence, price);
         }
 
         boolean complete() {
