@@ -4,8 +4,8 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "build": "pnpm --dir ../web exec vite build --config ../retailer-bridge/vite.config.mjs && node scripts/copy-static.mjs",
-    "build:e2e": "ZG_BRIDGE_E2E=1 pnpm --dir ../web exec vite build --config ../retailer-bridge/vite.config.mjs && node scripts/copy-static.mjs --e2e",
+    "build": "node scripts/build.mjs",
+    "build:e2e": "node scripts/build.mjs --e2e",
     "typecheck": "pnpm --dir ../web exec tsc --project ../retailer-bridge/tsconfig.json --noEmit",
     "test": "pnpm --dir ../web exec vitest run --root ../retailer-bridge --config ../retailer-bridge/vitest.config.mjs",
     "test:e2e": "pnpm --dir ../web exec playwright test --config ../retailer-bridge/playwright.config.ts"
