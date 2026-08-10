@@ -35,5 +35,11 @@ jobs:
       - name: Install workspace dependencies
         run: pnpm install --frozen-lockfile
 
-      - name: Run manifest security contract
-        run: pnpm --dir apps/web exec vitest run --root ../retailer-bridge --config ../retailer-bridge/vitest.config.mjs
+      - name: Run bridge tests
+        run: pnpm --dir apps/retailer-bridge test
+
+      - name: Typecheck bridge
+        run: pnpm --dir apps/retailer-bridge typecheck
+
+      - name: Build bridge
+        run: pnpm --dir apps/retailer-bridge build
