@@ -1,5 +1,8 @@
 import { describe, expect, it, vi } from "vitest";
-import { createChromeObservationSink } from "../src/collector/chrome-observation-sink";
+import {
+  createChromeObservationClearer,
+  createChromeObservationSink,
+} from "../src/collector/chrome-observation-sink";
 import type { BrowserObservation } from "../src/model/browser-observation";
 
 const observation: BrowserObservation = {
@@ -18,7 +21,7 @@ const observation: BrowserObservation = {
   adapterVersion: "1",
 };
 
-describe("createChromeObservationSink", () => {
+describe("Chrome observation messaging", () => {
   it("sends only the normalized observation message contract", async () => {
     const sendMessage = vi.fn().mockResolvedValue(undefined);
     const sink = createChromeObservationSink(sendMessage);
@@ -28,6 +31,17 @@ describe("createChromeObservationSink", () => {
     expect(sendMessage).toHaveBeenCalledExactlyOnceWith({
       type: "ZG_STORE_OBSERVATIONS",
       observations: [observation],
+    });
+  });
+
+  it("sends a payload-free clear message for fail-closed pages", async () => {
+    const sendMessage = vi.fn().mockResolvedValue(undefined);
+    const clear = createChromeObservationClearer(sendMessage);
+
+    await clear();
+
+    expect(sendMessage).toHaveBeenCalledExactlyOnceWith({
+      type: "ZG_CLEAR_OBSERVATIONS",
     });
   });
 });
