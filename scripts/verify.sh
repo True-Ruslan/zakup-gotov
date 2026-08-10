@@ -59,6 +59,11 @@ pnpm --filter @zakup-gotov/api-client typecheck
 pnpm --filter @zakup-gotov/api-client test
 pnpm --filter @zakup-gotov/api-client build
 
+echo "==> Retailer bridge typecheck/tests/build"
+pnpm --dir apps/retailer-bridge typecheck
+pnpm --dir apps/retailer-bridge test
+pnpm --dir apps/retailer-bridge build
+
 echo "==> Web lint/typecheck/tests/build"
 pnpm --filter web lint
 pnpm --filter web typecheck
