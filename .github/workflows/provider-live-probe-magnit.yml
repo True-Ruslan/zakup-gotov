@@ -1,0 +1,127 @@
+name: Provider Live Probe - Magnit
+
+on:
+  issue_comment:
+    types: [created]
+
+permissions:
+  contents: read
+  statuses: write
+
+concurrency:
+  group: provider-live-probe-magnit-${{ github.event.issue.number || github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  magnit:
+    name: Magnit Public Page Phase A
+    if: >-
+      github.event_name == 'issue_comment' &&
+      github.event.issue.number == 45 &&
+      github.actor == 'True-Ruslan' &&
+      github.event.comment.body == '/provider-probe magnit'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Set up Java 25
+        uses: actions/setup-java@b6effb05e454b25005698d916606bdc6ffcbf961 # v5
+        with:
+          distribution: temurin
+          java-version: "25"
+          cache: maven
+          cache-dependency-path: apps/api/pom.xml
+
+      - name: Verify pinned toolchain
+        working-directory: apps/api
+        shell: bash
+        run: |
+          set -euo pipefail
+          java -version 2>&1 | grep -Eq 'version "25([.\"])'
+          ./mvnw --version | grep -F 'Apache Maven 3.9.16'
+
+      - name: Run Magnit public-page Phase A
+        working-directory: apps/api
+        shell: bash
+        run: |
+          set -euo pipefail
+          set -o pipefail
+          ./mvnw --batch-mode --no-transfer-progress \
+            -Dtest=MagnitPublicPageProbeTest \
+            -Dzakup.live.magnit=true \
+            test 2>&1 | tee "$RUNNER_TEMP/magnit-live-probe.log"
+
+      - name: Publish sanitized evidence
+        if: always()
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          echo '## Magnit public-page Phase A' >> "$GITHUB_STEP_SUMMARY"
+
+          evidence=''
+          if [[ -f "$RUNNER_TEMP/magnit-live-probe.log" ]]; then
+            evidence="$(grep -F 'MAGNIT_PHASE_A' "$RUNNER_TEMP/magnit-live-probe.log" | tail -n 1 || true)"
+          fi
+
+          state='failure'
+          outcome='no-evidence'
+          description='MAGNIT_PHASE_A no_sanitized_evidence=true'
+
+          if [[ -n "$evidence" ]]; then
+            description="$evidence"
+            printf '`%s`\n' "$evidence" >> "$GITHUB_STEP_SUMMARY"
+
+            first_status="$(sed -n 's/.*first_status=\([-0-9]*\).*/\1/p' <<<"$evidence")"
+            first_sku="$(sed -n 's/.*first_sku_evidence=\([^ ]*\).*/\1/p' <<<"$evidence")"
+            first_price="$(sed -n 's/.*first_price_present=\([^ ]*\).*/\1/p' <<<"$evidence")"
+            second_status="$(sed -n 's/.*second_status=\([-0-9]*\).*/\1/p' <<<"$evidence")"
+            second_sku="$(sed -n 's/.*second_sku_evidence=\([^ ]*\).*/\1/p' <<<"$evidence")"
+            second_price="$(sed -n 's/.*second_price_present=\([^ ]*\).*/\1/p' <<<"$evidence")"
+            prices_equal="$(sed -n 's/.*prices_equal=\([^ ]*\).*/\1/p' <<<"$evidence")"
+
+            if [[ "$first_status" =~ ^2[0-9][0-9]$ \
+               && "$first_sku" == 'true' \
+               && "$first_price" == 'true' \
+               && "$second_status" =~ ^2[0-9][0-9]$ \
+               && "$second_sku" == 'true' \
+               && "$second_price" == 'true' ]]; then
+              state='success'
+              if [[ "$prices_equal" == 'true' ]]; then
+                outcome='pass-same-price'
+              else
+                outcome='pass-different-price'
+              fi
+            elif [[ ! "$first_status" =~ ^2[0-9][0-9]$ ]]; then
+              outcome="first-${first_status:-unknown}"
+            elif [[ "$first_sku" != 'true' ]]; then
+              outcome='first-sku-missing'
+            elif [[ "$first_price" != 'true' ]]; then
+              outcome='first-price-missing'
+            elif [[ ! "$second_status" =~ ^2[0-9][0-9]$ ]]; then
+              outcome="second-${second_status:-unknown}"
+            elif [[ "$second_sku" != 'true' ]]; then
+              outcome='second-sku-missing'
+            elif [[ "$second_price" != 'true' ]]; then
+              outcome='second-price-missing'
+            else
+              outcome='failed'
+            fi
+          else
+            echo 'No sanitized Phase A evidence line was emitted.' >> "$GITHUB_STEP_SUMMARY"
+          fi
+
+          context="Provider Live Probe / Magnit / ${outcome}"
+          description="${description:0:140}"
+          gh api \
+            --method POST \
+            "repos/${GITHUB_REPOSITORY}/statuses/${GITHUB_SHA}" \
+            -f state="$state" \
+            -f context="$context" \
+            -f description="$description" >/dev/null
