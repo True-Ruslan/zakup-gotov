@@ -13,3 +13,14 @@ export function createChromeObservationSink(
     });
   };
 }
+
+export function createChromeObservationClearer(
+  sendMessage: RuntimeSendMessage,
+): () => Promise<void> {
+  return async () => {
+    await sendMessage({
+      type: "ZG_STORE_OBSERVATIONS",
+      observations: [],
+    });
+  };
+}
