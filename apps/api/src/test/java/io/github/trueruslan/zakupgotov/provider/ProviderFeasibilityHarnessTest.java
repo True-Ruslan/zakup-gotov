@@ -28,19 +28,26 @@ class ProviderFeasibilityHarnessTest {
     }
 
     @Test
-    void offlineHarnessRejectsLiveProviderBeforeNetworkCapableCodeRuns() {
+    void offlineHarnessExposesFixtureOnlyProviderBoundary() throws NoSuchMethodException {
+        var search = ProviderFeasibilityHarness.class.getMethod(
+                "search", FixtureRetailerProvider.class, LocationContext.class, ProductQuery.class);
+
+        assertThat(search.getParameterTypes()[0]).isEqualTo(FixtureRetailerProvider.class);
+    }
+
+    @Test
+    void liveProviderRunsOnlyThroughExplicitLiveProbe() {
         var invoked = new AtomicBoolean(false);
-        RetailerProvider provider = new FakeProvider(
+        LiveRetailerProvider provider = new FakeLiveProvider(
                 "provider-a",
                 ProviderAccessType.PUBLIC_UNOFFICIAL_API,
-                ProviderExecutionMode.LIVE,
                 Set.of(ProviderCapability.PRODUCT_SEARCH, ProviderCapability.PRICE),
                 invoked);
 
-        assertThatThrownBy(() -> ProviderFeasibilityHarness.offline().search(provider, LOCATION, QUERY))
-                .isInstanceOf(IllegalStateException.class)
-                .hasMessageContaining("LIVE");
-        assertThat(invoked).isFalse();
+        var offers = ProviderLiveProbe.create().search(provider, LOCATION, QUERY);
+
+        assertThat(invoked).isTrue();
+        assertThat(offers).hasSize(1);
     }
 
     @Test
@@ -63,8 +70,17 @@ class ProviderFeasibilityHarnessTest {
     }
 
     @Test
+    void rejectsProviderWithoutPriceCapability() {
+        var provider = fixtureProvider("provider-a", Set.of(ProviderCapability.PRODUCT_SEARCH));
+
+        assertThatThrownBy(() -> ProviderFeasibilityHarness.offline().search(provider, LOCATION, QUERY))
+                .isInstanceOf(IllegalStateException.class)
+                .hasMessageContaining("PRICE");
+    }
+
+    @Test
     void rejectsOfferThatDoesNotBelongToRequestedFulfillmentContext() {
-        RetailerProvider provider = new RetailerProvider() {
+        FixtureRetailerProvider provider = new FixtureRetailerProvider() {
             @Override
             public String providerId() {
                 return "provider-a";
@@ -73,11 +89,6 @@ class ProviderFeasibilityHarnessTest {
             @Override
             public ProviderAccessType accessType() {
                 return ProviderAccessType.PUBLIC_UNOFFICIAL_API;
-            }
-
-            @Override
-            public ProviderExecutionMode executionMode() {
-                return ProviderExecutionMode.FIXTURE;
             }
 
             @Override
@@ -96,9 +107,8 @@ class ProviderFeasibilityHarnessTest {
                 .hasMessageContaining("fulfillmentContextId");
     }
 
-    private static RetailerProvider fixtureProvider(String providerId, Set<ProviderCapability> capabilities) {
-        return new FakeProvider(providerId, ProviderAccessType.PUBLIC_UNOFFICIAL_API, ProviderExecutionMode.FIXTURE,
-                capabilities, new AtomicBoolean());
+    private static FixtureRetailerProvider fixtureProvider(String providerId, Set<ProviderCapability> capabilities) {
+        return new FakeFixtureProvider(providerId, ProviderAccessType.PUBLIC_UNOFFICIAL_API, capabilities);
     }
 
     private static ObservedOffer offer(String providerId, String fulfillmentContextId) {
@@ -113,12 +123,22 @@ class ProviderFeasibilityHarnessTest {
                 "fixture://provider-a/search/milk.json");
     }
 
-    private record FakeProvider(
+    private record FakeFixtureProvider(
             String providerId,
             ProviderAccessType accessType,
-            ProviderExecutionMode executionMode,
+            Set<ProviderCapability> capabilities) implements FixtureRetailerProvider {
+
+        @Override
+        public List<ObservedOffer> search(LocationContext location, ProductQuery query) {
+            return List.of(offer(providerId, location.fulfillmentContextId()));
+        }
+    }
+
+    private record FakeLiveProvider(
+            String providerId,
+            ProviderAccessType accessType,
             Set<ProviderCapability> capabilities,
-            AtomicBoolean invoked) implements RetailerProvider {
+            AtomicBoolean invoked) implements LiveRetailerProvider {
 
         @Override
         public List<ObservedOffer> search(LocationContext location, ProductQuery query) {
