@@ -1,0 +1,75 @@
+name: Provider Live Probe
+
+on:
+  workflow_dispatch:
+  issue_comment:
+    types: [created]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: provider-live-probe-${{ github.event.issue.number || github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  pyaterochka:
+    name: Pyaterochka Plain HTTP Phase A
+    if: >-
+      github.event_name == 'workflow_dispatch' ||
+      (github.event_name == 'issue_comment' &&
+       github.event.issue.number == 38 &&
+       github.actor == 'True-Ruslan' &&
+       github.event.comment.body == '/provider-probe pyaterochka')
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Set up Java 25
+        uses: actions/setup-java@b6effb05e454b25005698d916606bdc6ffcbf961 # v5
+        with:
+          distribution: temurin
+          java-version: "25"
+          cache: maven
+          cache-dependency-path: apps/api/pom.xml
+
+      - name: Verify pinned toolchain
+        working-directory: apps/api
+        shell: bash
+        run: |
+          set -euo pipefail
+          java -version 2>&1 | grep -Eq 'version "25([.\"])'
+          ./mvnw --version | grep -F 'Apache Maven 3.9.16'
+
+      - name: Run Pyaterochka plain HTTP Phase A
+        working-directory: apps/api
+        shell: bash
+        run: |
+          set -euo pipefail
+          set -o pipefail
+          ./mvnw --batch-mode --no-transfer-progress \
+            -Dtest=PyaterochkaPlainHttpProbeTest \
+            -Dzakup.live.pyaterochka=true \
+            test 2>&1 | tee "$RUNNER_TEMP/pyaterochka-live-probe.log"
+
+      - name: Publish sanitized evidence summary
+        if: always()
+        shell: bash
+        run: |
+          set -euo pipefail
+          echo '## Pyaterochka plain HTTP Phase A' >> "$GITHUB_STEP_SUMMARY"
+          if [[ -f "$RUNNER_TEMP/pyaterochka-live-probe.log" ]]; then
+            evidence="$(grep -F 'PYATEROCHKA_PHASE_A' "$RUNNER_TEMP/pyaterochka-live-probe.log" | tail -n 1 || true)"
+            if [[ -n "$evidence" ]]; then
+              printf '`%s`\n' "$evidence" >> "$GITHUB_STEP_SUMMARY"
+            else
+              echo 'No successful Phase A evidence line was emitted; inspect the test failure/status without copying response bodies.' >> "$GITHUB_STEP_SUMMARY"
+            fi
+          else
+            echo 'Probe log was not created.' >> "$GITHUB_STEP_SUMMARY"
+          fi
