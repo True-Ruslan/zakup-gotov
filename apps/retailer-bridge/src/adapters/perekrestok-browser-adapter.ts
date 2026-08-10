@@ -6,7 +6,7 @@ import type {
 
 const RETAILER_ID = "perekrestok";
 const SOURCE_PROVIDER_ID = "perekrestok-browser";
-const ADAPTER_VERSION = "1";
+const ADAPTER_VERSION = "2";
 const SHOP_RESOURCE_PATH = /^\/api\/customer\/[^/]+\/shop\/(\d+)\/?$/;
 const PRODUCT_SKU_SUFFIX = /-(\d+)\/?$/;
 
@@ -206,7 +206,7 @@ function collectDomProducts(document: Document, pageUrl: URL, evidence: Evidence
 }
 
 export const perekrestokBrowserAdapter: RetailerBrowserAdapter = {
-  adapterId: "perekrestok-browser-v1",
+  adapterId: "perekrestok-browser-v2",
   retailerId: RETAILER_ID,
 
   supports(url: URL): boolean {
