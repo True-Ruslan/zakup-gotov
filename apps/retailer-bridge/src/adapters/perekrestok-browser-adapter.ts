@@ -7,6 +7,8 @@ import type {
 const RETAILER_ID = "perekrestok";
 const SOURCE_PROVIDER_ID = "perekrestok-browser";
 const ADAPTER_VERSION = "1";
+const SHOP_RESOURCE_PATH = /^\/api\/customer\/[^/]+\/shop\/(\d+)\/?$/;
+const PRODUCT_SKU_SUFFIX = /-(\d+)\/?$/;
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value);
@@ -129,6 +131,80 @@ function parseStructuredState(document: Document): {
   return { evidence, parsedCount, malformedCount };
 }
 
+function collectResourceContexts(
+  resourceUrls: readonly string[],
+  pageUrl: URL,
+  evidence: Evidence,
+): void {
+  resourceUrls.forEach((rawUrl) => {
+    try {
+      const resourceUrl = new URL(rawUrl, pageUrl);
+      if (resourceUrl.origin !== pageUrl.origin) return;
+
+      const match = resourceUrl.pathname.match(SHOP_RESOURCE_PATH);
+      if (match?.[1]) {
+        evidence.contexts.add(match[1]);
+      }
+    } catch {
+      // Ignore malformed runtime resource names and fail closed below if no context remains.
+    }
+  });
+}
+
+function parsePriceMinor(text: string | null): number | null {
+  if (!text) return null;
+
+  const normalized = text.replace(/[\u00a0\u202f]/g, " ").trim();
+  const match = normalized.match(/(\d[\d ]*)(?:[,.](\d{1,2}))?/);
+  if (!match?.[1]) return null;
+
+  const rubles = Number(match[1].replace(/\s/g, ""));
+  const kopecks = match[2] ? Number(match[2].padEnd(2, "0")) : 0;
+  if (!Number.isSafeInteger(rubles) || !Number.isSafeInteger(kopecks)) return null;
+
+  const priceMinor = rubles * 100 + kopecks;
+  return Number.isSafeInteger(priceMinor) && priceMinor >= 0 ? priceMinor : null;
+}
+
+function collectDomProducts(document: Document, pageUrl: URL, evidence: Evidence): void {
+  const productsBySku = new Map<string, ProductCandidate>();
+
+  document.querySelectorAll<HTMLElement>(".product-card").forEach((card) => {
+    const titleLink = card.querySelector<HTMLAnchorElement>(
+      ".product-card__title-link[href], .product-card__link[href]",
+    );
+    const href = titleLink?.getAttribute("href");
+    if (!href) return;
+
+    let sku: string | null = null;
+    try {
+      const productUrl = new URL(href, pageUrl);
+      if (productUrl.origin !== pageUrl.origin) return;
+      sku = productUrl.pathname.match(PRODUCT_SKU_SUFFIX)?.[1] ?? null;
+    } catch {
+      return;
+    }
+    if (!sku) return;
+
+    const productName =
+      nonBlankString(card.querySelector(".product-card__title-link")?.textContent) ??
+      nonBlankString(card.querySelector(".product-card__title")?.textContent);
+    const priceMinor = parsePriceMinor(
+      card.querySelector(".product-card__price .price-new, .price-new")?.textContent ?? null,
+    );
+    if (!productName || priceMinor === null) return;
+
+    productsBySku.set(sku, {
+      sku,
+      productName,
+      priceMinor,
+      availability: "UNKNOWN",
+    });
+  });
+
+  evidence.products.push(...productsBySku.values());
+}
+
 export const perekrestokBrowserAdapter: RetailerBrowserAdapter = {
   adapterId: "perekrestok-browser-v1",
   retailerId: RETAILER_ID,
@@ -137,8 +213,12 @@ export const perekrestokBrowserAdapter: RetailerBrowserAdapter = {
     return url.protocol === "https:" && url.hostname === "www.perekrestok.ru";
   },
 
-  collect({ document, url, observedAt }): AdapterResult {
+  collect({ document, url, observedAt, resourceUrls = [] }): AdapterResult {
     const { evidence, parsedCount, malformedCount } = parseStructuredState(document);
+    collectResourceContexts(resourceUrls, url, evidence);
+    if (evidence.products.length === 0) {
+      collectDomProducts(document, url, evidence);
+    }
 
     if (parsedCount === 0 && malformedCount > 0) {
       return { status: "malformed-state", observations: [] };
