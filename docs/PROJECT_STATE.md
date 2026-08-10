@@ -10,13 +10,13 @@ Repository: `True-Ruslan/zakup-gotov`
 Visibility: Public  
 Current phase: **M0 — Product & Integration Discovery**  
 Current execution stage: **M0A closure + M0B Retailer Feasibility (parallel)**  
-Current focus: **keep the outstanding `v0.1.0-rc.3` release proof explicit while beginning evidence-driven provider feasibility testing, starting with a normalized offer trust contract and official-access research rather than undocumented retailer scraping**
+Current focus: **finish the outstanding `v0.1.0-rc.3` release proof in parallel with controlled retailer-provider spikes, using the shared feasibility harness and allowing public unofficial consumer APIs only when they work without access-control or anti-bot circumvention**
 
 ## Product status
 
 The platform foundation is executable and automatically verified. The core retailer-comparison product is **not implemented yet**. The current web surface intentionally presents project status rather than fake store cards, prices, or comparison behavior.
 
-M0B feasibility work has now begun in parallel with the remaining M0A release-event proof. The first normalized provider-offer boundary is implemented and TDD-verified, but **no retailer/provider is supported yet**. Support still requires an acceptable technical/usage-rights path plus reproducible recorded fixtures and provider contract/parser tests.
+M0B feasibility work is active in parallel with the remaining M0A release-event proof. The normalized provider-offer boundary and reusable provider feasibility harness are implemented and TDD-verified in PR #37, but **no retailer/provider is supported yet**. Support still requires an acceptable technical/usage-rights path plus reproducible sanitized fixtures and provider contract/parser tests.
 
 Starting M0B discovery does not waive the remaining M0A release requirements. `v0.1.0-rc.3` is still required before the versioned GHCR publication path can be called fully runtime-proven.
 
@@ -32,6 +32,7 @@ Starting M0B discovery does not waive the remaining M0A release requirements. `v
 - PR #28 — TDD executable-mode regression fix after `v0.1.0-rc.1` exposed non-executable release helpers on clean checkouts.
 - PR #29 — TDD container-security gate and runtime hardening after `v0.1.0-rc.2`: pgJDBC `42.7.12`, distroless non-root web runtime, and read-only PR/main/daily HIGH/CRITICAL image scanning.
 - PR #35 — initial M0B provider-offer trust boundary and retailer feasibility evidence: `ObservedOffer`, explicit normalized availability, TDD fail-closed validation, primary-source integration matrix, and Kuper access-proof tracking.
+- PR #37 — shared M0B provider feasibility harness: access/capability model, provider-scoped location/query model, `RetailerProvider` port, structural fixture/live provider split, offline harness, explicit live-probe entry point, expanded retailer research, and the executable multi-provider spike plan.
 
 ## Verified platform baseline
 
@@ -109,7 +110,17 @@ PR/main checks currently available:
 
 PR #29 proved the container-security gate TDD-first: the initial workflow failed for both production images, then the same unchanged `CRITICAL,HIGH` / `exit-code: 1` policy passed after root-cause remediation. The final PR head also passed Release Bundle CI, demonstrating that the distroless startup and health-check path works in the real Compose topology.
 
-PR #35 starts M0B with the same evidence discipline. The first RED failed because `ObservedOffer` / `AvailabilityStatus` did not exist. The first GREEN passed Maven `verify`. A second RED then exposed inconsistent `NullPointerException` behavior for missing `price` / `availability`; the minimal validation fix produced `10/10` provider-offer tests and `15/15` total API tests, while Spring Modulith verification and real PostgreSQL 18.4 Testcontainers integration remained green. The complete PR workflow set, including Web E2E, Release Bundle, Release Contract and both production-image security scans, is required again on the final documentation-synchronized head before merge.
+PR #35 started M0B with the same evidence discipline. Its TDD cycles produced the normalized `ObservedOffer` boundary with `10/10` provider-offer tests and `15/15` total API tests while Spring Modulith verification and real PostgreSQL 18.4 integration remained green.
+
+PR #37 continues the TDD chain:
+
+- RED #1: test-only commit failed at `testCompile` because the feasibility-harness types did not exist;
+- GREEN #1: the initial harness implementation passed `ProviderFeasibilityHarnessTest` `5/5`, the complete API suite `20/20`, real PostgreSQL 18.4/Testcontainers and packaged JAR verification;
+- independent change-review then found that the first fixture/live boundary relied on a provider-supplied execution-mode enum and could therefore be misdeclared;
+- RED #2 replaced that expectation with structural `FixtureRetailerProvider` / `LiveRetailerProvider` types plus a separate `ProviderLiveProbe`, and failed on exactly those missing types;
+- the implementation removed the self-declared execution-mode flag, made the offline harness accept only fixture-provider types, added the explicit live-probe path, and also requires both `PRODUCT_SEARCH` and `PRICE` capabilities for offer search.
+
+The complete PR workflow set, including Web E2E, Release Bundle, Release Contract, CodeQL, Dependency Review and both production-image security scans, must pass again on the final documentation-synchronized head before merge.
 
 The independently verified `main` ruleset still enforces the original seven CI/security checks. `Release Bundle CI`, `Release Contract CI`, and `Container Security CI` are proven required-check candidates but are not yet independently verified as enforced ruleset checks.
 
@@ -194,23 +205,36 @@ See [`RELEASES.md`](RELEASES.md).
 
 ## M0B retailer-feasibility state
 
-Initial provider-domain trust boundary:
+### Shared provider boundary
 
 - `ObservedOffer` requires `providerId`, `fulfillmentContextId`, provider SKU, non-negative price, ISO 4217 currency, explicit availability, `observedAt`, and `sourceReference`;
 - availability is normalized as `AVAILABLE`, `UNAVAILABLE`, or `UNKNOWN` rather than inferred silently;
-- incomplete external data fails closed before later comparison logic;
-- normal deterministic CI still performs **no live retailer calls**.
+- provider access is classified as `OFFICIAL_API`, `PUBLIC_UNOFFICIAL_API`, or `PARTNER_API`;
+- provider capabilities explicitly model location resolution, catalog, product search, price and availability;
+- `LocationContext` is provider-scoped and contains a fulfillment-context identifier plus coarse locality rather than a precise user address;
+- `ProviderFeasibilityHarness.offline()` accepts only `FixtureRetailerProvider`;
+- network-capable integrations implement `LiveRetailerProvider` and use the separate explicit `ProviderLiveProbe` path;
+- offer-search validation requires `PRODUCT_SEARCH` and `PRICE`, and returned offers must match both provider identity and requested fulfillment context;
+- normal deterministic CI performs **no live retailer calls**.
 
-Primary-source research is recorded in [`integrations/retailer-feasibility.md`](integrations/retailer-feasibility.md). Current decisions are deliberately conservative:
+### Public unofficial API policy
 
+A data source is not rejected merely because its API is undocumented. A public consumer backend may be tested as `PUBLIC_UNOFFICIAL_API` when the ordinary product can use it without bypassing access controls. M0B explicitly excludes stolen/forged private credentials, other users' sessions, CAPTCHA/anti-bot bypass, browser-fingerprint evasion, proxy/IP rotation used to circumvent blocking, and ignoring provider rate limits. Third-party wrappers are research evidence only; their source-code license does not grant rights to retailer data.
+
+Detailed evidence and decisions are recorded in [`integrations/retailer-feasibility.md`](integrations/retailer-feasibility.md), and the executable sequence is in [`superpowers/plans/2026-08-10-m0b-provider-spikes.md`](superpowers/plans/2026-08-10-m0b-provider-spikes.md).
+
+Current priority decisions:
+
+- **Pyaterochka / 5ka** — `SPIKE_IF_RAW_HTTP_WORKS`: strong store-scoped technical evidence exists, but the first gate is proving the necessary calls work without Camoufox/stealth/proxy rotation;
+- **Perekrestok** — `SPIKE_NOW`: public-site request/schema evidence is sufficient for a controlled feasibility probe; exact store-specific price/availability semantics still need proof;
+- **Magnit** — `SPIKE_NOW`: public catalog exposes `shopCode`-scoped behavior and is the priority independent non-X5 path;
+- **Chizhik** — `SPIKE_IF_RAW_HTTP_WORKS`: third-party evidence is useful, but the path is rejected if plain HTTP cannot replace browser/proxy evasion techniques;
+- **Ozon Fresh / Samokat** — `RESEARCH_REQUIRED`: location-specific consumer-backend semantics still need characterization;
 - **Kuper** — `PROMISING_CONTACT_REQUIRED`: official API program publishes a Client apps API, but exact read-side scope, access, caching/fixture rights and comparison-use permission must be confirmed;
 - **Yandex Eats Retail API** — `PARTNER_SIDE_ONLY`: documented API integrates Yandex/Yango with a partner retailer/POS and is not currently a read-side Zakup Gotov API;
-- **Lenta / VkusVill** — `BLOCKED_WITHOUT_AGREEMENT`: consumer surfaces are not treated as permission for production scraping/reuse;
-- **Magnit / X5** — `NO_PUBLIC_CLIENT_API_FOUND`: partnership paths are plausible, but a suitable public read-side catalog API has not been proven.
+- **Lenta / VkusVill** — `BLOCKED_WITHOUT_AGREEMENT`: current consumer surfaces/terms are not treated as a sufficient production reuse basis.
 
-Issue #36 tracks the exact Kuper integration questions required before an adapter spike: location/store resolution, catalog/search, SKU, price/availability, freshness, auth/rate limits, sandbox, sanitized fixture retention, caching, comparison rights, attribution/deep links and checkout handoff.
-
-No provider is considered supported until reproducible sanitized fixtures and parser/contract tests prove an acceptable path. A one-off successful live request is insufficient.
+Issue #36 continues to track the exact Kuper integration questions. No provider is considered supported until reproducible sanitized fixtures and parser/contract tests prove an acceptable path. A one-off successful live request is insufficient.
 
 ## Dependency maintenance state
 
@@ -235,21 +259,23 @@ Compatible dependency/Actions maintenance is merged only after full verification
 
 ## Current critical unknowns
 
-1. Which target retailers expose a technically stable and legally acceptable path to location-specific catalog, price, and availability data?
+1. Which target retailers expose a technically stable and acceptable path to location-specific catalog, price, and availability data?
 2. Can at least two providers achieve useful basket coverage with acceptable freshness/reliability?
-3. What location precision must be used transiently and what, if anything, may be persisted?
-4. How can delivery fees/minimum-order constraints be obtained and normalized per retailer?
-5. What deterministic product-matching quality is achievable before AI assistance is justified?
+3. Can public unofficial APIs remain usable through ordinary non-evasive HTTP, or do some candidates depend on unstable anti-bot behavior?
+4. What location precision must be used transiently and what, if anything, may be persisted?
+5. How can delivery fees/minimum-order constraints be obtained and normalized per retailer?
+6. What deterministic product-matching quality is achievable before AI assistance is justified?
 
 ## Immediate next work
 
-1. Publish **`v0.1.0-rc.3`** through the real GitHub Release `published` event from verified `main`; do not reuse `rc.1` or `rc.2`, and do not substitute a manual tag for the release event.
-2. Inspect the complete release proof: `Release / Verify` + `Release / Publish`, multi-platform digests, Trivy results, SBOMs, attestations, staging/final exact-digest Compose smoke tests, manifests, checksums, attached evidence, `latest` behavior, and package visibility.
-3. Resolve issue #36 with the Kuper integration team and obtain a documented acceptable access/usage-rights path before implementing the first real provider adapter.
-4. In parallel, pursue an independent second provider path (initially X5 and/or Magnit partnership/e-commerce channels) because M0 requires at least two acceptable integrations.
-5. When the first access path is approved, run the first provider spike against one explicit fulfillment/location context and a fixed corpus of at least 10 common grocery requirements; record sanitized fixtures and make offline parser/contract tests the normal regression path.
-6. Add `Release Bundle CI`, `Release Contract CI`, and `Container Security CI` to the `main` ruleset when the settings mutation can be applied and independently verified.
+1. Merge PR #37 only after the final documentation-synchronized head passes API/Contract/Web+E2E/CodeQL/Dependency Review/Release Bundle/Release Contract/Container Security gates.
+2. Start `spike/m0b-pyaterochka`: first prove the required store/catalog/product calls with ordinary HTTP and no Camoufox/stealth/proxy rotation; stop and record `UNSUITABLE_PUBLIC_PATH` if bypass techniques are required.
+3. If the plain-HTTP gate passes, run the fixed 20-item grocery corpus against one Moscow store, capture sanitized fixtures, add deterministic parser/contract tests, then repeat against a second store and measure coverage plus price/availability differences.
+4. Run the same harness for **Perekrestok**, and prioritize **Magnit** as the independent non-X5 proof path.
+5. Continue Kuper issue #36 and second-wave Ozon Fresh/Samokat discovery in parallel.
+6. Publish **`v0.1.0-rc.3`** through the real GitHub Release `published` event when a release-capable path is available, then inspect the full release/GHCR proof; do not substitute a manual tag.
+7. Add `Release Bundle CI`, `Release Contract CI`, and `Container Security CI` to the `main` ruleset when the settings mutation can be applied and independently verified.
 
 ## Definition of M0 success
 
-M0 is complete only when evidence proves at least two retailer/provider integrations can support a repeatable location-specific comparison flow with reproducible fixtures/tests and documented technical/legal/freshness constraints.
+M0 is complete only when evidence proves at least two retailer/provider integrations can support a repeatable location-specific comparison flow with reproducible fixtures/tests and documented technical/usage-rights/freshness constraints. Prefer at least one non-X5 provider before entering M1 Shopping Core.
