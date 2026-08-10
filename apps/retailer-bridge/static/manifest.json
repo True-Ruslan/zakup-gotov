@@ -3,6 +3,16 @@
   "name": "Zakup Gotov Retailer Bridge",
   "version": "0.1.0",
   "description": "Reads sanitized grocery offer observations from supported first-party retailer pages.",
-  "permissions": [],
-  "content_scripts": []
+  "permissions": ["storage"],
+  "background": {
+    "service_worker": "service-worker.js"
+  },
+  "content_scripts": [
+    {
+      "matches": ["https://www.perekrestok.ru/*"],
+      "js": ["content.js"],
+      "run_at": "document_idle",
+      "world": "ISOLATED"
+    }
+  ]
 }
