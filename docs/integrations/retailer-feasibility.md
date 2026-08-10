@@ -5,97 +5,172 @@ Status: M0B discovery evidence — **no retailer/provider is supported yet**
 
 This document records technical and usage-rights evidence for candidate retailer data paths. It is an engineering feasibility record, not legal advice.
 
-A candidate may advance to a provider spike only when there is a plausible path to all of the following without relying on prohibited or fragile access:
+## M0B integration policy
 
-1. resolve a retailer/store/fulfillment context from a user location;
-2. discover or search a useful grocery catalog;
-3. obtain SKU identity plus current price and availability;
-4. preserve source and observation/freshness metadata;
-5. operate within documented authentication/rate-limit constraints;
-6. use the data for Zakup Gotov's product purpose under an acceptable permission/contract basis;
-7. retain sanitized recorded fixtures for deterministic parser/contract tests;
-8. keep live retailer calls out of ordinary deterministic CI.
+Zakup Gotov does **not** reject a data source merely because an API is undocumented or unofficial. A public consumer backend may be evaluated as `PUBLIC_UNOFFICIAL_API` when the ordinary web/mobile product itself uses it and the path can be exercised without bypassing access controls.
+
+A public unofficial API is acceptable for an M0B spike only when all of the following remain true:
+
+1. requests do not require stolen, forged, reverse-engineered private credentials or another user's session;
+2. no CAPTCHA bypass, anti-bot bypass, browser-fingerprint evasion, proxy rotation, IP rotation, or deliberate blocking circumvention is required;
+3. rate limits, `429`, retry hints and provider failures are respected rather than hidden;
+4. data collection is minimized to what the product needs rather than mirroring an entire retailer database by default;
+5. exact source and observation time are preserved;
+6. location/store context is explicit so prices are not presented as universal when they are store-specific;
+7. raw responses can be sanitized into deterministic fixtures without secrets or precise user-address data;
+8. current terms/usage-rights evidence does not make the intended reuse clearly unacceptable.
+
+Third-party wrappers are **technical evidence only**. Their existence or MIT license does not grant rights to the retailer's underlying data and does not make their anti-bot techniques acceptable for Zakup Gotov.
+
+## Provider access types
+
+The executable provider model distinguishes:
+
+- `OFFICIAL_API` — documented API offered by the provider for the relevant use;
+- `PUBLIC_UNOFFICIAL_API` — public consumer backend used by the ordinary product, subject to the M0B restrictions above;
+- `PARTNER_API` — supported API that requires a partnership/seller/merchant agreement and may not fit a consumer comparison client.
 
 ## Decision labels
 
+- `SPIKE_NOW` — enough technical evidence exists to justify a controlled M0B probe; support is still unproven.
+- `SPIKE_IF_RAW_HTTP_WORKS` — third-party evidence exists, but browser-emulation/anti-bot coupling must first be removed from the path.
 - `PROMISING_CONTACT_REQUIRED` — official integration surface exists, but access/scope/usage rights still need confirmation.
 - `PARTNER_SIDE_ONLY` — official API exists, but its documented direction is for a retailer/merchant partner rather than a read-side comparison client.
-- `BLOCKED_WITHOUT_AGREEMENT` — public consumer data exists, but current consumer terms do not provide an acceptable basis for production scraping/reuse.
-- `NO_PUBLIC_CLIENT_API_FOUND` — current primary-source research found commercial/partner surfaces, but no documented client catalog API suitable for the product.
+- `BLOCKED_WITHOUT_AGREEMENT` — public consumer data exists, but current terms do not provide an acceptable production assumption for automated reuse.
+- `RESEARCH_REQUIRED` — public surface exists but the location/catalog/price path is not sufficiently characterized yet.
 
 ## Current matrix
 
-| Candidate | Official integration evidence | Location/catalog/price evidence | Usage-rights signal | Current decision | Next proof required |
-|---|---|---|---|---|---|
-| **Kuper** | Official API portal exposes Merchant Service API, Fulfillment API, **Client apps API**, Other API, integration contact and technical support. | Exact Client apps API catalog/search/store semantics are not yet proven from accessible documentation. | Official integration contact exists; commercial access terms still unknown. | `PROMISING_CONTACT_REQUIRED` | Confirm read-side Client apps API scope, auth, store/location resolution, product search, price, availability, freshness, rate limits, sandbox and fixture/caching rights. |
-| **Yandex Eats Retail API** | Official Retail API documentation exists. | Documentation includes nomenclature composition, availability, product prices/promotions and store-related methods. | Documented architecture has Yandex/Yango acting as the client of a **partner retailer's POS/system**. | `PARTNER_SIDE_ONLY` | Obtain a separate documented partner/product path that explicitly lets Zakup Gotov read consumer-facing retailer catalog data; do not misuse the merchant-side API. |
-| **Lenta** | Consumer web/app and business partnership surfaces exist. | Consumer agreement states the nearest store is selected from the delivery address; catalog/order behavior is therefore fulfillment-context dependent. | Consumer agreement defines the user as a physical person ordering for personal/family/home needs unrelated to entrepreneurship and prohibits technical bypass of unavailable/limited functions. | `BLOCKED_WITHOUT_AGREEMENT` | Obtain explicit B2B/partner permission and a supported data-access mechanism before any production adapter or automated scraping spike. |
-| **VkusVill** | Consumer web/app and VkusVill Business exist. | Consumer services provide product purchasing/delivery flows; exact reusable client API is not documented publicly. | Agreement limits use to the service's direct functional purpose, prohibits use in one's own commercial purposes and unpermitted use of service IP. | `BLOCKED_WITHOUT_AGREEMENT` | Obtain explicit partner/API permission for catalog/price/availability reuse before any production adapter or automated scraping spike. |
-| **Magnit** | Magnit operates its own grocery delivery and documented integrations with aggregator partners. | Public materials confirm online catalog/delivery behavior and partner delivery integrations, but no suitable public read-side grocery catalog API was found in this pass. | Partner/integration relationship is plausible, public client-data rights are not established. | `NO_PUBLIC_CLIENT_API_FOUND` | Ask e-commerce/partnership team whether a documented catalog/store/price/availability API is available to comparison/affiliate partners. |
-| **X5 / Pyaterochka / Perekrestok** | X5 publishes partner channels and operates retailer digital/e-commerce integrations. | No suitable documented public read-side consumer catalog API was found in this pass. | Partner path is plausible; public client-data rights are not established. | `NO_PUBLIC_CLIENT_API_FOUND` | Ask X5 partnership/e-commerce team for a supported location-aware catalog/price/availability data path and fixture/test permissions. |
+| Candidate | Technical evidence | Location / store evidence | Current decision | Next proof required |
+|---|---|---|---|---|
+| **Pyaterochka / 5ka** | Public 5ka catalog exposes prices. Open-Inflation `pyaterochka_api` documents store-scoped category/product calls and PLU identity. | Wrapper obtains the selected delivery store `sapCode` and passes it into catalog/product calls; geolocation suggest/geocode are also exposed. | `SPIKE_IF_RAW_HTTP_WORKS` | Reproduce selected-store + 20-item corpus using ordinary HTTP without Camoufox/stealth; capture sanitized fixtures; compare two stores. |
+| **Perekrestok** | Open-Inflation `perekrestok_api` reproduces ordinary site network calls, exposes geolocation, category tree and product feed/IDs, with schema-snapshot tests. | City/session context is demonstrated; exact store-level price/availability semantics still need independent proof. | `SPIKE_NOW` | Identify fulfillment/store selector, run fixed corpus, prove price/store linkage and availability semantics, save fixtures. |
+| **Magnit** | Official public catalog exposes current product prices and supports a `shopCode` query parameter. | Public catalog pages with different `shopCode` values return different catalog sizes/content, strong evidence that store context matters. | `SPIKE_NOW` | Discover the ordinary backend calls used by the public catalog, then test two explicit stores with a 20-item corpus using non-evasive HTTP. |
+| **Chizhik** | Open-Inflation `chizhik_api` exposes cities, categories, products and active offers. | Geolocation/catalog APIs exist in the wrapper, but the README installs Camoufox and explicitly discusses optional proxies/imitating a regular user. | `SPIKE_IF_RAW_HTTP_WORKS` | Determine whether required catalog calls work with a plain HTTP client. If stealth/proxy rotation is required, mark the path unsuitable. |
+| **Ozon / Ozon Fresh** | Open-Inflation has an experimental `ozon_api`; Ozon also has extensive official seller APIs, but seller APIs are not the target consumer read path. | Fresh fulfillment-zone/store and stock semantics have not yet been proven. | `RESEARCH_REQUIRED` | Characterize Ozon Fresh consumer requests, location semantics, SKU/price/availability and whether ordinary public HTTP is sufficient. |
+| **Samokat** | Public consumer product exists, but no sufficiently characterized current read-side API path is yet recorded here. | Fulfillment is highly location-dependent by product design. | `RESEARCH_REQUIRED` | Inspect ordinary web/mobile network behavior and determine whether a non-evasive public catalog path exists. |
+| **Kuper** | Official API portal exposes Merchant Service API, Fulfillment API, **Client apps API**, Other API, integration contact and technical support. | Exact Client apps API catalog/search/store semantics are not yet proven from accessible public docs. | `PROMISING_CONTACT_REQUIRED` | Resolve issue #36: read-side scope, auth, location, catalog, price, availability, caching/fixtures, comparison rights, sandbox and rate limits. |
+| **Yandex Eats Retail API** | Official Retail API documentation includes nomenclature, availability and product price/promotion exchange. | Documented architecture has Yandex/Yango acting as the client of a partner retailer POS/system. | `PARTNER_SIDE_ONLY` | Find a separate documented read-side partner/product path for a comparison client; do not misuse the retailer-side integration. |
+| **Lenta** | Consumer catalog/order experience is location-dependent and a business partnership surface exists. | Consumer agreement ties order assembly to the delivery address / nearest store. | `BLOCKED_WITHOUT_AGREEMENT` | Obtain an explicit supported data-access/partner basis before an automated production adapter. |
+| **VkusVill** | Consumer web/app and VkusVill Business exist. | Delivery/catalog is consumer-context dependent; no reusable public client API is proven. | `BLOCKED_WITHOUT_AGREEMENT` | Obtain explicit partner/API permission before production catalog/price reuse. |
+| **X5 Group** | X5 operates Pyaterochka, Perekrestok and Chizhik, but their consumer technical surfaces differ. | Store/location behavior must be proven independently per banner even if shared infrastructure later emerges. | `RESEARCH_REQUIRED` | Treat the three banners as separate provider spikes first; extract shared X5 infrastructure only after repeated behavior is proven. |
 
-## Primary-source evidence
+## Evidence
 
-### Kuper
+### Pyaterochka / 5ka
 
-- API portal: https://docs.kuper.ru/
-- Stores API is present under the merchant-service documentation: https://docs.kuper.ru/api-products/merchant-service/stores-api
-- Integration contact published by the API portal: `new.partners@sbermarket.ru`
-- Technical support published by the API portal: `kuper-api@kuper.ru`
+Official/public surfaces:
 
-The portal's existence is evidence of a supported integration program. It is **not** yet evidence that Zakup Gotov can use Client apps API for read-side catalog comparison; access and permitted use must be confirmed before an adapter spike.
+- https://5ka.ru/catalog/
+- https://5ka.ru/docs/
 
-### Yandex Eats Retail API
+Independent technical reference:
 
-- Official reference: https://yandex.ru/support/picker-app/en/ref/
+- https://github.com/Open-Inflation/pyaterochka_api
 
-The reference describes integration with a partner POS/system and explicitly documents Yandex/Yango as the client for PULL methods. It is useful evidence that standardized product/availability/price exchange exists in the ecosystem, but it is not currently a read API for Zakup Gotov.
+The reference documents a public-site network client that obtains a selected delivery store `sapCode`, uses that store ID for catalog/product calls, exposes PLU product identity, and includes geolocation calls. Its README also installs Camoufox. Zakup Gotov will therefore use it only to identify hypotheses/endpoints; the first spike must prove that plain HTTP is sufficient before this path can advance.
 
-### Lenta
+### Perekrestok
 
-- Consumer agreement: https://lenta.com/i/pokupatelyam/online-sale/user-agreement/
-- Business partnership entry point: https://lenta.com/i/yuridicheskim-litsam
+Independent technical reference:
 
-The agreement states that orders are assembled in the store nearest the selected delivery address and defines consumer use around personal/family/home needs unrelated to entrepreneurship. That makes consumer-surface scraping an unacceptable production assumption without a separate agreement.
+- https://github.com/Open-Inflation/perekrestok_api
 
-### VkusVill
-
-- Consumer agreement: https://vkusvill.ru/legal/polzovatelskoe-soglashenie/
-
-Relevant restrictions are in sections 5 and 10: direct functional-purpose use, no use by an unprovided method, no own commercial-purpose use, and no unpermitted use of service intellectual property.
+The project states that it reproduces the ordinary network behavior of a website user, demonstrates Moscow geolocation, category/product IDs, and has endpoint schema-snapshot tests. This is strong technical evidence for a controlled spike, but it is not evidence of store-specific availability or data-reuse permission.
 
 ### Magnit
 
-- Store/e-commerce formats: https://www.magnit.com/ru/about-company/store-formats/
-- Example aggregator integration evidence: https://www.magnit.com/ru/media/press-releases/magnit-i-delivery-club-zapustili-ekspress-dostavku-produktov-za-30-minut/
+Official/public surface:
 
-These prove that partner integrations and online grocery delivery exist, not that a public comparison API is available.
+- https://magnit.ru/catalog
+- example store-scoped surface: https://magnit.ru/catalog?shopCode=611694
 
-### X5
+The public catalog currently exposes concrete prices and accepts a `shopCode`. Publicly indexed pages with different `shopCode` values show different catalog sizes/content. The next spike should inspect only the ordinary requests used by this page and must not add anti-bot circumvention.
 
-- Partner entry point: https://www.x5.ru/ru/partners/
+### Chizhik
 
-No suitable public client catalog API was established from the current primary-source pass.
+Independent technical reference:
+
+- https://github.com/Open-Inflation/chizhik_api
+
+The wrapper demonstrates city lookup, category tree, product lists and active offers. However, its documented setup includes Camoufox and optional proxies, and its own comments emphasize appearing like a regular user. Those techniques are explicitly **not** part of Zakup Gotov's acceptable provider path. Chizhik advances only if required calls are reproducible without them.
+
+### Ozon / Ozon Fresh
+
+Independent experimental reference:
+
+- https://github.com/Open-Inflation/ozon_api
+
+This repository currently has very little public documentation, so it is only evidence that investigation exists, not evidence of a usable Ozon Fresh provider path. Seller API integrations must not be confused with consumer Fresh catalog access.
+
+### Kuper
+
+Official API portal:
+
+- https://docs.kuper.ru/
+- integration contact: `new.partners@sbermarket.ru`
+- technical support: `kuper-api@kuper.ru`
+
+The portal explicitly lists Client apps API, but accessible public documentation still does not prove the exact read-side comparison scope required by Zakup Gotov. Issue #36 remains the access/rights gate.
+
+### Yandex Eats Retail API
+
+- https://yandex.ru/support/picker-app/en/ref/
+
+The documented API is useful evidence that standardized assortment/price/availability exchange exists, but its direction is retailer-partner integration rather than a public comparison read API.
+
+### Lenta
+
+- https://lenta.com/i/pokupatelyam/online-sale/user-agreement/
+- https://lenta.com/i/yuridicheskim-litsam
+
+Current consumer terms are not treated as permission for a production scraping strategy. A supported B2B path remains required.
+
+### VkusVill
+
+- https://vkusvill.ru/legal/polzovatelskoe-soglashenie/
+
+Current agreement restrictions make undocumented production scraping/reuse an unacceptable default assumption without a separate permission basis.
+
+## Executable feasibility harness
+
+M0B uses a shared provider contract before any retailer-specific implementation:
+
+- provider access type;
+- provider execution mode (`FIXTURE` or `LIVE`);
+- declared capabilities (`LOCATION_RESOLUTION`, `CATALOG`, `PRODUCT_SEARCH`, `PRICE`, `AVAILABILITY`);
+- provider-scoped `LocationContext`;
+- normalized `ProductQuery`;
+- `RetailerProvider` port;
+- `ProviderFeasibilityHarness` provenance checks.
+
+The offline harness must reject a `LIVE` provider before its network-capable method can execute. Normal PR CI therefore tests fixtures only. A live probe is always an explicit separate action.
 
 ## Provider-spike acceptance test
 
-Once a candidate supplies an acceptable documented access path, its first executable spike must use one explicit fulfillment/location context and a fixed corpus of at least 10 common grocery requirements. The spike is acceptable only if it can record sanitized fixtures and deterministically prove:
+The first executable spike for each candidate uses one explicit supported fulfillment/location context and a fixed corpus of **20 common grocery requirements**. A serious candidate then repeats the corpus against a second context where possible.
 
-- location/fulfillment context is reproducible;
-- product identity/SKU is preserved;
-- price currency/value is present;
-- availability is explicit (`AVAILABLE`, `UNAVAILABLE`, or `UNKNOWN` rather than invented);
-- observation/source metadata is preserved;
-- parser failures are fail-closed and visible;
-- fixture replays require no live network access;
-- supported common-grocery match coverage can be measured against the M0 target rather than guessed.
+A spike passes only when it can deterministically measure and preserve:
 
-The first normalized domain guard for these fixtures is `provider.ObservedOffer`; it rejects incomplete or context-free offers before they can enter later comparison logic.
+- location/fulfillment context;
+- product identity/SKU;
+- price and currency;
+- availability as `AVAILABLE`, `UNAVAILABLE`, or `UNKNOWN` — never invented;
+- source and observation timestamp;
+- parser/contract failure behavior;
+- sanitized replayable fixtures with zero live-network dependency;
+- corpus coverage rate;
+- differences between two stores/contexts where store-specific behavior is claimed.
 
-## Immediate next actions
+A single successful manual request is not provider support.
 
-1. Treat **Kuper** as the highest-priority access inquiry because an official API program and Client apps API are explicitly published.
-2. In parallel, request a supported read-side data path from **X5** and/or **Magnit** so M0 does not depend on a single aggregator.
-3. Do not implement Lenta/VkusVill consumer scraping as a fallback while their current terms remain the only permission basis.
-4. When one candidate grants suitable access, add the first provider adapter behind a narrow port using recorded fixtures first; live sandbox verification is a separate, explicit test step.
-5. M0B is not complete until at least two acceptable provider paths meet the roadmap exit criteria.
+## Implementation sequence
+
+1. Land the shared feasibility harness (`feat/m0b-provider-feasibility-harness`).
+2. First retailer spike: **Pyaterochka**, but only after proving the relevant calls work without Camoufox/stealth/proxy rotation.
+3. In parallel or immediately after: **Perekrestok**.
+4. Use **Magnit** as the priority independent non-X5 path.
+5. Evaluate **Chizhik** only under the plain-HTTP gate.
+6. Research **Ozon Fresh** and **Samokat** as the second wave.
+7. Keep **Kuper** official-access work active in parallel through issue #36.
+8. Do not enter M1 Shopping Core until at least two acceptable provider paths satisfy the M0 exit criteria, preferably including one non-X5 provider.
