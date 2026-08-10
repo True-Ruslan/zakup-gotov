@@ -44,6 +44,8 @@ The current viable first-party evidence path is:
 2. fulfillment context from the same-origin first-party `/shop/<numeric-id>` resource pathname already present in the browser performance timeline;
 3. availability remains `UNKNOWN` when the DOM does not expose an explicit stock semantic.
 
+The live frontend is asynchronous in two independent dimensions: the shop-context resource can appear after `document_idle`, and product cards can be rendered after the shop-context resource has already arrived. A bridge that watches only one of those events can still fail closed permanently on an otherwise valid page.
+
 ## TDD adaptation evidence
 
 PR #53 introduced the adaptation through separate RED -> GREEN cycles.
@@ -86,25 +88,55 @@ On head `825000ee6561262fed9fa955ed44ecc06136cbed`:
 
 This proved that a one-shot `document_idle` collection could run before the asynchronous shop resource entered the performance timeline.
 
-### GREEN 2 — event-driven recollection
+### GREEN 2 — resource-driven recollection
 
-The content script now:
+The content script was changed to:
 
-- observes browser `resource` performance entries;
-- retains only same-origin canonical `origin + pathname` evidence;
-- strips query strings and fragments before the adapter sees resource evidence;
-- recollects when new first-party resource evidence appears;
-- serializes overlapping collection attempts;
-- disconnects the resource observer after the first successful collection;
-- keeps fail-closed stale-observation clearing before success.
+- observe browser `resource` performance entries;
+- retain only same-origin canonical `origin + pathname` evidence;
+- strip query strings and fragments before the adapter sees resource evidence;
+- recollect when new first-party resource evidence appears;
+- serialize overlapping collection attempts;
+- keep fail-closed stale-observation clearing before success.
 
-On head `deaa7357a0f15645bcc89a3b7726161e4c8be477`, Retailer Bridge CI passed all unit/type/build checks and both persistent-Chromium E2E scenarios.
+On head `deaa7357a0f15645bcc89a3b7726161e4c8be477`, Retailer Bridge CI passed all unit/type/build checks and both persistent-Chromium E2E scenarios that existed at that point.
 
 ### RED/GREEN 3 — provenance version
 
 The updated acquisition logic is explicitly versioned as Perekrestok browser adapter v2 so observations cannot be confused with the original structured-state-only implementation.
 
 A test-first provenance change failed against v1 and then passed after the adapter was advanced to v2. On head `94cdfdebf762e3d3c5fda64f34287636160e4a75`, Retailer Bridge CI passed completely.
+
+### RED 4 — shop context arrives before product DOM
+
+Change review identified a second independent SPA timing path: the first-party shop resource can be visible before the product cards are inserted into the DOM. A new sanitized persistent-Chromium fixture therefore starts the shop request first and inserts the `.product-card` later.
+
+On head `f8887dfa3e46ca02c314299a8d2d69de6526c589`:
+
+- all 16 unit tests passed;
+- typecheck passed;
+- production build passed;
+- the original extension E2E passed;
+- the delayed-DOM live-shape E2E failed;
+- expected `ok`, received `missing-product`.
+
+This was a valid behavioral RED: resource-driven recollection had already obtained the context, but no later event caused collection after the SPA rendered the product card.
+
+### GREEN 4 — DOM-driven recollection
+
+The content script now also uses a `MutationObserver` on child-list changes in the page subtree. DOM and resource events share the same serialized collection path. After the first `ok`, both observers disconnect.
+
+No polling interval, arbitrary sleep, or unbounded retry loop is used.
+
+On executable head `dcf9b8f5a092fb579137d347db85eb838b15c192`, Retailer Bridge CI passed:
+
+- 16 unit/fixture tests;
+- TypeScript typecheck;
+- production extension build;
+- the original privacy/stale-data Chromium E2E;
+- the current live-shape Chromium E2E with asynchronous shop context and delayed product DOM.
+
+The live-shape fixture also seeds `SECRET_RESOURCE_QUERY` in the shop-resource query string. The E2E verifies that neither that sentinel nor `session=` reaches extension storage, proving the runtime path canonicalizes resource evidence before persistence.
 
 ## Security/privacy boundary
 
@@ -118,7 +150,7 @@ The v2 adaptation does **not** add extension permissions and does not read or ex
 - precise user addresses;
 - cross-origin resource URLs.
 
-Only same-origin canonical resource pathnames and normalized product observations participate in the new path. The production manifest remains `storage`-only.
+Only same-origin canonical resource pathnames and normalized product observations participate in the new path. Query strings/fragments are removed from resource evidence before adapter use, and the existing observation collector still reconstructs the persisted allow-listed object. The production manifest remains `storage`-only.
 
 ## Current decision
 
