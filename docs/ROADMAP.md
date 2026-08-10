@@ -1,6 +1,6 @@
 # Roadmap
 
-Updated: 2026-08-09
+Updated: 2026-08-10
 
 The roadmap is evidence-driven. Milestones may change when retailer integration feasibility or product usage contradicts current assumptions.
 
@@ -13,19 +13,27 @@ Deliverables:
 - approved product/architecture foundation;
 - repository quality and security baseline;
 - provider integration research matrix for major target retailers;
+- mandatory coverage strategy for Pyaterochka and Perekrestok;
 - location/fulfillment-context model;
 - provider port contract;
 - feasibility harness for external integrations;
-- at least two provider spikes for one supported city/location context;
+- supported-path spikes for both mandatory X5 banners plus at least one independent non-X5 provider;
 - recorded fixtures and automated contract/parser tests;
-- documented freshness, availability, rate-limit, and legal constraints;
+- documented freshness, availability, rate-limit, provenance, operational, and legal constraints;
 - go/no-go decision for M1.
+
+Accepted provider paths may be direct retailer APIs, supported aggregator integrations, or user-assisted first-party browser connectors, provided provenance and limitations are explicit and the path does not depend on CAPTCHA bypass, credential forgery, session theft, fingerprint evasion, or deliberate access-control circumvention.
 
 Exit criteria:
 
-- at least two providers can return usable location-specific product/offer data through an acceptable integration path;
-- results are reproducible through automated tests/fixtures;
+- **Pyaterochka** can return usable location/store-specific product/offer data through at least one acceptable path;
+- **Perekrestok** can return usable location/store-specific product/offer data through at least one acceptable path;
+- at least one independent non-X5 provider can return usable location-specific product/offer data through an acceptable path;
+- accepted results are reproducible through automated tests/sanitized fixtures;
+- direct, aggregator-backed, and browser-assisted provenance cannot be confused in the product model;
 - known limitations are documented rather than hidden.
+
+Detailed mandatory-X5 strategy: [`integrations/x5-mandatory-coverage.md`](integrations/x5-mandatory-coverage.md).
 
 ## M1 — Shopping Core
 
@@ -43,7 +51,8 @@ Scope:
 - price and availability snapshots;
 - complete-basket comparison;
 - partial-provider failure UX;
-- data freshness UX.
+- data freshness UX;
+- provider provenance UX when observations come through an aggregator or user-assisted browser connector.
 
 Exit criteria:
 
@@ -122,7 +131,7 @@ Mobile-specific work may include barcode/camera flows, push notifications, deep 
 
 ## Later candidates — not commitments
 
-- retailer/affiliate partnerships;
+- broader retailer/affiliate partnerships beyond the mandatory M0 integration work;
 - direct cart creation/checkout handoff;
 - loyalty integration;
 - price history and alerts;
