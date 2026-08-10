@@ -9,7 +9,7 @@ const OBSERVED_AT = "2026-08-10T11:00:00Z";
 const PAGE_URL = new URL("https://www.perekrestok.ru/cat/1?session=secret#fragment");
 
 function fixture(name: string): Document {
-  const path = resolve(process.cwd(), "test/fixtures", name);
+  const path = resolve(process.cwd(), "../retailer-bridge/test/fixtures", name);
   return new DOMParser().parseFromString(readFileSync(path, "utf8"), "text/html");
 }
 
