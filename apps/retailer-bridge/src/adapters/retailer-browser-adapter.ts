@@ -16,5 +16,6 @@ export interface RetailerBrowserAdapter {
     document: Document;
     url: URL;
     observedAt: string;
+    resourceUrls?: readonly string[];
   }): AdapterResult;
 }
