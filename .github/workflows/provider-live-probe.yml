@@ -73,26 +73,50 @@ jobs:
           fi
 
           state='failure'
+          outcome='no-evidence'
           description='PYATEROCHKA_PHASE_A no_sanitized_evidence=true'
+
           if [[ -n "$evidence" ]]; then
             description="$evidence"
             printf '`%s`\n' "$evidence" >> "$GITHUB_STEP_SUMMARY"
-            if [[ "$evidence" == *'store_status=2'* \
-               && "$evidence" == *'sap_code_present=true'* \
-               && "$evidence" == *'search_status=2'* \
-               && "$evidence" == *'plu_present=true'* \
-               && "$evidence" == *'price_evidence=true'* ]]; then
+
+            store_status="$(sed -n 's/.*store_status=\([-0-9]*\).*/\1/p' <<<"$evidence")"
+            sap_present="$(sed -n 's/.*sap_code_present=\([^ ]*\).*/\1/p' <<<"$evidence")"
+            search_status="$(sed -n 's/.*search_status=\([-0-9]*\).*/\1/p' <<<"$evidence")"
+            plu_present="$(sed -n 's/.*plu_present=\([^ ]*\).*/\1/p' <<<"$evidence")"
+            price_evidence="$(sed -n 's/.*price_evidence=\([^ ]*\).*/\1/p' <<<"$evidence")"
+
+            if [[ "$store_status" =~ ^2[0-9][0-9]$ \
+               && "$sap_present" == 'true' \
+               && "$search_status" =~ ^2[0-9][0-9]$ \
+               && "$plu_present" == 'true' \
+               && "$price_evidence" == 'true' ]]; then
               state='success'
+              outcome='pass'
+            elif [[ ! "$store_status" =~ ^2[0-9][0-9]$ ]]; then
+              outcome="store-${store_status:-unknown}"
+            elif [[ "$sap_present" != 'true' ]]; then
+              outcome='store-shape'
+            elif [[ ! "$search_status" =~ ^2[0-9][0-9]$ ]]; then
+              outcome="search-${search_status:-unknown}"
+            elif [[ "$plu_present" != 'true' ]]; then
+              outcome='search-shape'
+            elif [[ "$price_evidence" != 'true' ]]; then
+              outcome='price-missing'
+            else
+              outcome='failed'
             fi
           else
             echo 'No sanitized Phase A evidence line was emitted.' >> "$GITHUB_STEP_SUMMARY"
           fi
 
-          # Commit statuses have a 140-character description limit. The evidence line is intentionally compact.
+          # The connector exposes status context even when it omits the legacy status description.
+          # Keep the outcome vocabulary finite and sanitized: status class / response-shape category only.
+          context="Provider Live Probe / Pyaterochka / ${outcome}"
           description="${description:0:140}"
           gh api \
             --method POST \
             "repos/${GITHUB_REPOSITORY}/statuses/${GITHUB_SHA}" \
             -f state="$state" \
-            -f context='Provider Live Probe / Pyaterochka' \
+            -f context="$context" \
             -f description="$description" >/dev/null
