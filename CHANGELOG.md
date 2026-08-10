@@ -53,13 +53,15 @@ The format follows the spirit of Keep a Changelog and semantic versioning will b
 - `compose.release.yaml` no-source-build production topology for PostgreSQL 18.4 → API → web with persistent database storage and health/readiness dependencies.
 - `Release Bundle CI` and `./scripts/verify-release-bundle.sh`, which build both application images, start the complete container topology, wait for health, smoke-test API/web boundaries, and emit Compose diagnostics on failure.
 - `docs/RELEASES.md` documenting the verified container bundle and explicitly separating it from the versioned GHCR publication workflow.
-- `Release Contract CI` and `scripts/release/release_contract.py`, providing read-only PR verification for strict SemVer/prerelease rules, lower-case GHCR names, digest-only release Compose rendering, immutable release dependencies, and release-workflow trust ordering.
+- `Release Contract CI` and `scripts/release/release_contract.py`, providing read-only PR verification for strict SemVer/prerelease rules, lower-case GHCR names, digest-only Compose rendering, immutable release dependencies, and release-workflow trust ordering.
 - `scripts/release/verify-published-release.sh`, which rejects mutable/local-build release Compose files and smoke-tests the exact digest-pinned images pulled from the registry.
 - Versioned `release: published` workflow implementing source verification, `linux/amd64` + `linux/arm64` GHCR candidate builds, per-platform Trivy vulnerability gates and SPDX SBOMs, exact-digest Compose smoke verification, GitHub attestations, no-rebuild digest promotion, stable-only `latest`, manifest verification, checksums, and GitHub Release evidence assets.
 - Clean-checkout regression coverage that requires both release helper shell scripts to retain executable Git modes.
 - Read-only `Container Security CI` for pull requests, `main`, and daily scheduled runs; it builds the exact production API/web Dockerfiles with fresh bases and fails closed on Trivy `HIGH`/`CRITICAL` vulnerabilities before a GitHub Release is created.
 - Initial M0B normalized provider-offer trust contract: `ObservedOffer` preserves provider, fulfillment context, SKU, price/currency, explicit availability, observation time, and source reference, with TDD coverage that rejects incomplete or invalid external offer data before comparison logic.
 - `docs/integrations/retailer-feasibility.md` with evidence-based provider decision labels, initial Kuper/Yandex Eats/Lenta/VkusVill/Magnit/X5 research, explicit no-scraping boundaries, and deterministic fixture/live-probe acceptance criteria for M0B.
+- Shared M0B provider feasibility harness: `ProviderAccessType`, `ProviderCapability`, provider-scoped `LocationContext`, `ProductQuery`, the `RetailerProvider` port, structural `FixtureRetailerProvider`/`LiveRetailerProvider` separation, offline `ProviderFeasibilityHarness`, and explicit `ProviderLiveProbe`.
+- Expanded retailer-feasibility research and `docs/superpowers/plans/2026-08-10-m0b-provider-spikes.md`, covering Pyaterochka, Perekrestok, Magnit, Chizhik, Ozon Fresh, Samokat and Kuper with a fixed 20-item corpus and measurable M0 decision criteria.
 
 ### Changed
 
@@ -100,6 +102,7 @@ The format follows the spirit of Keep a Changelog and semantic versioning will b
 - The first real prerelease, `v0.1.0-rc.1`, exercised the actual `release: published` trigger and proved release metadata/main-ancestry checks, the full source verification suite, production web build, and 4/4 Playwright tests before stopping at the release-helper mode defect; `Release / Publish` was skipped, so no GHCR publication evidence is attributed to rc.1.
 - `v0.1.0-rc.2` proved the corrected `Release / Verify` path end to end, started `Release / Publish`, authenticated to GHCR, and built/pushed both multi-platform staging image indexes before the first Trivy gate intentionally stopped publication on a HIGH API dependency finding.
 - The final Next.js production runtime moved from full Node 24 Bookworm-slim to distroless Node 24 Debian 13/non-root, removing shell/package-manager runtime requirements while preserving the Node 24.18.1 build toolchain and verified standalone-server behavior.
+- M0B now permits controlled evaluation of `PUBLIC_UNOFFICIAL_API` consumer backends when ordinary requests work without access-control or anti-bot circumvention; third-party wrappers remain research evidence rather than an inherited permission or production dependency.
 
 ### Fixed
 
@@ -138,3 +141,4 @@ The format follows the spirit of Keep a Changelog and semantic versioning will b
 - Release Docker/GitHub Actions are pinned to full commit SHAs, and the QEMU binfmt and BuildKit helper images are additionally pinned by digest to avoid mutable helper-image drift.
 - Both target image architectures are scanned for `HIGH` and `CRITICAL` vulnerabilities before version promotion, and release consumers are bound to immutable application-image digests through the attached Compose asset.
 - `v0.1.0-rc.2` demonstrated the release security boundary fail-closed: publication stopped at the first HIGH finding before final-package copy, attestation, SemVer promotion, evidence upload, or any stable `latest` action; remediation used dependency/runtime hardening rather than scanner suppression.
+- Provider feasibility deliberately excludes CAPTCHA/anti-bot bypass, browser-fingerprint evasion and proxy/IP rotation used to circumvent blocking; offline feasibility code accepts fixture-provider types while live-capable adapters require the separate explicit live-probe entry point.
