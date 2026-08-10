@@ -3,7 +3,6 @@ package io.github.trueruslan.zakupgotov.provider;
 import java.math.BigDecimal;
 import java.time.Instant;
 import java.util.Currency;
-import java.util.Objects;
 
 public record ObservedOffer(
         String providerId,
@@ -19,21 +18,26 @@ public record ObservedOffer(
         providerId = requireText(providerId, "providerId");
         fulfillmentContextId = requireText(fulfillmentContextId, "fulfillmentContextId");
         sku = requireText(sku, "sku");
-        price = Objects.requireNonNull(price, "price");
+        price = requireValue(price, "price");
         if (price.signum() < 0) {
             throw new IllegalArgumentException("price must not be negative");
         }
         currencyCode = requireCurrencyCode(currencyCode);
-        availability = Objects.requireNonNull(availability, "availability");
-        if (observedAt == null) {
-            throw new IllegalArgumentException("observedAt must not be null");
-        }
+        availability = requireValue(availability, "availability");
+        observedAt = requireValue(observedAt, "observedAt");
         sourceReference = requireText(sourceReference, "sourceReference");
     }
 
     private static String requireText(String value, String field) {
         if (value == null || value.isBlank()) {
             throw new IllegalArgumentException(field + " must not be blank");
+        }
+        return value;
+    }
+
+    private static <T> T requireValue(T value, String field) {
+        if (value == null) {
+            throw new IllegalArgumentException(field + " must not be null");
         }
         return value;
     }
