@@ -10,7 +10,7 @@ Repository: `True-Ruslan/zakup-gotov`
 Visibility: Public  
 Current phase: **M0 — Product & Integration Discovery**  
 Current execution stage: **M0A closure + M0B Universal Retailer Connectivity**  
-Current focus: **prove the first user-assisted Perekrestok browser path, keep Pyaterochka/Perekrestok mandatory, prove an independent non-X5 path, and keep the outstanding `v0.1.0-rc.3` release proof explicit**
+Current focus: **run the first real first-party Perekrestok browser gate, keep Pyaterochka/Perekrestok mandatory, prove an independent non-X5 path, and keep the outstanding `v0.1.0-rc.3` release proof explicit**
 
 ## Product connectivity invariant
 
@@ -74,11 +74,11 @@ Interpretation:
 - Perekrestok product coverage: still mandatory;
 - selected fallback: user-assisted first-party browser bridge.
 
-### Perekrestok Browser Bridge Phase A — deterministic implementation ready, live pending
+### Perekrestok Browser Bridge Phase A — deterministic implementation merged, live pending
 
-Draft PR #49 on `feat/m0b-perekrestok-browser-bridge` implements the first Universal Retailer Connectivity browser transport.
+PR #49 was squash-merged to `main` as `333ad5d6ffbdcce3622a587b09004690afbe8e60` after the complete repository CI/security gate.
 
-Implemented and verified on the feature branch:
+Implemented and verified:
 
 - Chromium Manifest V3 extension package under `apps/retailer-bridge`;
 - production extension permission contract: `storage` only, no `cookies`, `webRequest`, `debugger`, proxy-control or broad host permissions;
@@ -94,7 +94,7 @@ Implemented and verified on the feature branch:
 - deterministic synthetic/sanitized fixtures containing no production cookie, token, user address or raw page dump;
 - dedicated read-only `Retailer Bridge CI` with zero live Perekrestok dependency.
 
-TDD/runtime evidence on the implementation branch:
+TDD/runtime evidence:
 
 - manifest permission RED was validated after rejecting two earlier harness failures that did not reach the assertion;
 - collector RED failed only because `BrowserObservationCollector` did not exist;
@@ -102,11 +102,12 @@ TDD/runtime evidence on the implementation branch:
 - Chrome sink RED failed only because the sink did not exist;
 - real Chromium MV3 E2E RED proved stale prior observations remained after `missing-context`;
 - focused stale-reset unit RED then failed only because `createChromeObservationClearer` did not exist;
-- current bridge suite: **15 unit/fixture tests PASS**;
+- bridge suite: **15 unit/fixture tests PASS**;
 - bridge TypeScript: PASS;
 - production extension build: PASS;
 - persistent-Chromium MV3 E2E: PASS;
-- the complete Retailer Bridge CI job, including Chromium E2E, passed **twice consecutively** on the same source head.
+- the complete Retailer Bridge CI job, including Chromium E2E, passed twice consecutively on the same source behavior before final merge verification;
+- final PR head `f79178956cedb8586fc6a1c04490a8c53a715960` passed API CI, Contract CI, Web CI + Web E2E, Retailer Bridge CI, CodeQL, Dependency Review, Release Bundle CI, Release Contract CI and Container Security CI.
 
 The Chromium E2E uses the real production Perekrestok URL match but intercepts the page before network access and fulfills it from committed sanitized fixtures. It seeds sentinel cookie/localStorage secrets and verifies that neither reaches extension storage.
 
@@ -171,14 +172,13 @@ A successful real **`v0.1.0-rc.3` GitHub Release published event remains outstan
 
 ## Immediate next work
 
-1. Finish repository-truth synchronization and full review of PR #49.
-2. Merge PR #49 only after API, Contract, Web + Web E2E, Retailer Bridge, CodeQL, Dependency Review, Release Bundle, Release Contract and Container Security are green on the exact final head.
-3. Perform the opt-in real first-party Perekrestok browser gate from [`integrations/perekrestok-browser-bridge-phase-a.md`](integrations/perekrestok-browser-bridge-phase-a.md).
-4. If real page structure differs, add only a sanitized minimal fixture and a failing regression test before modifying the adapter.
-5. After Perekrestok live PASS, run the fixed corpus plan and reuse the browser transport contract for Pyaterochka.
-6. Continue Kuper/X5 supported-access work and resolve the independent Magnit path in parallel.
-7. Continue Chizhik, Ozon Fresh, Samokat, Lenta, VkusVill and additional chains through the same registry/adapter process.
-8. Publish `v0.1.0-rc.3` through the real GitHub Release event when a release-capable path is available.
+1. Perform the opt-in real first-party Perekrestok browser gate from [`integrations/perekrestok-browser-bridge-phase-a.md`](integrations/perekrestok-browser-bridge-phase-a.md).
+2. If real page structure differs, add only a sanitized minimal fixture and a failing regression test before modifying the adapter.
+3. After Perekrestok live PASS, run the fixed corpus plan and reuse the browser transport contract for Pyaterochka.
+4. Complete issue #50 before the bridge gains its own external dependencies or multiple substantial retailer adapters: make `apps/retailer-bridge` a first-class pnpm workspace importer and remove its temporary tooling coupling to `apps/web`.
+5. Continue Kuper/X5 supported-access work and resolve the independent Magnit path in parallel.
+6. Continue Chizhik, Ozon Fresh, Samokat, Lenta, VkusVill and additional chains through the same registry/adapter process.
+7. Publish `v0.1.0-rc.3` through the real GitHub Release event when a release-capable path is available.
 
 ## Definition of M0 success
 
