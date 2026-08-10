@@ -1,0 +1,8 @@
+{
+  "manifest_version": 3,
+  "name": "Zakup Gotov Retailer Bridge",
+  "version": "0.1.0",
+  "description": "Reads sanitized grocery offer observations from supported first-party retailer pages.",
+  "permissions": [],
+  "content_scripts": []
+}
