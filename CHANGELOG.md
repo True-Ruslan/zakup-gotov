@@ -62,7 +62,7 @@ The format follows the spirit of Keep a Changelog and semantic versioning will b
 - `docs/integrations/retailer-feasibility.md` with evidence-based provider decision labels, initial Kuper/Yandex Eats/Lenta/VkusVill/Magnit/X5 research, explicit no-scraping boundaries, and deterministic fixture/live-probe acceptance criteria for M0B.
 - Shared M0B provider feasibility harness: `ProviderAccessType`, `ProviderCapability`, provider-scoped `LocationContext`, `ProductQuery`, the `RetailerProvider` port, structural `FixtureRetailerProvider`/`LiveRetailerProvider` separation, offline `ProviderFeasibilityHarness`, and explicit `ProviderLiveProbe`.
 - Expanded retailer-feasibility research and `docs/superpowers/plans/2026-08-10-m0b-provider-spikes.md`, covering Pyaterochka, Perekrestok, Magnit, Chizhik, Ozon Fresh, Samokat and Kuper with a fixed 20-item corpus and measurable M0 decision criteria.
-- Pyaterochka/5ka Phase A plain-HTTP probe using the JDK HTTP client with store-scoped request construction, fixed timeouts, no retries or browser-derived credentials/headers, and an opt-in read-only `Provider Live Probe` workflow that emits only sanitized status evidence.
+- Pyaterochka/5ka Phase A plain-HTTP probe using the JDK HTTP client with store-scoped request construction, fixed timeouts, no retries or browser-derived credentials/headers, plus an opt-in `Provider Live Probe` workflow that emits sanitized evidence and can publish that evidence as a dedicated commit status.
 
 ### Changed
 
@@ -105,6 +105,7 @@ The format follows the spirit of Keep a Changelog and semantic versioning will b
 - The final Next.js production runtime moved from full Node 24 Bookworm-slim to distroless Node 24 Debian 13/non-root, removing shell/package-manager runtime requirements while preserving the Node 24.18.1 build toolchain and verified standalone-server behavior.
 - M0B now permits controlled evaluation of `PUBLIC_UNOFFICIAL_API` consumer backends when ordinary requests work without access-control or anti-bot circumvention; third-party wrappers remain research evidence rather than an inherited permission or production dependency.
 - Pyaterochka is now an active Phase A spike rather than a paper candidate: the exact public-backend request hypotheses and non-evasive probe are executable, while provider support remains explicitly blocked on the real raw-HTTP result.
+- Live-probe evidence publication uses a dedicated legacy commit-status context so connected tooling can read the sanitized result without broadening the workflow to issue/content/package write permissions.
 
 ### Fixed
 
@@ -144,4 +145,4 @@ The format follows the spirit of Keep a Changelog and semantic versioning will b
 - Both target image architectures are scanned for `HIGH` and `CRITICAL` vulnerabilities before version promotion, and release consumers are bound to immutable application-image digests through the attached Compose asset.
 - `v0.1.0-rc.2` demonstrated the release security boundary fail-closed: publication stopped at the first HIGH finding before final-package copy, attestation, SemVer promotion, evidence upload, or any stable `latest` action; remediation used dependency/runtime hardening rather than scanner suppression.
 - Provider feasibility deliberately excludes CAPTCHA/anti-bot bypass, browser-fingerprint evasion and proxy/IP rotation used to circumvent blocking; offline feasibility code accepts fixture-provider types while live-capable adapters require the separate explicit live-probe entry point.
-- The Pyaterochka live-probe workflow has read-only repository permissions, no secrets, a fixed owner/issue command gate, finite timeouts, no retry/evasion behavior, and emits only sanitized status evidence rather than retailer response bodies or exact store/product IDs.
+- The Pyaterochka live-probe workflow keeps `contents: read` and adds only `statuses: write` for the dedicated sanitized result context; it has no retailer credentials, a fixed owner/issue command gate, finite timeouts, no retry/evasion behavior, and publishes no retailer response bodies or exact store/product IDs.
