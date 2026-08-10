@@ -24,14 +24,19 @@ Branch: `feat/m0b-provider-feasibility-harness`
 Deliver:
 
 - `ProviderAccessType` (`OFFICIAL_API`, `PUBLIC_UNOFFICIAL_API`, `PARTNER_API`);
-- `ProviderExecutionMode` (`FIXTURE`, `LIVE`);
 - `ProviderCapability`;
 - provider-scoped `LocationContext`;
 - `ProductQuery`;
-- `RetailerProvider` port;
-- offline `ProviderFeasibilityHarness` that rejects LIVE providers before invocation and validates offer provenance;
-- tests proving fixture success, live isolation, provider/location consistency, capability gating, and offer-context consistency;
+- common `RetailerProvider` port;
+- `FixtureRetailerProvider` for deterministic recorded/synthetic sources;
+- `LiveRetailerProvider` for adapters that may communicate with an external retailer;
+- offline `ProviderFeasibilityHarness` whose public search signature accepts only `FixtureRetailerProvider`;
+- separate explicit `ProviderLiveProbe` whose public search signature accepts only `LiveRetailerProvider`;
+- shared validation for provider/location identity, required `PRODUCT_SEARCH` + `PRICE` capabilities, and returned-offer provenance;
+- tests proving fixture success, structural fixture/live isolation, explicit live-probe execution, provider/location consistency, capability gating, and offer-context consistency;
 - research matrix synchronization.
+
+The fixture/live boundary must not depend on an enum value supplied by the provider itself. Review of the first implementation found that such metadata could be misdeclared accidentally; the structural type split is the required design.
 
 Exit gate: focused tests + full API verify + full repository CI/security/release-bundle gates pass.
 
