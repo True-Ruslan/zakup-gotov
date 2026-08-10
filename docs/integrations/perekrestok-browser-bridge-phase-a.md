@@ -82,21 +82,25 @@ Visible RUB price text is normalized to integer minor units. DOM catalog presenc
 
 Only same-origin canonical resource `origin + pathname` values are passed to the adapter. Query strings and fragments are removed before runtime resource evidence crosses the content-script boundary. No response body or request headers are read.
 
-## Asynchronous resource handling
+## Asynchronous SPA handling
 
-The original Phase A implementation collected once at `document_idle`. The new live-shape Chromium regression proved that the shop request can resolve after that one-shot collection.
+The original Phase A implementation collected once at `document_idle`. TDD regressions against the sanitized live shape proved two independent timing races:
+
+1. the first-party shop request can appear after the initial collection;
+2. the shop context can already be known while `.product-card` elements are rendered later by the SPA.
 
 The v2 content runtime therefore:
 
 - seeds already-completed resource entries;
 - observes new `resource` performance entries;
 - retains only same-origin canonical resource paths;
-- recollects when new first-party resource evidence appears;
+- observes DOM child-list changes through `MutationObserver`;
+- recollects when either new first-party resource evidence or later DOM evidence appears;
 - serializes overlapping collection attempts;
-- disconnects the resource observer after the first successful collection;
+- disconnects both observers after the first successful collection;
 - keeps fail-closed stale-observation clearing before success.
 
-No arbitrary sleep/retry interval is used.
+No arbitrary sleep, polling interval, or unbounded retry loop is used.
 
 ## First real browser gate — 2026-08-10
 
@@ -141,11 +145,14 @@ At its merge point:
 
 ### Live adaptation v2
 
-PR #53 adds three explicit test-first gates:
+PR #53 adds four explicit test-first gates:
 
 1. **Current live shape RED:** 15 old tests PASS, one new DOM/resource test FAIL with `missing-context`; then adapter parsing GREEN.
-2. **Asynchronous runtime RED:** 16 unit tests/type/build PASS and original E2E PASS, while the new live-shape E2E FAILed with `missing-context`; event-driven resource recollection then made both E2E scenarios GREEN.
+2. **Asynchronous resource RED:** 16 unit tests/type/build PASS and original E2E PASS, while the new live-shape E2E FAILed with `missing-context`; resource-driven recollection then made the tested path GREEN.
 3. **Provenance RED:** tests required adapter version `2` before production metadata changed; the suite then returned GREEN after v2 provenance was applied.
+4. **Delayed DOM RED:** 16 unit tests/type/build PASS and original E2E PASS, while the new delayed-card E2E FAILed with `missing-product`; DOM-driven recollection then made the full live-shape E2E GREEN.
+
+The final live-shape E2E deliberately places `SECRET_RESOURCE_QUERY` in the first-party shop-resource query string and verifies that neither the sentinel nor `session=` reaches extension storage.
 
 The live-shape fixtures are synthetic/sanitized. Ordinary CI intercepts the Perekrestok origin before external network access and therefore has zero live retailer dependency.
 
@@ -163,7 +170,7 @@ It does not export or persist:
 - exact street addresses;
 - raw production HTML.
 
-The original sentinel cookie/localStorage E2E remains active. Runtime resource evidence is restricted to same-origin canonical URL paths without query strings or fragments.
+The original sentinel cookie/localStorage E2E remains active. Runtime resource evidence is restricted to same-origin canonical URL paths without query strings or fragments, and the new resource-query sentinel regression verifies that boundary through the production extension.
 
 ## Real-browser v2 retest
 
