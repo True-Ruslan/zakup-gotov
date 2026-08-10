@@ -58,6 +58,8 @@ The format follows the spirit of Keep a Changelog and semantic versioning will b
 - Versioned `release: published` workflow implementing source verification, `linux/amd64` + `linux/arm64` GHCR candidate builds, per-platform Trivy vulnerability gates and SPDX SBOMs, exact-digest Compose smoke verification, GitHub attestations, no-rebuild digest promotion, stable-only `latest`, manifest verification, checksums, and GitHub Release evidence assets.
 - Clean-checkout regression coverage that requires both release helper shell scripts to retain executable Git modes.
 - Read-only `Container Security CI` for pull requests, `main`, and daily scheduled runs; it builds the exact production API/web Dockerfiles with fresh bases and fails closed on Trivy `HIGH`/`CRITICAL` vulnerabilities before a GitHub Release is created.
+- Initial M0B normalized provider-offer trust contract: `ObservedOffer` preserves provider, fulfillment context, SKU, price/currency, explicit availability, observation time, and source reference, with TDD coverage that rejects incomplete or invalid external offer data before comparison logic.
+- `docs/integrations/retailer-feasibility.md` with evidence-based provider decision labels, initial Kuper/Yandex Eats/Lenta/VkusVill/Magnit/X5 research, explicit no-scraping boundaries, and deterministic fixture/live-probe acceptance criteria for M0B.
 
 ### Changed
 
