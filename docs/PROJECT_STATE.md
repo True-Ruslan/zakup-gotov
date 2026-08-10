@@ -10,7 +10,7 @@ Repository: `True-Ruslan/zakup-gotov`
 Visibility: Public  
 Current phase: **M0 — Product & Integration Discovery**  
 Current execution stage: **M0A closure + M0B Retailer Feasibility (parallel)**  
-Current focus: **classify the first failed Pyaterochka plain-HTTP Phase A run without inspecting raw retailer payloads, while keeping the still-outstanding `v0.1.0-rc.3` release proof explicit**
+Current focus: **move from the rejected Pyaterochka public path to Perekrestok and Magnit feasibility, while keeping the still-outstanding `v0.1.0-rc.3` release proof explicit**
 
 ## Product status
 
@@ -22,9 +22,10 @@ M0B is now executable rather than research-only:
 - PR #37 established the reusable provider feasibility harness and was squash-merged to `main` as `e318c8ee92ab5f62dd593f4fd214735eb8c59750` after full CI/security verification;
 - PR #39 implemented the first concrete retailer spike — a non-evasive Pyaterochka Phase A probe plus an opt-in live-probe workflow — and was squash-merged to `main` as `4efabe78f82d23fb24f58aa4c6a4a0e15cd93af0` after full CI/security verification;
 - PR #40 added a narrow commit-status evidence channel and was squash-merged to `main` as `b58bd3db6881037c93854e68964ea129460339a7` after full CI/security verification;
-- the first machine-readable Pyaterochka live run on that main SHA returned `failure`; PR #41 refines only the sanitized status context so connected tooling can distinguish an HTTP gate, response-shape mismatch, missing price evidence, or no-evidence/transport failure.
+- PR #41 added a finite sanitized outcome suffix to the live status and was squash-merged to `main` as `73d9f18d714bd1eafc165e7f5941405a0ce10b5b` after the complete repository gate;
+- the outcome-bearing Pyaterochka live run on that main SHA returned **`Provider Live Probe / Pyaterochka / store-403`**.
 
-**No retailer/provider is supported yet.** Pyaterochka remains `SPIKE_IF_RAW_HTTP_WORKS`. The first live Phase A run is a confirmed failure; the exact sanitized category is not yet known. No browser/CAPTCHA/stealth/proxy workaround is permitted.
+**No retailer/provider is supported yet.** The currently known Pyaterochka/5ka public consumer path is now classified **`UNSUITABLE_PUBLIC_PATH`**: the first coordinate→store request was rejected with HTTP 403 by an ordinary transparent HTTP client. The spike stopped before store ID, product search, PLU, price, fixtures or corpus work. We will not add browser/CAPTCHA/stealth/proxy techniques to bypass that result.
 
 Starting retailer spikes does not waive the remaining M0A release requirement. `v0.1.0-rc.3` is still required before the versioned GHCR publication path can be called fully runtime-proven.
 
@@ -141,61 +142,43 @@ Rate limits and provider failures are evidence, not obstacles to hide. Third-par
 
 Detailed evidence is in [`integrations/retailer-feasibility.md`](integrations/retailer-feasibility.md). The provider sequence and fixed 20-item corpus are in [`superpowers/plans/2026-08-10-m0b-provider-spikes.md`](superpowers/plans/2026-08-10-m0b-provider-spikes.md).
 
-## Pyaterochka / 5ka Phase A
+## Pyaterochka / 5ka Phase A — CLOSED
 
-Tracking: issue #38; probe/workflow implementation merged in PR #39; machine-readable status channel merged in PR #40; sanitized outcome-category refinement is PR #41.
+Tracking: issue #38. Implementation/evidence: PRs #39, #40, #41.
 
-Current research identifies the consumer-backend base `https://5d.5ka.ru/api` and these hypotheses:
+Research identified the consumer-backend base `https://5d.5ka.ru/api`, coordinate-based store lookup, `{sapCode}`-scoped catalog/search/product routes and PLU identity. The existing Open-Inflation reference reaches those calls after Camoufox browser warm-up, optional robot/CAPTCHA interaction and captured browser/app headers. Zakup Gotov deliberately did not inherit that behavior.
 
-- coordinate-based store lookup;
-- store identifier `sapCode`;
-- `{sapCode}`-scoped catalog/search/product routes;
-- product PLU identity;
-- price-bearing search/product responses.
+The independent JDK `HttpClient` probe used only:
 
-The current Open-Inflation reference obtains these calls through a Camoufox browser warm-up, optional robot/CAPTCHA interaction, and captured `x-app-version`, `x-device-id`, and `x-platform` request headers. **Zakup Gotov does not inherit those techniques.** A separate direct request to the public 5ka catalog surface also returned HTTP 403 during research, so raw HTTP viability must be tested rather than assumed.
-
-PR #39 implements a separate JDK `HttpClient` Phase A probe with:
-
-- only `Accept` and a transparent Zakup Gotov `User-Agent`;
+- `Accept: application/json`;
+- transparent Zakup Gotov `User-Agent`;
 - fixed connect/request timeouts;
-- no cookies or authorization;
+- no Cookie/Authorization;
 - no captured app/device/platform headers;
 - no browser automation;
 - no proxies;
-- no retry/evasion loop;
-- store lookup → search only, stopping at the first failed gate;
-- sanitized evidence only: status codes plus booleans for `sapCode`, PLU and price evidence.
+- no retry/evasion loop.
 
-TDD and merge evidence:
+TDD/verification evidence for the probe itself:
 
-- RED commit `099cb2ace80e7492b9ed0279f82420ec39106fd4`: API CI failed at `testCompile` only because `PyaterochkaPlainHttpProbe` did not yet exist;
-- GREEN implementation commit `e91e6bfab20d5a700cbb08fc0c2b1a8193f82a3b`: `PyaterochkaPlainHttpProbeTest` ran **3 tests, 0 failures/errors, 1 intentionally skipped live test**; complete API suite ran **25 tests, 0 failures/errors, 1 skipped**; PostgreSQL 18.4 and JAR build passed;
-- final PR #39 head passed API, Contract, Web + Web E2E, CodeQL, Dependency Review, Release Bundle, Release Contract and both production-image Container Security scans before squash merge;
-- PR #40 kept `contents: read`, added only `statuses: write`, passed the same complete repository gate, and enabled a retrievable sanitized live status on the default-branch SHA.
+- RED commit `099cb2ace80e7492b9ed0279f82420ec39106fd4` failed at `testCompile` only because `PyaterochkaPlainHttpProbe` did not exist;
+- GREEN commit `e91e6bfab20d5a700cbb08fc0c2b1a8193f82a3b` produced `PyaterochkaPlainHttpProbeTest` **3 tests, 0 failures/errors, 1 intentionally skipped live test** and the complete API suite **25 tests, 0 failures/errors, 1 skipped**;
+- PR #39 passed API, Contract, Web + Web E2E, CodeQL, Dependency Review, Release Bundle, Release Contract and both production-image Container Security scans before merge;
+- PRs #40/#41 changed only the sanitized evidence transport and passed the complete repository gates before merge.
 
-The opt-in `Provider Live Probe` workflow is not part of ordinary PR CI. It has no retailer credentials/secrets. It uses GitHub's ephemeral token only for the commit-status write and publishes no response body, exact store ID or exact product ID.
+Final live evidence on `main` SHA `73d9f18d714bd1eafc165e7f5941405a0ce10b5b`:
 
-The first machine-readable run after PR #40 produced legacy status state `failure` on `main` SHA `b58bd3db6881037c93854e68964ea129460339a7`. The connected status reader omits the legacy `description`, so that result proves **Phase A did not pass** but cannot distinguish why. PR #41 changes no retailer request and adds no permission; it maps the existing sanitized evidence into a finite context suffix:
+**`Provider Live Probe / Pyaterochka / store-403` → failure**
 
-- `pass`;
-- `store-<HTTP status>`;
-- `store-shape`;
-- `search-<HTTP status>`;
-- `search-shape`;
-- `price-missing`;
-- `no-evidence`;
-- `failed`.
+The first coordinate→store lookup returned HTTP 403. No `sapCode`, product search, PLU, price, fixture, or 20-item corpus request was made after that gate.
 
-Context format becomes `Provider Live Probe / Pyaterochka / <outcome>`. No payload, store ID, PLU, address, credential or user-controlled text enters that context.
-
-Current result: **Phase A failed once; sanitized failure category is pending the post-PR-#41 rerun.** No fixtures/20-item corpus are justified unless the rerun passes.
+Decision: **`UNSUITABLE_PUBLIC_PATH`** for the currently known consumer backend. Pyaterochka may be reconsidered only if an acceptable documented API/partner path or a genuinely public non-evasive consumer path becomes available.
 
 ## Current retailer priorities
 
-- **Pyaterochka / 5ka** — `SPIKE_IF_RAW_HTTP_WORKS`; first Phase A run failed, exact failure category pending.
-- **Perekrestok** — `SPIKE_NOW`; next controlled provider spike.
-- **Magnit** — `SPIKE_NOW`; priority independent non-X5 proof path.
+- **Pyaterochka / 5ka** — `UNSUITABLE_PUBLIC_PATH`; stopped after `store-403`, no bypass.
+- **Perekrestok** — `SPIKE_NOW`; **next implementation target**.
+- **Magnit** — `SPIKE_NOW`; high-priority independent non-X5 path, ideally in parallel/immediately after Perekrestok Phase A.
 - **Chizhik** — `SPIKE_IF_RAW_HTTP_WORKS`; reject if browser/proxy evasion is required.
 - **Ozon Fresh / Samokat** — `RESEARCH_REQUIRED`.
 - **Kuper** — `PROMISING_CONTACT_REQUIRED`; issue #36 tracks official Client apps API access/rights questions.
@@ -228,15 +211,14 @@ Known incompatible major updates remain deferred rather than bypassing checks:
 
 ## Immediate next work
 
-1. Finish PR #41 with the complete repository gate and final read-only review, then squash-merge it.
-2. Re-trigger exactly `/provider-probe pyaterochka` on issue #38.
-3. Read the outcome-bearing `Provider Live Probe / Pyaterochka / <outcome>` status on the new `main` SHA.
-4. If outcome is `pass`, record sanitized fixtures and run the fixed 20-item corpus against two stores.
-5. If outcome shows a guarded HTTP path (`store-403`, `search-403`, etc.), record `UNSUITABLE_PUBLIC_PATH` and move on without bypassing it; if it shows a response-shape or transport problem, investigate only the minimum public/non-evasive evidence needed to distinguish API drift from access control.
-6. Start Perekrestok and prioritize Magnit as the independent non-X5 path.
-7. Continue Kuper issue #36 and second-wave Ozon Fresh/Samokat research in parallel.
-8. Publish `v0.1.0-rc.3` through the real GitHub Release event when a release-capable path is available.
-9. Add Release Bundle/Contract/Container Security to the `main` ruleset when the settings mutation can be applied and independently verified.
+1. Merge the documentation-only Pyaterochka result synchronization after the full repository gate.
+2. Close issue #38 as the currently known public path is rejected by Phase A.
+3. Start `spike/m0b-perekrestok` with the same plain-HTTP/non-evasive Phase A discipline.
+4. Start or immediately follow with `spike/m0b-magnit` so M0 gains an independent non-X5 candidate.
+5. Only providers that pass Phase A proceed to sanitized fixtures and the fixed 20-item corpus across two stores/contexts.
+6. Continue Kuper issue #36 and second-wave Ozon Fresh/Samokat research in parallel.
+7. Publish `v0.1.0-rc.3` through the real GitHub Release event when a release-capable path is available.
+8. Add Release Bundle/Contract/Container Security to the `main` ruleset when the settings mutation can be applied and independently verified.
 
 ## Definition of M0 success
 

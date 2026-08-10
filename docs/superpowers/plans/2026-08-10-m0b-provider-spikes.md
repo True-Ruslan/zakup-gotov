@@ -17,51 +17,101 @@ Prove or disprove the core Zakup Gotov assumption before M1: at least two accept
 - Third-party wrappers are research references, not production dependencies by default.
 - A manual request is evidence for investigation, never enough for `SUPPORTED` status.
 
-## Slice 1 — Shared feasibility harness
+## Slice 1 — Shared feasibility harness — COMPLETE
 
-Branch: `feat/m0b-provider-feasibility-harness`
+Merged in PR #37.
 
-Deliver:
+Delivered:
 
 - `ProviderAccessType` (`OFFICIAL_API`, `PUBLIC_UNOFFICIAL_API`, `PARTNER_API`);
 - `ProviderCapability`;
 - provider-scoped `LocationContext`;
 - `ProductQuery`;
 - common `RetailerProvider` port;
-- `FixtureRetailerProvider` for deterministic recorded/synthetic sources;
-- `LiveRetailerProvider` for adapters that may communicate with an external retailer;
-- offline `ProviderFeasibilityHarness` whose public search signature accepts only `FixtureRetailerProvider`;
-- separate explicit `ProviderLiveProbe` whose public search signature accepts only `LiveRetailerProvider`;
-- shared validation for provider/location identity, required `PRODUCT_SEARCH` + `PRICE` capabilities, and returned-offer provenance;
-- tests proving fixture success, structural fixture/live isolation, explicit live-probe execution, provider/location consistency, capability gating, and offer-context consistency;
-- research matrix synchronization.
+- structural `FixtureRetailerProvider` / `LiveRetailerProvider` separation;
+- offline `ProviderFeasibilityHarness` accepting fixture providers only;
+- explicit `ProviderLiveProbe` for live-capable adapters;
+- shared provider/location/capability/offer-provenance validation.
 
-The fixture/live boundary must not depend on an enum value supplied by the provider itself. Review of the first implementation found that such metadata could be misdeclared accidentally; the structural type split is the required design.
+The fixture/live boundary does not depend on an enum supplied by the provider itself. Review of the first implementation caught that weakness and a second TDD cycle replaced it with the structural split.
 
-Exit gate: focused tests + full API verify + full repository CI/security/release-bundle gates pass.
+## Slice 2 — Pyaterochka technical probe — STOPPED / UNSUITABLE_PUBLIC_PATH
 
-## Slice 2 — Pyaterochka technical probe
+Implementation: PR #39.  
+Machine-readable evidence transport: PR #40 and PR #41.  
+Tracking: issue #38.
 
-Branch target: `spike/m0b-pyaterochka`
+### Phase A result
 
-### Phase A — plain-HTTP gate
+The non-evasive JDK HTTP probe targeted the researched public consumer backend `https://5d.5ka.ru/api` with:
 
-Use the public 5ka consumer flow and Open-Inflation `pyaterochka_api` only as research references. Determine whether the minimum required calls are reproducible using an ordinary HTTP client without Camoufox, stealth plugins or proxies.
+- transparent Zakup Gotov `User-Agent`;
+- `Accept: application/json`;
+- no Cookie or Authorization;
+- no captured `x-app-version`, `x-device-id`, `x-platform` headers;
+- no browser automation;
+- no CAPTCHA interaction;
+- no proxy/IP rotation;
+- no retry/evasion loop;
+- fixed connect/request timeouts.
+
+The outcome-bearing live run on `main` SHA `73d9f18d714bd1eafc165e7f5941405a0ce10b5b` produced:
+
+`Provider Live Probe / Pyaterochka / store-403`
+
+The first coordinate → store lookup was therefore rejected with HTTP 403 before any `sapCode`, product search, PLU/SKU, price, fixture, or corpus step could execute.
+
+This satisfies the plan's stop condition. Existing third-party research depends on Camoufox/browser warm-up, possible CAPTCHA interaction and browser-derived headers; Zakup Gotov will not adopt those techniques to circumvent the 403.
+
+Decision: **`UNSUITABLE_PUBLIC_PATH`** for the currently known Pyaterochka consumer backend.
+
+### Phase B
+
+Not started and intentionally cancelled. No fixtures or 20-item corpus should be fabricated from a path that failed Phase A.
+
+Pyaterochka may be reconsidered only if X5/Pyaterochka later provides a documented/acceptable API or another genuinely public non-evasive path emerges.
+
+## Slice 3 — Perekrestok — NEXT
+
+Branch target: `spike/m0b-perekrestok`
+
+Reuse the shared harness and the same non-evasive gate. Specifically prove whether public consumer requests can establish a concrete store/fulfillment context and whether price/availability are genuinely context-specific.
+
+Phase A must prove, using ordinary HTTP only:
+
+1. location/fulfillment context;
+2. stable store/context identifier;
+3. product search for a fixed query;
+4. stable provider product ID;
+5. price evidence;
+6. no browser/anti-bot/proxy bypass requirement.
+
+If Phase A passes, run the fixed 20-item corpus below against two contexts and save sanitized deterministic fixtures. If it fails on a guarded path, record the failure and stop rather than bypassing it.
+
+Do not infer availability from catalog presence when the provider does not expose explicit stock semantics; use `UNKNOWN`.
+
+## Slice 4 — Magnit independent path — HIGH PRIORITY
+
+Branch target: `spike/m0b-magnit`
+
+Priority reason: Magnit is independent from X5 and its public catalog already exposes store-scoped `shopCode` behavior and prices.
 
 Required proof:
 
-1. fixed Moscow locality/context;
-2. selected store / `sapCode` or equivalent fulfillment identifier;
-3. product/category/search response with stable SKU/PLU identity;
-4. price and availability semantics;
-5. source/freshness metadata where available;
-6. no bypass mechanisms.
+- discover only the ordinary requests used by the public catalog;
+- two explicit `shopCode` contexts;
+- 20-item corpus;
+- stable product identity;
+- regular/promo price distinction where present;
+- availability semantics;
+- sanitized fixtures;
+- no browser/anti-bot bypass requirement.
 
-If this gate fails because anti-bot circumvention is required, stop the spike and record `UNSUITABLE_PUBLIC_PATH`.
+Magnit should be started immediately after or in parallel with the Perekrestok Phase A gate so M0 does not depend on X5.
 
-### Phase B — fixture corpus
+## Fixed 20-item corpus
 
-Use 20 common grocery requirements:
+Use the same requirements for every provider that passes Phase A:
 
 - milk;
 - eggs;
@@ -84,32 +134,7 @@ Use 20 common grocery requirements:
 - salt;
 - tea.
 
-Capture sanitized raw responses and write deterministic parser/contract tests. Repeat against a second store/context and quantify coverage and price/availability differences.
-
-## Slice 3 — Perekrestok
-
-Branch target: `spike/m0b-perekrestok`
-
-Reuse the same corpus and harness. Specifically prove whether city/session context can be narrowed to a concrete store/fulfillment context and whether price/availability are genuinely context-specific.
-
-Do not infer availability from catalog presence when the provider does not expose explicit stock semantics; use `UNKNOWN`.
-
-## Slice 4 — Magnit independent path
-
-Branch target: `spike/m0b-magnit`
-
-Priority reason: Magnit is independent from X5 and its public catalog already exposes store-scoped `shopCode` behavior and prices.
-
-Required proof:
-
-- discover only the ordinary requests used by the public catalog;
-- two explicit `shopCode` contexts;
-- 20-item corpus;
-- stable product identity;
-- regular/promo price distinction where present;
-- availability semantics;
-- sanitized fixtures;
-- no browser/anti-bot bypass requirement.
+For each accepted provider, measure coverage and repeat against a second store/context where possible.
 
 ## Slice 5 — Chizhik gated probe
 
@@ -125,7 +150,7 @@ The existing third-party wrapper uses Camoufox and documents optional proxies. Z
 
 ## M0 decision report
 
-After Pyaterochka + Perekrestok + Magnit, publish a provider scorecard with at least:
+Provider scorecard must include failed candidates as evidence, not only successful ones.
 
 | Metric | Meaning |
 |---|---|
@@ -139,4 +164,6 @@ After Pyaterochka + Perekrestok + Magnit, publish a provider scorecard with at l
 | Public-path stability | No bypass/evasion required |
 | Usage-rights status | Acceptable / unresolved / blocked |
 
-M0 is GO only when at least two provider paths satisfy the roadmap exit criteria. Prefer one X5 banner plus Magnit or another independent provider before moving to M1 Shopping Core.
+Current scorecard evidence starts with Pyaterochka: location resolution **FAIL (`HTTP 403`)**, all downstream metrics **NOT TESTED** because the public path was stopped fail-closed.
+
+M0 is GO only when at least two provider paths satisfy the roadmap exit criteria. Prefer one provider independent from X5 before moving to M1 Shopping Core.
