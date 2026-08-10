@@ -63,6 +63,8 @@ The format follows the spirit of Keep a Changelog and semantic versioning will b
 - Shared M0B provider feasibility harness: `ProviderAccessType`, `ProviderCapability`, provider-scoped `LocationContext`, `ProductQuery`, the `RetailerProvider` port, structural `FixtureRetailerProvider`/`LiveRetailerProvider` separation, offline `ProviderFeasibilityHarness`, and explicit `ProviderLiveProbe`.
 - Expanded retailer-feasibility research and `docs/superpowers/plans/2026-08-10-m0b-provider-spikes.md`, covering Pyaterochka, Perekrestok, Magnit, Chizhik, Ozon Fresh, Samokat and Kuper with a fixed 20-item corpus and measurable M0 decision criteria.
 - Pyaterochka/5ka Phase A plain-HTTP probe using the JDK HTTP client with store-scoped request construction, fixed timeouts, no retries or browser-derived credentials/headers, plus an opt-in `Provider Live Probe` workflow that emits sanitized evidence and can publish that evidence as a dedicated commit status.
+- Universal Retailer Connectivity design and Perekrestok Browser Bridge Phase A implementation plan, making retailer coverage transport-agnostic rather than tied to direct server APIs.
+- Chromium Manifest V3 `apps/retailer-bridge` package with a Perekrestok structured-state adapter, normalized browser-observation trust boundary, sanitized local storage, deterministic fixtures, and dedicated `Retailer Bridge CI` including persistent-Chromium extension E2E.
 
 ### Changed
 
@@ -106,6 +108,8 @@ The format follows the spirit of Keep a Changelog and semantic versioning will b
 - M0B now permits controlled evaluation of `PUBLIC_UNOFFICIAL_API` consumer backends when ordinary requests work without access-control or anti-bot circumvention; third-party wrappers remain research evidence rather than an inherited permission or production dependency.
 - Pyaterochka Phase A is complete with a fail-closed **`store-403`** result from the ordinary JDK HTTP probe; the currently known 5ka consumer backend is classified `UNSUITABLE_PUBLIC_PATH`, Phase B fixtures/corpus are intentionally cancelled, and no browser/CAPTCHA/stealth/proxy workaround will be introduced.
 - Live-probe evidence publication uses a dedicated legacy commit-status context with a finite sanitized outcome suffix so connected tooling can distinguish HTTP gates/shape failures without raw retailer payloads or broader write permissions.
+- Retailer connectivity is now a universal registry invariant: a failed direct API changes the acquisition mode under investigation but does not remove the retailer from product scope.
+- Perekrestok browser connectivity is `BROWSER_BRIDGE_LIVE_PENDING`: deterministic unit/fixture/type/build/Chromium E2E proof exists, but a real first-party browser observation is still required before support is claimed.
 
 ### Fixed
 
@@ -122,6 +126,7 @@ The format follows the spirit of Keep a Changelog and semantic versioning will b
 - Release-bundle failures now print Compose service state and logs before cleanup instead of losing the root-cause evidence during teardown.
 - Preserved executable Git modes for `scripts/verify-release-bundle.sh` and `scripts/release/verify-published-release.sh` after `v0.1.0-rc.1` failed with `Permission denied` / exit 126 on a clean GitHub Actions checkout; a TDD regression test now rejects mode `100644` for either release helper.
 - Updated pgJDBC from `42.7.11` to `42.7.12` after `v0.1.0-rc.2` and the TDD PR security gate reproduced `CVE-2026-54291` (`HIGH`) in the API production image.
+- Browser-bridge fail-closed navigation now replaces stale prior retailer observations with an empty payload, preventing an earlier store/page price snapshot from remaining current after the active page loses a valid fulfillment context.
 
 ### Security
 
@@ -146,3 +151,4 @@ The format follows the spirit of Keep a Changelog and semantic versioning will b
 - `v0.1.0-rc.2` demonstrated the release security boundary fail-closed: publication stopped at the first HIGH finding before final-package copy, attestation, SemVer promotion, evidence upload, or any stable `latest` action; remediation used dependency/runtime hardening rather than scanner suppression.
 - Provider feasibility deliberately excludes CAPTCHA/anti-bot bypass, browser-fingerprint evasion and proxy/IP rotation used to circumvent blocking; offline feasibility code accepts fixture-provider types while live-capable adapters require the separate explicit live-probe entry point.
 - The Pyaterochka live-probe workflow keeps `contents: read` and adds only `statuses: write` for sanitized evidence; it has no retailer credentials, a fixed owner/issue command gate, finite timeouts, no retry/evasion behavior, and publishes no retailer response bodies or exact store/product IDs.
+- Perekrestok browser bridge production permissions are limited to `storage`; browser credentials remain in the first-party profile, adapter output is projected through an allow-list, source URLs lose query/hash, deterministic E2E seeds sentinel cookie/localStorage secrets and verifies neither reaches extension storage, and normal CI makes no live Perekrestok request.
