@@ -9,14 +9,16 @@ Updated: 2026-08-10
 Repository: `True-Ruslan/zakup-gotov`  
 Visibility: Public  
 Current phase: **M0 — Product & Integration Discovery**  
-Current execution stage: **M0A — Platform Foundation**  
-Current focus: **complete one end-to-end prerelease publication (`v0.1.0-rc.3`), verify GHCR visibility/promotion evidence, finish repository gates, then enter M0B retailer feasibility**
+Current execution stage: **M0A closure + M0B Retailer Feasibility (parallel)**  
+Current focus: **keep the outstanding `v0.1.0-rc.3` release proof explicit while beginning evidence-driven provider feasibility testing, starting with a normalized offer trust contract and official-access research rather than undocumented retailer scraping**
 
 ## Product status
 
 The platform foundation is executable and automatically verified. The core retailer-comparison product is **not implemented yet**. The current web surface intentionally presents project status rather than fake store cards, prices, or comparison behavior.
 
-No retailer integration is considered supported until M0B proves it with acceptable technical/legal evidence and reproducible fixture/contract tests.
+M0B feasibility work has now begun in parallel with the remaining M0A release-event proof. The first normalized provider-offer boundary is implemented and TDD-verified, but **no retailer/provider is supported yet**. Support still requires an acceptable technical/usage-rights path plus reproducible recorded fixtures and provider contract/parser tests.
+
+Starting M0B discovery does not waive the remaining M0A release requirements. `v0.1.0-rc.3` is still required before the versioned GHCR publication path can be called fully runtime-proven.
 
 ## Completed foundation work
 
@@ -29,6 +31,7 @@ No retailer integration is considered supported until M0B proves it with accepta
 - PR #27 — synchronized release-engineering state before the first real release event.
 - PR #28 — TDD executable-mode regression fix after `v0.1.0-rc.1` exposed non-executable release helpers on clean checkouts.
 - PR #29 — TDD container-security gate and runtime hardening after `v0.1.0-rc.2`: pgJDBC `42.7.12`, distroless non-root web runtime, and read-only PR/main/daily HIGH/CRITICAL image scanning.
+- PR #35 — initial M0B provider-offer trust boundary and retailer feasibility evidence: `ObservedOffer`, explicit normalized availability, TDD fail-closed validation, primary-source integration matrix, and Kuper access-proof tracking.
 
 ## Verified platform baseline
 
@@ -104,7 +107,9 @@ PR/main checks currently available:
 - local/clean-runner `./scripts/verify.sh`;
 - local/CI `./scripts/verify-release-bundle.sh`.
 
-PR #29 proved the new security gate TDD-first: the initial workflow failed for both production images, then the same unchanged `CRITICAL,HIGH` / `exit-code: 1` policy passed after root-cause remediation. The final PR head also passed Release Bundle CI, demonstrating that the distroless startup and health-check path works in the real Compose topology.
+PR #29 proved the container-security gate TDD-first: the initial workflow failed for both production images, then the same unchanged `CRITICAL,HIGH` / `exit-code: 1` policy passed after root-cause remediation. The final PR head also passed Release Bundle CI, demonstrating that the distroless startup and health-check path works in the real Compose topology.
+
+PR #35 starts M0B with the same evidence discipline. The first RED failed because `ObservedOffer` / `AvailabilityStatus` did not exist. The first GREEN passed Maven `verify`. A second RED then exposed inconsistent `NullPointerException` behavior for missing `price` / `availability`; the minimal validation fix produced `10/10` provider-offer tests and `15/15` total API tests, while Spring Modulith verification and real PostgreSQL 18.4 Testcontainers integration remained green. The complete PR workflow set, including Web E2E, Release Bundle, Release Contract and both production-image security scans, is required again on the final documentation-synchronized head before merge.
 
 The independently verified `main` ruleset still enforces the original seven CI/security checks. `Release Bundle CI`, `Release Contract CI`, and `Container Security CI` are proven required-check candidates but are not yet independently verified as enforced ruleset checks.
 
@@ -183,7 +188,29 @@ The workflow still requires this sequence:
 
 A successful `v0.1.0-rc.3` is required before this path can be called fully runtime-proven. GHCR package visibility must then be independently checked: staging must remain private, and final package anonymous/public availability must not be claimed unless explicitly verified.
 
+The current assistant GitHub integration can mutate repository/PR/issue state but does not expose GitHub Release creation, and no separate authenticated release-capable CLI/API credential is available in this execution environment. Therefore `rc.3` has **not** been fabricated via a mutable tag or alternate trigger; the real `release: published` proof remains explicitly outstanding.
+
 See [`RELEASES.md`](RELEASES.md).
+
+## M0B retailer-feasibility state
+
+Initial provider-domain trust boundary:
+
+- `ObservedOffer` requires `providerId`, `fulfillmentContextId`, provider SKU, non-negative price, ISO 4217 currency, explicit availability, `observedAt`, and `sourceReference`;
+- availability is normalized as `AVAILABLE`, `UNAVAILABLE`, or `UNKNOWN` rather than inferred silently;
+- incomplete external data fails closed before later comparison logic;
+- normal deterministic CI still performs **no live retailer calls**.
+
+Primary-source research is recorded in [`integrations/retailer-feasibility.md`](integrations/retailer-feasibility.md). Current decisions are deliberately conservative:
+
+- **Kuper** — `PROMISING_CONTACT_REQUIRED`: official API program publishes a Client apps API, but exact read-side scope, access, caching/fixture rights and comparison-use permission must be confirmed;
+- **Yandex Eats Retail API** — `PARTNER_SIDE_ONLY`: documented API integrates Yandex/Yango with a partner retailer/POS and is not currently a read-side Zakup Gotov API;
+- **Lenta / VkusVill** — `BLOCKED_WITHOUT_AGREEMENT`: consumer surfaces are not treated as permission for production scraping/reuse;
+- **Magnit / X5** — `NO_PUBLIC_CLIENT_API_FOUND`: partnership paths are plausible, but a suitable public read-side catalog API has not been proven.
+
+Issue #36 tracks the exact Kuper integration questions required before an adapter spike: location/store resolution, catalog/search, SKU, price/availability, freshness, auth/rate limits, sandbox, sanitized fixture retention, caching, comparison rights, attribution/deep links and checkout handoff.
+
+No provider is considered supported until reproducible sanitized fixtures and parser/contract tests prove an acceptable path. A one-off successful live request is insufficient.
 
 ## Dependency maintenance state
 
@@ -216,13 +243,13 @@ Compatible dependency/Actions maintenance is merged only after full verification
 
 ## Immediate next work
 
-1. Publish **`v0.1.0-rc.3`** from current verified `main`; do not reuse `rc.1` or `rc.2`.
-2. Require both `Release / Verify` and `Release / Publish` to complete end to end.
-3. Inspect multi-platform digests, Trivy results, SBOMs, attestations, staging/final exact-digest Compose smoke tests, manifests, checksums, and attached release evidence; confirm prerelease publication leaves `latest` untouched.
-4. Verify staging packages remain private and verify the intended final GHCR package visibility independently.
-5. Add `Release Bundle CI`, `Release Contract CI`, and `Container Security CI` to the `main` ruleset when the settings mutation can be applied and independently verified.
-6. Run final M0A verification, then hand off to separately planned M0B Retailer Feasibility.
+1. Publish **`v0.1.0-rc.3`** through the real GitHub Release `published` event from verified `main`; do not reuse `rc.1` or `rc.2`, and do not substitute a manual tag for the release event.
+2. Inspect the complete release proof: `Release / Verify` + `Release / Publish`, multi-platform digests, Trivy results, SBOMs, attestations, staging/final exact-digest Compose smoke tests, manifests, checksums, attached evidence, `latest` behavior, and package visibility.
+3. Resolve issue #36 with the Kuper integration team and obtain a documented acceptable access/usage-rights path before implementing the first real provider adapter.
+4. In parallel, pursue an independent second provider path (initially X5 and/or Magnit partnership/e-commerce channels) because M0 requires at least two acceptable integrations.
+5. When the first access path is approved, run the first provider spike against one explicit fulfillment/location context and a fixed corpus of at least 10 common grocery requirements; record sanitized fixtures and make offline parser/contract tests the normal regression path.
+6. Add `Release Bundle CI`, `Release Contract CI`, and `Container Security CI` to the `main` ruleset when the settings mutation can be applied and independently verified.
 
 ## Definition of M0 success
 
-M0 is complete only when evidence proves at least two retailer integrations can support a repeatable location-specific comparison flow with reproducible fixtures/tests and documented technical/legal/freshness constraints.
+M0 is complete only when evidence proves at least two retailer/provider integrations can support a repeatable location-specific comparison flow with reproducible fixtures/tests and documented technical/legal/freshness constraints.
