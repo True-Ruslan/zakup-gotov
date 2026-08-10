@@ -15,8 +15,27 @@ function publishDiagnostics(status: string, observationCount: number): void {
   document.documentElement.dataset.zgBridgeCount = String(observationCount);
 }
 
+function currentFirstPartyResourceUrls(): string[] {
+  const urls = new Set<string>();
+  performance.getEntriesByType("resource").forEach((entry) => {
+    try {
+      const resourceUrl = new URL(entry.name, location.href);
+      if (resourceUrl.origin !== location.origin) return;
+      urls.add(`${resourceUrl.origin}${resourceUrl.pathname}`);
+    } catch {
+      // Ignore malformed performance entries; adapter fails closed if context is absent.
+    }
+  });
+  return [...urls];
+}
+
 void collector
-  .collect(document, new URL(location.href), new Date().toISOString())
+  .collect(
+    document,
+    new URL(location.href),
+    new Date().toISOString(),
+    currentFirstPartyResourceUrls(),
+  )
   .then(async (result) => {
     if (result.status !== "ok") {
       await clearObservations();
