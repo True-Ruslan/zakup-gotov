@@ -89,7 +89,7 @@ test("stores only sanitized data and clears stale observations when context disa
   }
 });
 
-test("collects current catalog DOM after the first-party shop resource resolves", async () => {
+test("collects current catalog DOM after async shop and DOM evidence resolve", async () => {
   const userDataDir = await mkdtemp(join(tmpdir(), "zg-retailer-bridge-live-dom-"));
   const context = await chromium.launchPersistentContext(userDataDir, {
     channel: "chromium",
@@ -102,7 +102,7 @@ test("collects current catalog DOM after the first-party shop resource resolves"
 
   try {
     const liveFixture = await readFile(
-      resolve(fixtureDir, "perekrestok-live-dom-state.html"),
+      resolve(fixtureDir, "perekrestok-live-dom-async-state.html"),
       "utf8",
     );
 
