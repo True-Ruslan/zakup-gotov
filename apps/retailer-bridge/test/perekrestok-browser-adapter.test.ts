@@ -36,7 +36,7 @@ describe("perekrestokBrowserAdapter", () => {
         currencyCode: "RUB",
         availability: "AVAILABLE",
         observedAt: OBSERVED_AT,
-        adapterVersion: "1",
+        adapterVersion: "2",
       }),
       expect.objectContaining({
         sku: "3431580",
@@ -73,6 +73,7 @@ describe("perekrestokBrowserAdapter", () => {
         priceMinor: 19999,
         currencyCode: "RUB",
         availability: "UNKNOWN",
+        adapterVersion: "2",
       }),
     ]);
   });
