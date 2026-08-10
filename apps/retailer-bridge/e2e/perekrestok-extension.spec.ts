@@ -139,6 +139,9 @@ test("collects current catalog DOM after the first-party shop resource resolves"
     expect(serialized).toContain("\"fulfillmentContextId\":\"656\"");
     expect(serialized).toContain("\"sku\":\"4408829\"");
     expect(serialized).toContain("\"priceMinor\":19999");
+    expect(serialized).toContain("\"adapterVersion\":\"2\"");
+    expect(serialized).not.toContain("SECRET_RESOURCE_QUERY");
+    expect(serialized).not.toContain("session=");
   } finally {
     await context.close();
     await rm(userDataDir, { recursive: true, force: true });
