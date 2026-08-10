@@ -9,95 +9,37 @@ Updated: 2026-08-10
 Repository: `True-Ruslan/zakup-gotov`  
 Visibility: Public  
 Current phase: **M0 — Product & Integration Discovery**  
-Current execution stage: **M0A closure + M0B Retailer Feasibility (parallel)**  
-Current focus: **move from the rejected Pyaterochka public path to Perekrestok and Magnit feasibility, while keeping the still-outstanding `v0.1.0-rc.3` release proof explicit**
+Current execution stage: **M0A closure + M0B Universal Retailer Connectivity**  
+Current focus: **make retailer connectivity transport-agnostic, keep Pyaterochka/Perekrestok mandatory, prove a non-X5 path, and design the first user-assisted browser bridge while the outstanding `v0.1.0-rc.3` release proof remains explicit**
 
-## Product status
+## Product connectivity decision
 
-The platform foundation is executable and automatically verified. The core retailer-comparison user flow is **not implemented yet**. The current web surface intentionally presents project status rather than fake retailer cards, prices, or basket comparison behavior.
+The product direction is now broader than supporting a convenient subset of retailers.
 
-M0B is now executable rather than research-only:
+**Every retailer/banner added to the target retailer registry is mandatory coverage work until at least one reproducible acquisition path is available.** A failed direct API does not remove a retailer from scope.
 
-- PR #35 established the normalized `ObservedOffer` trust boundary;
-- PR #37 established the reusable provider feasibility harness and was squash-merged to `main` as `e318c8ee92ab5f62dd593f4fd214735eb8c59750` after full CI/security verification;
-- PR #39 implemented the first concrete retailer spike — a non-evasive Pyaterochka Phase A probe plus an opt-in live-probe workflow — and was squash-merged to `main` as `4efabe78f82d23fb24f58aa4c6a4a0e15cd93af0` after full CI/security verification;
-- PR #40 added a narrow commit-status evidence channel and was squash-merged to `main` as `b58bd3db6881037c93854e68964ea129460339a7` after full CI/security verification;
-- PR #41 added a finite sanitized outcome suffix to the live status and was squash-merged to `main` as `73d9f18d714bd1eafc165e7f5941405a0ce10b5b` after the complete repository gate;
-- the outcome-bearing Pyaterochka live run on that main SHA returned **`Provider Live Probe / Pyaterochka / store-403`**.
+The accepted architecture supports multiple paths per retailer:
 
-**No retailer/provider is supported yet.** The currently known Pyaterochka/5ka public consumer path is now classified **`UNSUITABLE_PUBLIC_PATH`**: the first coordinate→store request was rejected with HTTP 403 by an ordinary transparent HTTP client. The spike stopped before store ID, product search, PLU, price, fixtures or corpus work. We will not add browser/CAPTCHA/stealth/proxy techniques to bypass that result.
+1. direct supported/partner API;
+2. aggregator-backed observation with explicit retailer/provider provenance;
+3. stable public web/API surface;
+4. user-assisted first-party browser bridge.
 
-Starting retailer spikes does not waive the remaining M0A release requirement. `v0.1.0-rc.3` is still required before the versioned GHCR publication path can be called fully runtime-proven.
+The durable design is [`superpowers/specs/2026-08-10-universal-retailer-connectivity-design.md`](superpowers/specs/2026-08-10-universal-retailer-connectivity-design.md). The X5-specific strategy remains in [`integrations/x5-mandatory-coverage.md`](integrations/x5-mandatory-coverage.md).
 
-## Verified platform baseline
+The initial priority registry includes Pyaterochka, Perekrestok, Chizhik, Magnit-family grocery surfaces, Lenta, VkusVill, Ozon Fresh, Samokat and relevant aggregator/provider surfaces such as Kuper. New chains must be onboarded through the same retailer registry/adaptor contract rather than retailer-specific shopping-core branches.
 
-### Backend
+## Current product status
 
-- Java 25;
-- Spring Boot 4.1;
-- Spring MVC + Virtual Threads;
-- Spring Modulith architecture verification;
-- PostgreSQL 18;
-- Flyway;
-- jOOQ;
-- pgJDBC `42.7.12`;
-- Testcontainers with real PostgreSQL 18.4 integration tests.
+The platform foundation is executable and automatically verified. The core retailer-comparison user flow is **not implemented yet**. The current web surface intentionally presents project status rather than fake retailer cards, prices, or basket-comparison behavior.
 
-### Contracts and clients
+**No retailer/provider is supported yet.** M0B is proving acquisition paths and normalized evidence before M1.
 
-- OpenAPI 3.1 source contract;
-- generated `@zakup-gotov/api-client`;
-- `openapi-typescript` + `openapi-fetch`;
-- generated-schema drift gate;
-- strict TypeScript typechecking.
-
-### Web
-
-- Next.js 16.3.0;
-- React/React DOM 19.2.8;
-- TypeScript 5.9.3 compatibility line;
-- Node 24.18.1 builder/toolchain;
-- Next.js standalone output;
-- distroless Node 24 Debian 13 non-root production runtime;
-- Vitest + Testing Library;
-- Playwright desktop/mobile production-browser coverage.
-
-### Operations and container topology
-
-- separate multi-stage API/web production images;
-- non-root application runtimes;
-- `compose.release.yaml` contains no source `build:` directives;
-- PostgreSQL 18.4 persistent storage uses `/var/lib/postgresql`;
-- PostgreSQL health gates API startup and API readiness gates web startup;
-- only web is host-published by default; API and PostgreSQL remain internal;
-- release-bundle failures emit Compose state/log diagnostics before cleanup.
-
-Public management HTTP remains limited to health/liveness/readiness/info. Environment, configuration-properties and metrics Actuator endpoints remain HTTP-inaccessible. Request-detail logging is disabled by default.
-
-## Automated verification
-
-Repository checks currently include:
-
-- **API CI**;
-- **Contract CI**;
-- **Web CI**;
-- **Web E2E**;
-- **CodeQL / Java**;
-- **CodeQL / JavaScript-TypeScript**;
-- **Dependency Review**;
-- **Release Bundle CI**;
-- **Release Contract CI**;
-- **Container Security CI** for API and web production images;
-- local `./scripts/verify.sh`;
-- local/CI `./scripts/verify-release-bundle.sh`.
-
-The independently verified `main` ruleset still enforces the original seven required checks. `Release Bundle CI`, `Release Contract CI`, and `Container Security CI` are proven required-check candidates but have not yet been independently verified as enforced ruleset checks.
-
-## M0B provider architecture
+## M0B verified foundation
 
 ### Normalized offer boundary
 
-`ObservedOffer` requires:
+PR #35 established `ObservedOffer`, requiring:
 
 - provider ID;
 - fulfillment-context ID;
@@ -108,118 +50,158 @@ The independently verified `main` ruleset still enforces the original seven requ
 - observation timestamp;
 - source reference.
 
-Incomplete or inconsistent external data fails closed before later comparison logic.
+### Shared provider feasibility harness
 
-### Shared feasibility harness
+PR #37 was squash-merged to `main` as `e318c8ee92ab5f62dd593f4fd214735eb8c59750` after the full CI/security gate.
 
-Merged PR #37 provides:
+It provides:
 
-- `ProviderAccessType`: `OFFICIAL_API`, `PUBLIC_UNOFFICIAL_API`, `PARTNER_API`;
-- explicit capabilities for location, catalog, search, price and availability;
+- `ProviderAccessType`;
+- explicit provider capabilities;
 - provider-scoped `LocationContext`;
 - normalized `ProductQuery`;
 - common `RetailerProvider` port;
 - structural `FixtureRetailerProvider` / `LiveRetailerProvider` separation;
-- `ProviderFeasibilityHarness.offline()` accepting fixture providers only;
-- separate `ProviderLiveProbe` for network-capable providers;
-- validation requiring `PRODUCT_SEARCH` + `PRICE` and matching provider/fulfillment provenance.
+- offline `ProviderFeasibilityHarness` for fixtures only;
+- explicit `ProviderLiveProbe` for network-capable paths;
+- fail-closed provider/location/capability/provenance validation.
 
-PR #37 was developed in two TDD cycles. The first implementation passed but review found that a provider-supplied fixture/live enum could be misdeclared; a second RED→GREEN cycle replaced it with the structural type split. Final backend verification on the PR head proved `ProviderFeasibilityHarnessTest` **7/7**, `ObservedOfferTest` **10/10**, total API suite **22/22**, real PostgreSQL 18.4 and packaged JAR build. The full PR workflow set, including Web E2E, CodeQL, Release Bundle, Release Contract, Dependency Review and both production-image security scans, passed before merge.
+The fixture/live boundary was strengthened through a second RED→GREEN cycle after review found the original provider-supplied execution-mode flag could be misdeclared. Final PR verification proved the harness tests, complete API suite, PostgreSQL 18.4 integration and all repository CI/security gates.
 
-## Public unofficial API policy
+## Retailer evidence
 
-An undocumented consumer backend is not rejected solely because it is unofficial. It may be evaluated as `PUBLIC_UNOFFICIAL_API` only when the required path works without:
+### Pyaterochka / 5ka — direct anonymous path rejected, retailer remains mandatory
 
-- stolen/forged private credentials;
-- another user's session;
-- CAPTCHA solving or bypass;
-- anti-bot/access-control circumvention;
-- browser-fingerprint evasion;
-- proxy/IP rotation used to defeat blocking;
-- retry behavior intended to bypass `403`/`429` or similar provider decisions.
-
-Rate limits and provider failures are evidence, not obstacles to hide. Third-party wrappers are research references only; their source-code license does not grant rights to the retailer's underlying data.
-
-Detailed evidence is in [`integrations/retailer-feasibility.md`](integrations/retailer-feasibility.md). The provider sequence and fixed 20-item corpus are in [`superpowers/plans/2026-08-10-m0b-provider-spikes.md`](superpowers/plans/2026-08-10-m0b-provider-spikes.md).
-
-## Pyaterochka / 5ka Phase A — CLOSED
-
-Tracking: issue #38. Implementation/evidence: PRs #39, #40, #41.
-
-Research identified the consumer-backend base `https://5d.5ka.ru/api`, coordinate-based store lookup, `{sapCode}`-scoped catalog/search/product routes and PLU identity. The existing Open-Inflation reference reaches those calls after Camoufox browser warm-up, optional robot/CAPTCHA interaction and captured browser/app headers. Zakup Gotov deliberately did not inherit that behavior.
-
-The independent JDK `HttpClient` probe used only:
-
-- `Accept: application/json`;
-- transparent Zakup Gotov `User-Agent`;
-- fixed connect/request timeouts;
-- no Cookie/Authorization;
-- no captured app/device/platform headers;
-- no browser automation;
-- no proxies;
-- no retry/evasion loop.
-
-TDD/verification evidence for the probe itself:
-
-- RED commit `099cb2ace80e7492b9ed0279f82420ec39106fd4` failed at `testCompile` only because `PyaterochkaPlainHttpProbe` did not exist;
-- GREEN commit `e91e6bfab20d5a700cbb08fc0c2b1a8193f82a3b` produced `PyaterochkaPlainHttpProbeTest` **3 tests, 0 failures/errors, 1 intentionally skipped live test** and the complete API suite **25 tests, 0 failures/errors, 1 skipped**;
-- PR #39 passed API, Contract, Web + Web E2E, CodeQL, Dependency Review, Release Bundle, Release Contract and both production-image Container Security scans before merge;
-- PRs #40/#41 changed only the sanitized evidence transport and passed the complete repository gates before merge.
+PRs #39/#40/#41 implemented and instrumented a transparent JDK `HttpClient` Phase A probe.
 
 Final live evidence on `main` SHA `73d9f18d714bd1eafc165e7f5941405a0ce10b5b`:
 
 **`Provider Live Probe / Pyaterochka / store-403` → failure**
 
-The first coordinate→store lookup returned HTTP 403. No `sapCode`, product search, PLU, price, fixture, or 20-item corpus request was made after that gate.
+The first coordinate→store request returned HTTP 403. No `sapCode`, product search, PLU, price, fixture or 20-item corpus work followed.
 
-Decision: **`UNSUITABLE_PUBLIC_PATH`** for the currently known consumer backend. Pyaterochka may be reconsidered only if an acceptable documented API/partner path or a genuinely public non-evasive consumer path becomes available.
+Current interpretation:
 
-## Current retailer priorities
+- direct anonymous server-side path: **`DIRECT_ANONYMOUS_HTTP_UNSUITABLE`**;
+- Pyaterochka product coverage: **still mandatory**;
+- next accepted paths: X5/partner access, aggregator-backed coverage, or user-assisted first-party browser bridge.
 
-- **Pyaterochka / 5ka** — `UNSUITABLE_PUBLIC_PATH`; stopped after `store-403`, no bypass.
-- **Perekrestok** — `SPIKE_NOW`; **next implementation target**.
-- **Magnit** — `SPIKE_NOW`; high-priority independent non-X5 path, ideally in parallel/immediately after Perekrestok Phase A.
-- **Chizhik** — `SPIKE_IF_RAW_HTTP_WORKS`; reject if browser/proxy evasion is required.
-- **Ozon Fresh / Samokat** — `RESEARCH_REQUIRED`.
-- **Kuper** — `PROMISING_CONTACT_REQUIRED`; issue #36 tracks official Client apps API access/rights questions.
-- **Yandex Eats Retail API** — `PARTNER_SIDE_ONLY` for the currently documented integration direction.
-- **Lenta / VkusVill** — `BLOCKED_WITHOUT_AGREEMENT` under the current evidence.
+### Perekrestok — direct anonymous/first-party-cookie path rejected, retailer remains mandatory
+
+PR #44 was squash-merged to `main` as `2d827479830c9ce4946f10bf80c145efb8ec6bf3` after full CI/security verification.
+
+Its plain JDK HTTP probe allowed only ordinary first-party cookies issued directly by Perekrestok and did not use browser-derived `Auth`.
+
+Live evidence:
+
+**`Provider Live Probe / Perekrestok / store-403` → failure**
+
+The nearby-store API returned HTTP 403 before pickup selection, product search, PLU or price evidence.
+
+Current interpretation:
+
+- direct anonymous/ordinary-cookie server-side path: **`DIRECT_ANONYMOUS_HTTP_UNSUITABLE`**;
+- Perekrestok product coverage: **still mandatory**;
+- first technical fallback selected for design: user-assisted first-party browser bridge.
+
+### Magnit — independent non-X5 public-page spike in progress
+
+PR #46 is open on branch `spike/m0b-magnit`.
+
+The spike targets ordinary public SSR product pages for one fixed SKU under two explicit `shopCode` contexts, without cookies/auth/API keys. Review identified and fixed a potential false-positive parser issue by associating price evidence with the expected SKU rather than accepting the first ruble value on the page.
+
+PR #46 is **not merged yet** and no Magnit live PASS/FAIL is claimed in repository truth.
+
+### Kuper — supported aggregator path investigation active
+
+Issue #36 now explicitly asks whether Kuper `Client apps API` can expose Pyaterochka and Perekrestok with:
+
+- banner provenance;
+- store/fulfillment context;
+- stable product identity;
+- price/promotion semantics;
+- availability/freshness;
+- deterministic sanitized fixture rights;
+- comparison/caching/deep-link requirements.
+
+Aggregator observations must remain modeled as e.g. `sourceProvider=kuper`, `retailer=pyaterochka`, not as direct X5 observations.
+
+## Browser-bridge design direction
+
+The next connectivity architecture adds a Chromium extension/local browser-side path for retailer surfaces that are available to a user's ordinary first-party browser session.
+
+The user performs login, store selection and any CAPTCHA interaction manually. The connector reads data already rendered or delivered to that browser context, preferring semantic DOM and embedded structured state.
+
+Browser session credentials remain in the browser profile. Backend/fixtures/logs receive normalized observations only; they do not receive cookies, auth tokens, browser storage, CAPTCHA artifacts or raw private session material.
+
+The first planned implementation slice after written-spec review is **Perekrestok Browser Bridge Phase A**, followed by Pyaterochka using the same browser-adapter contract.
+
+## Verified platform baseline
+
+### Backend
+
+- Java 25;
+- Spring Boot 4.1;
+- Spring MVC + Virtual Threads;
+- Spring Modulith architecture verification;
+- PostgreSQL 18 / Testcontainers PostgreSQL 18.4;
+- Flyway;
+- jOOQ;
+- pgJDBC `42.7.12`.
+
+### Contracts/web
+
+- OpenAPI 3.1 source contract;
+- generated `@zakup-gotov/api-client`;
+- strict generated-schema drift/type gates;
+- Next.js 16.3.0;
+- React 19.2.8;
+- TypeScript 5.9.3;
+- Node 24.18.1 build toolchain;
+- distroless Node 24 Debian 13 non-root runtime;
+- Vitest/Testing Library;
+- Playwright desktop/mobile production-browser tests.
+
+### Operations/security
+
+- separate non-root API/web production images;
+- PostgreSQL 18.4 → API → web release topology;
+- web-only host publication by default;
+- API/PostgreSQL internal networking;
+- CodeQL Java + JS/TS;
+- Dependency Review;
+- Release Bundle/Contract CI;
+- Container Security CI with HIGH/CRITICAL fail-closed scans;
+- public Actuator limited to health/liveness/readiness/info.
 
 ## Release-engineering state
 
-### `v0.1.0-rc.1`
+`v0.1.0-rc.1` proved the real release trigger until an executable-mode defect; PR #28 fixed that defect.
 
-The real release event proved metadata/main ancestry, repository verification, web build and Playwright, then failed because release helper scripts were not executable on a clean checkout. PR #28 fixed that defect with a regression test.
+`v0.1.0-rc.2` passed release verification, built/pushed staging indexes, then correctly failed closed on pgJDBC `42.7.11` / `CVE-2026-54291`; PR #29 moved to pgJDBC `42.7.12`, hardened the web runtime and added production-image security CI.
 
-### `v0.1.0-rc.2`
-
-`Release / Verify` passed and `Release / Publish` reached GHCR staging multi-platform builds. Publication then failed closed at the first Trivy gate on pgJDBC `42.7.11` / `CVE-2026-54291` (`HIGH`). Follow-up testing also exposed HIGH/CRITICAL findings in the previous Node Bookworm-slim web runtime. PR #29 updated pgJDBC to `42.7.12`, moved final web runtime to distroless Node 24 Debian 13/non-root, and added ordinary PR/main/daily production-image security scans without weakening Trivy policy.
-
-`rc.2` therefore does **not** prove final package promotion, attestations, SemVer OCI tags, final digest smoke, release evidence assets or final GHCR visibility.
-
-### Outstanding `v0.1.0-rc.3`
-
-A successful real GitHub Release `published` event is still required to prove the complete staged build → scan/SBOM → digest smoke → no-rebuild final copy → final digest smoke → attestation → SemVer promotion → evidence path. The current assistant GitHub integration does not expose GitHub Release creation, so this proof remains explicitly outstanding rather than being replaced with a manual tag.
-
-## Dependency maintenance state
-
-Known incompatible major updates remain deferred rather than bypassing checks:
-
-- TypeScript 7.0.2 vs current `openapi-typescript` peer range;
-- ESLint 10 vs current lint configuration;
-- `@types/node` 26 while runtime/toolchain remain Node 24.
+A successful real **`v0.1.0-rc.3` GitHub Release published event remains outstanding** to prove final GHCR promotion, SBOM/attestation, SemVer tags and final digest smoke evidence.
 
 ## Immediate next work
 
-1. Merge the documentation-only Pyaterochka result synchronization after the full repository gate.
-2. Close issue #38 as the currently known public path is rejected by Phase A.
-3. Start `spike/m0b-perekrestok` with the same plain-HTTP/non-evasive Phase A discipline.
-4. Start or immediately follow with `spike/m0b-magnit` so M0 gains an independent non-X5 candidate.
-5. Only providers that pass Phase A proceed to sanitized fixtures and the fixed 20-item corpus across two stores/contexts.
-6. Continue Kuper issue #36 and second-wave Ozon Fresh/Samokat research in parallel.
-7. Publish `v0.1.0-rc.3` through the real GitHub Release event when a release-capable path is available.
-8. Add Release Bundle/Contract/Container Security to the `main` ruleset when the settings mutation can be applied and independently verified.
+1. Complete review/merge of PR #48, which records mandatory X5 coverage and the broader universal-retailer design.
+2. Review and approve the written Universal Retailer Connectivity spec before executable browser-bridge implementation.
+3. Write a TDD implementation plan for Perekrestok Browser Bridge Phase A.
+4. Reuse the same browser-adapter/observation contract for Pyaterochka next.
+5. Continue Kuper issue #36 and X5 supported-access work in parallel.
+6. Resolve open Magnit PR #46 and then move successful non-X5 paths into deterministic fixture/corpus testing.
+7. Continue Chizhik, Ozon Fresh, Samokat, Lenta, VkusVill and additional chains through the same retailer registry/path process rather than creating new core architecture.
+8. Publish `v0.1.0-rc.3` through the real GitHub Release event when a release-capable path is available.
 
 ## Definition of M0 success
 
-M0 is complete only when evidence proves at least two retailer/provider integrations can support a repeatable location-specific comparison flow with reproducible fixtures/tests and documented technical/usage-rights/freshness constraints. Prefer at least one non-X5 provider before entering M1 Shopping Core.
+M0 is complete only when:
+
+- Pyaterochka has at least one reproducible accepted path;
+- Perekrestok has at least one reproducible accepted path;
+- at least one independent non-X5 retailer has a reproducible accepted path;
+- at least two acquisition modes are proven end to end;
+- deterministic sanitized fixtures/tests preserve retailer/provider/store provenance;
+- the registry/adapter architecture can add another chain without retailer-specific changes to shopping/basket domain logic.
+
+Universal retailer connectivity remains the product invariant beyond M0: an unavailable registry entry is an explicit coverage blocker, not an omitted retailer.
