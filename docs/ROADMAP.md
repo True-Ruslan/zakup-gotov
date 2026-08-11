@@ -1,6 +1,6 @@
 # Roadmap
 
-Updated: 2026-08-11
+Updated: 2026-08-12
 
 The roadmap is evidence-driven. Milestones may change when retailer integration feasibility or product usage contradicts current assumptions.
 
@@ -22,8 +22,9 @@ Current evidence status:
 - **Pyaterochka retailer-path criterion: satisfied** through `AVAILABLE_BROWSER_BRIDGE` page-snapshot acquisition after adapter v1 passed the real first-party browser gate on 2026-08-11 from merged `main` SHA `95e83c1c2d3e8217de10bf9c2bb160735ba17f94` with 12 normalized observations, one fulfillment context and zero validation failures;
 - **mandatory X5 per-banner connectivity criterion: satisfied** for both Pyaterochka and Perekrestok through the browser-assisted acquisition mode;
 - **retailer-bridge workspace maintenance gate: satisfied** by making `apps/retailer-bridge` an independent pnpm workspace importer with pinned bridge-owned tooling and unchanged deterministic browser behavior;
-- **independent non-X5 retailer criterion: outstanding**;
-- **second distinct acquisition-mode criterion: outstanding** until another accepted path proves a non-browser mode end to end.
+- **Magnit public-web Phase A: satisfied** on merged `main` SHA `295c82cf95ecf23aa6e5ca851a977d96d89c3f9f`; both explicit `shopCode` contexts returned HTTP 200 with expected SKU and price evidence, publishing `Provider Live Probe / Magnit / pass-same-price`;
+- **independent non-X5 retailer criterion: outstanding until Magnit Phase B** proves the fixed 20-item corpus and deterministic sanitized fixtures or another non-X5 path reaches acceptance;
+- **second distinct acquisition-mode criterion: outstanding until Magnit Phase B** proves the public-web mode end to end or another non-browser mode reaches acceptance.
 
 Deliverables:
 
@@ -47,8 +48,8 @@ Exit criteria:
 
 - **Pyaterochka** can return usable location/store-specific product/offer data through at least one acceptable path — **satisfied via `AVAILABLE_BROWSER_BRIDGE`**;
 - **Perekrestok** can return usable location/store-specific product/offer data through at least one acceptable path — **satisfied via `AVAILABLE_BROWSER_BRIDGE`**;
-- at least one independent non-X5 retailer can return usable location-specific product/offer data through an acceptable path;
-- at least two acquisition modes have been proven end to end so M0 does not depend on a single transport assumption;
+- at least one independent non-X5 retailer can return usable location-specific product/offer data through an acceptable path — **Magnit is the active Phase B candidate after a successful public-web Phase A live gate**;
+- at least two acquisition modes have been proven end to end so M0 does not depend on a single transport assumption — **browser bridge is accepted; Magnit public-web is the active Phase B candidate for mode two**;
 - accepted results are reproducible through automated tests/sanitized fixtures;
 - direct, aggregator-backed, public-web, and browser-assisted provenance cannot be confused in the product model;
 - the retailer registry and onboarding contract can add another chain without changes to shopping-list/basket domain logic;
@@ -56,15 +57,18 @@ Exit criteria:
 
 Detailed X5 strategy: [`integrations/x5-mandatory-coverage.md`](integrations/x5-mandatory-coverage.md).
 
-Immediate M0 sequencing after the retailer-bridge workspace gate:
+Magnit Phase A evidence: [`integrations/magnit-public-page-live-2026-08-12.md`](integrations/magnit-public-page-live-2026-08-12.md).
 
-1. prove at least one independent non-X5 retailer path, with Magnit PR #46 currently the nearest candidate after its failing API CI is diagnosed/fixed against current `main`;
-2. prove a second accepted acquisition mode so M0 is not browser-transport-only;
-3. keep Perekrestok/Pyaterochka additional corpus/context validation and issue #54 persistent-session work as hardening rather than reopening their Phase A acceptance;
-4. continue Kuper/X5 supported-access work in parallel, with an accepted aggregator-backed path also able to satisfy the second-mode criterion;
-5. continue remaining retailer-registry onboarding through the now independent bridge/provider architecture;
-6. publish the outstanding `v0.1.0-rc.3` release proof when a release-capable path is available;
-7. once the independent non-X5 and second-mode criteria are satisfied, make the explicit M0 → M1 go/no-go decision.
+Immediate M0 sequencing after the Magnit Phase A live PASS:
+
+1. execute Magnit Phase B using the fixed 20-item corpus against two explicit `shopCode` contexts; prove stable identity, representative current/promo price semantics, availability semantics, sanitized deterministic fixtures and public-path repeatability;
+2. if Magnit Phase B passes, advance it to an accepted public-web path and evaluate whether the independent non-X5 plus second-acquisition-mode exit criteria are both satisfied;
+3. if Magnit Phase B exposes a blocker, record it fail-closed and continue Kuper/another supported aggregator or stable public-web path for the second acquisition mode while keeping Magnit in the registry;
+4. keep Perekrestok/Pyaterochka additional corpus/context validation and issue #54 persistent-session work as hardening rather than reopening their Phase A acceptance;
+5. continue Kuper/X5 supported-access work in parallel;
+6. continue remaining retailer-registry onboarding through the independent bridge/provider architecture;
+7. publish the outstanding `v0.1.0-rc.3` release proof when a release-capable path is available;
+8. once the independent non-X5 and second-mode criteria are satisfied, make the explicit M0 → M1 go/no-go decision.
 
 ## M1 — Shopping Core
 
