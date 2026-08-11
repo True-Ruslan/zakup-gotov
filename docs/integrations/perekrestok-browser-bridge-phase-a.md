@@ -1,231 +1,121 @@
 # Perekrestok Browser Bridge Phase A
 
-Updated: 2026-08-10
-Status: `V2_DETERMINISTIC_READY_RETEST_PENDING`
+Updated: 2026-08-11
+Status: `AVAILABLE_BROWSER_BRIDGE`
 Tracking: issue #47 / issue #52 / PR #49 / PR #53
 
 ## Purpose
 
-Prove the user-assisted first-party browser transport for a mandatory retailer after the direct anonymous/ordinary-cookie Perekrestok API path returned `store-403`.
+Prove a user-assisted first-party browser transport for mandatory Perekrestok coverage after the direct anonymous/ordinary-cookie server-side path returned `store-403`.
 
-This phase does **not** claim that Perekrestok is connected in production. PR #49 proved the extension/privacy boundary. The first real browser gate then exposed a current-site adapter mismatch, and PR #53 provides the deterministic v2 adaptation. A repeated real first-party browser PASS is still required before the path can advance from `LIVE_PENDING`.
+Phase A is now complete for **page-snapshot acquisition**: adapter v2 passed the repeated real first-party browser gate on 2026-08-11. This does not claim a supported direct retailer API or a persistent long-lived browser-session transport.
 
 ## Implemented transport
 
 `apps/retailer-bridge` is a Chromium Manifest V3 extension package.
 
-Production manifest properties:
+Production boundary:
 
-- Manifest V3;
 - `storage` is the only extension permission;
 - no `host_permissions`;
-- content script matches `https://www.perekrestok.ru/*`;
-- content script runs at `document_idle` in the default isolated execution world;
-- no `cookies`, `webRequest`, `debugger`, proxy-control or declarative-network-request permissions.
+- content script matches only `https://www.perekrestok.ru/*`;
+- no `cookies`, `webRequest`, `debugger`, proxy-control or declarative-network-request permissions;
+- login, location/store selection and any CAPTCHA remain manual first-party user actions;
+- no cookie/token/auth export or replay;
+- no response-body or request-header capture.
 
-The user remains responsible for any first-party login, store selection or CAPTCHA interaction required by Perekrestok. The extension does not automate those access-control steps.
+The browser collector persists only allow-listed normalized observations: retailer/provider provenance, `BROWSER_BRIDGE` source mode, fulfillment context, SKU/product name, integer minor-unit price, `RUB`, explicit/`UNKNOWN` availability, timestamp, canonical source URL without query/hash, and adapter version.
 
-## Observation boundary
+## Adapter v2 acquisition path
 
-The browser collector persists only the allow-listed normalized fields:
+Adapter v2 preserves the original embedded structured-state parser for compatible pages and adds the current catalog path proven from live evidence.
 
-- schema version;
-- retailer ID;
-- source provider ID;
-- source mode `BROWSER_BRIDGE`;
-- fulfillment/store context ID;
-- SKU/PLU;
-- product name;
-- integer minor-unit price;
-- `RUB` currency;
-- `AVAILABLE`, `UNAVAILABLE`, or `UNKNOWN` availability;
-- observation timestamp;
-- canonical source URL without query/hash;
-- adapter version.
+When structured-state products are absent, v2 reads:
 
-Adapter output is treated as untrusted. The collector reconstructs a new normalized object before it reaches extension storage. Extra adapter fields such as cookies, authorization material or addresses are discarded.
+- `.product-card` as the product boundary;
+- `.product-card__title-link` / `.product-card__title` for product identity/name;
+- the numeric product-link suffix as SKU candidate;
+- `.product-card__price .price-new` / `.price-new` for the visible current RUB price;
+- same-origin `/api/customer/<version>/shop/<numeric-id>` resource pathname for fulfillment context.
 
-On any fail-closed page state, the content script replaces `zg.latestObservations` with an empty array so a previous store/page cannot leave stale prices visible as current observations.
+Catalog presence alone does not prove stock, so DOM-derived observations use `UNKNOWN` availability unless an explicit supported stock semantic is later proven.
 
-## Perekrestok adapter v2
-
-Adapter v2 preserves the original structured-state path for pages where that evidence still exists and adds the current catalog path observed in the first real browser gate.
-
-### Structured-state path
-
-The adapter still parses, without `eval`:
-
-- `script[type="application/json"]`;
-- `script#__NEXT_DATA__`;
-- `script[type="application/ld+json"]`.
-
-The legacy evidence shape remains supported:
-
-- `masterData.plu` — stable product identity;
-- `priceTag.price` — integer minor-unit price;
-- `balanceState` — availability evidence;
-- `selectedShopId`, `shopId`, or `shop.id` — fulfillment/store context candidates.
-
-### Current catalog DOM path
-
-The 2026-08-10 live page no longer exposed the required product/store evidence in those structured scripts. It did expose stable semantic catalog DOM and a first-party shop resource pathname.
-
-When structured-state products are absent, v2 can read:
-
-- `.product-card` — product-card boundary;
-- `.product-card__title-link` / `.product-card__title` — product name and product href;
-- numeric product-link suffix — stable SKU candidate;
-- `.product-card__price .price-new` / `.price-new` — visible current price;
-- same-origin `/api/customer/<version>/shop/<numeric-id>` resource pathname — fulfillment context.
-
-Visible RUB price text is normalized to integer minor units. DOM catalog presence alone does **not** prove availability, so this path emits `UNKNOWN` unless an explicit supported availability semantic is later proven.
-
-Only same-origin canonical resource `origin + pathname` values are passed to the adapter. Query strings and fragments are removed before runtime resource evidence crosses the content-script boundary. No response body or request headers are read.
+Only same-origin canonical `origin + pathname` resource evidence crosses the runtime boundary; query strings and fragments are removed before adapter use.
 
 ## Asynchronous SPA handling
 
-The original Phase A implementation collected once at `document_idle`. TDD regressions against the sanitized live shape proved two independent timing races:
+TDD against the sanitized live shape proved two independent races:
 
-1. the first-party shop request can appear after the initial collection;
-2. the shop context can already be known while `.product-card` elements are rendered later by the SPA.
+1. the shop-context resource can arrive after `document_idle`;
+2. product cards can render after shop context is already available.
 
-The v2 content runtime therefore:
+The content runtime therefore uses:
 
-- seeds already-completed resource entries;
-- observes new `resource` performance entries;
-- retains only same-origin canonical resource paths;
-- observes DOM child-list changes through `MutationObserver`;
-- recollects when either new first-party resource evidence or later DOM evidence appears;
-- serializes overlapping collection attempts;
-- disconnects both observers after the first successful collection;
-- keeps fail-closed stale-observation clearing before success.
+- `PerformanceObserver` for new first-party resource evidence;
+- `MutationObserver` for later DOM evidence;
+- one serialized collection path;
+- fail-closed stale-observation clearing before success;
+- observer shutdown after the first successful snapshot.
 
-No arbitrary sleep, polling interval, or unbounded retry loop is used.
+No arbitrary sleep, polling interval or unbounded retry loop is used.
 
 ## First real browser gate — 2026-08-10
 
-The first live check was performed on an official Perekrestok category/catalog page.
-
-Result for adapter v1:
+Adapter v1 on an official Perekrestok category/catalog page returned:
 
 - content script executed: yes;
 - status: `missing-context`;
 - observation count: `0`;
 - result: **FAIL**.
 
-Sanitized diagnostics established:
+Sanitized diagnostics established that the current frontend no longer exposed the required v1 embedded product/store JSON, while the live page did expose stable `.product-card` DOM and same-origin `/api/customer/.../shop/<numeric-id>` resource-path evidence.
 
-- 2 structured JSON scripts parsed successfully;
-- 0 v1 `masterData` + `priceTag` product objects;
-- no usable store context in those scripts;
-- `cart-store` / `orderStore` storage entries were cart/order state, not fulfillment context;
-- 101 stable `.product-card` elements were rendered;
-- same-origin runtime resources included the current `/api/customer/.../shop/<numeric-id>` shape.
+Historical evidence: [`perekrestok-browser-bridge-live-2026-08-10.md`](perekrestok-browser-bridge-live-2026-08-10.md).
 
-Detailed sanitized evidence: [`perekrestok-browser-bridge-live-2026-08-10.md`](perekrestok-browser-bridge-live-2026-08-10.md).
+## Deterministic TDD adaptation
 
-## Deterministic TDD evidence
+PR #53 delivered adapter v2 through four behavioral RED -> GREEN gates:
 
-### Phase A v1
+1. current live DOM/resource shape reproduced `missing-context` before the new parser;
+2. asynchronous shop-resource timing reproduced `missing-context` before resource-driven recollection;
+3. adapter provenance was required as version `2` before production metadata changed;
+4. delayed product DOM reproduced `missing-product` before DOM-driven recollection.
 
-PR #49 established:
+The final persistent-Chromium E2E also seeds a resource-query sentinel and proves it does not reach extension storage. The exact final PR #53 head passed the complete repository CI/security gate before merge.
 
-1. manifest permission contract RED -> GREEN;
-2. browser observation collector RED -> GREEN;
-3. structured-state adapter RED -> GREEN;
-4. Chrome observation sink RED -> GREEN;
-5. Chromium stale-observation regression RED -> GREEN.
+## Repeated real-browser v2 gate — 2026-08-11
 
-At its merge point:
+The rebuilt v2 extension was loaded/reloaded in the user's normal Yandex Browser profile. After normal first-party store selection and a full page reload, the official Perekrestok category page produced:
 
-- bridge unit/fixture suite: 15 tests PASS;
-- bridge TypeScript: PASS;
-- production extension build: PASS;
-- persistent-Chromium MV3 E2E: PASS.
+- `data-zg-bridge-status = ok`;
+- `data-zg-bridge-count = 90`;
+- adapter versions: exactly `2`;
+- fulfillment contexts: exactly one (`656`);
+- normalized-validation failures: `0`.
 
-### Live adaptation v2
+The sanitized validation required every observation to contain a nonblank context/SKU, integer `priceMinor >= 0`, `RUB`, valid availability (`AVAILABLE`, `UNAVAILABLE`, `UNKNOWN`), adapter version `2`, and canonical `sourceReference` without query/hash.
 
-PR #53 adds four explicit test-first gates:
+Result: **PASS**.
 
-1. **Current live shape RED:** 15 old tests PASS, one new DOM/resource test FAIL with `missing-context`; then adapter parsing GREEN.
-2. **Asynchronous resource RED:** 16 unit tests/type/build PASS and original E2E PASS, while the new live-shape E2E FAILed with `missing-context`; resource-driven recollection then made the tested path GREEN.
-3. **Provenance RED:** tests required adapter version `2` before production metadata changed; the suite then returned GREEN after v2 provenance was applied.
-4. **Delayed DOM RED:** 16 unit tests/type/build PASS and original E2E PASS, while the new delayed-card E2E FAILed with `missing-product`; DOM-driven recollection then made the full live-shape E2E GREEN.
+Final live evidence: [`perekrestok-browser-bridge-live-2026-08-11.md`](perekrestok-browser-bridge-live-2026-08-11.md).
 
-The final live-shape E2E deliberately places `SECRET_RESOURCE_QUERY` in the first-party shop-resource query string and verifies that neither the sentinel nor `session=` reaches extension storage.
+## Security/privacy evidence
 
-The live-shape fixtures are synthetic/sanitized. Ordinary CI intercepts the Perekrestok origin before external network access and therefore has zero live retailer dependency.
+The live acceptance record contains no cookies, tokens, authorization headers, response bodies, arbitrary browser-storage values, exact street address, CAPTCHA artifacts, or raw production HTML.
 
-## Security/privacy boundary
-
-The v2 adaptation does not expand production permissions.
-
-It does not export or persist:
-
-- cookies;
-- authorization headers or tokens;
-- CAPTCHA data;
-- raw response bodies;
-- arbitrary browser-storage values;
-- exact street addresses;
-- raw production HTML.
-
-The original sentinel cookie/localStorage E2E remains active. Runtime resource evidence is restricted to same-origin canonical URL paths without query strings or fragments, and the new resource-query sentinel regression verifies that boundary through the production extension.
-
-## Real-browser v2 retest
-
-Use a fresh build from PR #53 (or `main` after merge):
-
-```bash
-pnpm install --frozen-lockfile
-pnpm --dir apps/retailer-bridge test
-pnpm --dir apps/retailer-bridge typecheck
-pnpm --dir apps/retailer-bridge build
-```
-
-Then reload the unpacked extension in the normal browser profile.
-
-For Chrome/Chromium use `chrome://extensions`. For Yandex Browser use its extension-management page (for example `browser://extensions` where supported). Enable developer mode and load/reload `apps/retailer-bridge/dist`.
-
-On the official Perekrestok site:
-
-1. manually select the intended store/location;
-2. manually complete any login/CAPTCHA required by the retailer;
-3. open a catalog/category page showing current product prices;
-4. reload the page after the updated extension is active;
-5. verify `document.documentElement.dataset.zgBridgeStatus`;
-6. verify `document.documentElement.dataset.zgBridgeCount`;
-7. if status is `ok`, inspect only sanitized `zg.latestObservations` in extension storage.
-
-Acceptance requires:
-
-- bridge status `ok`;
-- observation count greater than zero;
-- adapter version `2`;
-- fulfillment context present and nonblank;
-- SKU present and nonblank;
-- integer `priceMinor >= 0`;
-- currency `RUB`;
-- availability explicit or `UNKNOWN`;
-- source reference contains no query/hash;
-- no cookie/auth/browser-storage value exported;
-- no raw HTML persisted.
-
-Live evidence record must contain only:
-
-- observation date/time;
-- page type;
-- adapter version;
-- store/context present: true/false;
-- SKU present: true/false;
-- price present: true/false;
-- availability semantic;
-- credential export observed: false;
-- raw HTML persisted: false;
-- result: PASS/FAIL.
+The production manifest remains `storage`-only and the normalized collector allow-list remains the persistence boundary.
 
 ## Decision
 
-Current decision: **`BROWSER_BRIDGE_LIVE_PENDING`**.
+Current Perekrestok state: **`AVAILABLE_BROWSER_BRIDGE`** for page-snapshot acquisition through the user-assisted first-party browser transport.
 
-Adapter v1 has a recorded real-browser FAIL. Adapter v2 is deterministic-ready, but Perekrestok must not be marked `AVAILABLE_BROWSER_BRIDGE` until the v2 real first-party retest passes.
+This is one reproducible accepted Perekrestok path for the M0 connectivity invariant.
+
+Known limitation: issue #54 tracks post-success same-document store changes / SPA navigation. Until that lifecycle is implemented and verified, callers should treat the accepted path as a page snapshot obtained after the intended store is selected and the page is reloaded, not as a continuously self-refreshing session transport.
+
+Next connectivity work:
+
+1. reuse the proven browser transport contract for Pyaterochka;
+2. run the fixed Perekrestok corpus/second-context validation as hardening, not as a blocker to the Phase A path acceptance;
+3. prove at least one independent non-X5 retailer path;
+4. continue supported/aggregator access research in parallel.
