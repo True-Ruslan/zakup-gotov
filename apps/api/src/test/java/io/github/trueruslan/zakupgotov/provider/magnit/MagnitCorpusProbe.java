@@ -224,10 +224,12 @@ final class MagnitCorpusProbe {
                 : Optional.of(prices.getFirst());
 
         Optional<BigDecimal> regularPrice = Optional.empty();
-        var promoMarker = lowerText.contains("финальная цена") || DISCOUNT.matcher(text).find();
-        if (promoMarker && prices.size() >= 2 && prices.get(1).compareTo(prices.getFirst()) > 0) {
+        var renderedPromoMarker = lowerText.contains("финальная цена") || DISCOUNT.matcher(text).find();
+        if (renderedPromoMarker && prices.size() >= 2 && prices.get(1).compareTo(prices.getFirst()) > 0) {
             regularPrice = Optional.of(prices.get(1));
         }
+        var promo = renderedPromoMarker
+                || (currentPrice.isPresent() && inspectPriceBoundPromoShape(html, expectedSku).promoMarker());
 
         var availability = Availability.UNKNOWN;
         if (lowerText.contains("нет в наличии")) {
@@ -240,7 +242,7 @@ final class MagnitCorpusProbe {
                 true,
                 currentPrice,
                 regularPrice,
-                regularPrice.isPresent(),
+                promo,
                 availability);
     }
 

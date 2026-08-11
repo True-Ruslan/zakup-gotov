@@ -76,6 +76,18 @@ class MagnitCorpusProbeTest {
     }
 
     @Test
+    void marksPriceBoundPromoWithoutInventingRegularPrice() throws Exception {
+        var observation = MagnitCorpusProbe.parseProductPage(fixture("embedded-single-price-promo.html"), "9072651501");
+        var contaminated = MagnitCorpusProbe.parseProductPage(
+                fixture("embedded-nonpromo-with-nearby-promo.html"), "9072651501");
+
+        assertThat(observation.currentPrice()).contains(new BigDecimal("123.45"));
+        assertThat(observation.regularPrice()).isEmpty();
+        assertThat(observation.promo()).isTrue();
+        assertThat(contaminated.promo()).isFalse();
+    }
+
+    @Test
     void treatsExplicitProductUnavailabilityAsUnavailable() throws Exception {
         var observation = MagnitCorpusProbe.parseProductPage(fixture("regular-unavailable.html"), "1000135280");
         assertThat(observation.currentPrice()).contains(new BigDecimal("111.11"));
