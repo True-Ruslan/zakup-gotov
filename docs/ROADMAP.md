@@ -10,71 +10,96 @@ Zakup Gotov targets **universal connectivity for the retailer registry**, not a 
 
 Every retailer/banner added to the target registry is mandatory coverage work until at least one reproducible acquisition path is available. A failed direct API does not remove that retailer from scope; it moves integration work to another accepted path such as a supported aggregator, public web surface, or user-assisted first-party browser bridge.
 
-The durable design is in [`superpowers/specs/2026-08-10-universal-retailer-connectivity-design.md`](superpowers/specs/2026-08-10-universal-retailer-connectivity-design.md).
+Durable design: [`superpowers/specs/2026-08-10-universal-retailer-connectivity-design.md`](superpowers/specs/2026-08-10-universal-retailer-connectivity-design.md).
 
-## M0 — Product & Integration Discovery
+## M0 — Product & Integration Discovery — COMPLETE
 
-Goal: prove that the core product promise and the universal retailer-connectivity architecture are technically viable before substantial shopping-core development.
+Goal: prove that the core product promise and universal retailer-connectivity architecture are technically viable before substantial shopping-core development.
 
-Current evidence status:
+Decision: **GO to M1** — [`superpowers/specs/2026-08-12-m0-to-m1-go-decision.md`](superpowers/specs/2026-08-12-m0-to-m1-go-decision.md).
 
-- **Perekrestok retailer-path criterion: satisfied** through `AVAILABLE_BROWSER_BRIDGE` page-snapshot acquisition after the real adapter-v2 browser PASS on 2026-08-11;
-- **Pyaterochka retailer-path criterion: satisfied** through `AVAILABLE_BROWSER_BRIDGE` page-snapshot acquisition after adapter v1 passed the real first-party browser gate on 2026-08-11 from merged `main` SHA `95e83c1c2d3e8217de10bf9c2bb160735ba17f94` with 12 normalized observations, one fulfillment context and zero validation failures;
-- **mandatory X5 per-banner connectivity criterion: satisfied** for both Pyaterochka and Perekrestok through the browser-assisted acquisition mode;
-- **retailer-bridge workspace maintenance gate: satisfied** by making `apps/retailer-bridge` an independent pnpm workspace importer with pinned bridge-owned tooling and unchanged deterministic browser behavior;
-- **Magnit public-web Phase A: satisfied** on merged `main` SHA `295c82cf95ecf23aa6e5ca851a977d96d89c3f9f`; both explicit `shopCode` contexts returned HTTP 200 with expected SKU and price evidence, publishing `Provider Live Probe / Magnit / pass-same-price`;
-- **independent non-X5 retailer criterion: outstanding until Magnit Phase B** proves the fixed 20-item corpus and deterministic sanitized fixtures or another non-X5 path reaches acceptance;
-- **second distinct acquisition-mode criterion: outstanding until Magnit Phase B** proves the public-web mode end to end or another non-browser mode reaches acceptance.
+Final exit status:
 
-Deliverables:
+- **Perekrestok retailer-path criterion: satisfied** through `AVAILABLE_BROWSER_BRIDGE`, adapter v2;
+- **Pyaterochka retailer-path criterion: satisfied** through `AVAILABLE_BROWSER_BRIDGE`, adapter v1;
+- **mandatory X5 per-banner criterion: satisfied**;
+- **retailer-bridge workspace maintenance gate: satisfied**;
+- **independent non-X5 retailer criterion: satisfied** through Magnit `AVAILABLE_PUBLIC_WEB` for explicit public `shopCode` contexts;
+- **second distinct acquisition-mode criterion: satisfied** through ordinary public web in addition to the browser bridge;
+- **fixed-corpus/deterministic fixture criterion: satisfied** through Magnit 20×2 Phase B plus bridge fixture/E2E suites;
+- **known limitations recorded rather than hidden: satisfied**.
 
-- approved product/architecture foundation;
-- repository quality and security baseline;
-- provider integration research matrix for major target retailers;
-- universal target-retailer registry/connectivity design;
-- mandatory Pyaterochka/Perekrestok coverage strategy as the first hard case;
-- location/fulfillment-context model;
-- provider port contract;
-- feasibility harness for external integrations;
-- supported-path spikes for both mandatory X5 banners plus at least one independent non-X5 provider;
-- proof of at least two distinct acquisition modes among direct/partner API, aggregator, public web and user-assisted browser bridge;
-- recorded fixtures and automated contract/parser tests;
-- documented freshness, availability, rate-limit, provenance, operational, and legal constraints;
-- go/no-go decision for M1.
+Magnit final Phase B evidence: [`integrations/magnit-public-page-phase-b-live-2026-08-12.md`](integrations/magnit-public-page-phase-b-live-2026-08-12.md).
 
-Accepted provider paths may be direct retailer APIs, supported aggregator integrations, stable public web/API surfaces, or user-assisted first-party browser connectors. Provenance and limitations must remain explicit.
+M0 completion is a technical feasibility decision. It does not silently clear unresolved production constraints:
 
-Exit criteria:
+- #69 — automatic Magnit location/address → public `shopCode` resolution remains open;
+- #70 — Magnit recurring production catalog usage rights remain `UNRESOLVED`;
+- #54 — browser bridge post-success SPA/store-change lifecycle hardening remains open.
 
-- **Pyaterochka** can return usable location/store-specific product/offer data through at least one acceptable path — **satisfied via `AVAILABLE_BROWSER_BRIDGE`**;
-- **Perekrestok** can return usable location/store-specific product/offer data through at least one acceptable path — **satisfied via `AVAILABLE_BROWSER_BRIDGE`**;
-- at least one independent non-X5 retailer can return usable location-specific product/offer data through an acceptable path — **Magnit is the active Phase B candidate after a successful public-web Phase A live gate**;
-- at least two acquisition modes have been proven end to end so M0 does not depend on a single transport assumption — **browser bridge is accepted; Magnit public-web is the active Phase B candidate for mode two**;
-- accepted results are reproducible through automated tests/sanitized fixtures;
-- direct, aggregator-backed, public-web, and browser-assisted provenance cannot be confused in the product model;
-- the retailer registry and onboarding contract can add another chain without changes to shopping-list/basket domain logic;
-- known limitations are documented rather than hidden.
+Universal retailer connectivity remains mandatory after M0; Chizhik, Ozon Fresh, Samokat, Lenta, VkusVill, Kuper and other registry entries are still coverage work.
 
-Detailed X5 strategy: [`integrations/x5-mandatory-coverage.md`](integrations/x5-mandatory-coverage.md).
+## M1 — Shopping Core — CURRENT
 
-Magnit Phase A evidence: [`integrations/magnit-public-page-live-2026-08-12.md`](integrations/magnit-public-page-live-2026-08-12.md).
+Goal: compare a manually entered grocery list across connected retailers while preserving explicit coverage state, fulfillment context, provenance, freshness and uncertainty.
 
-Immediate M0 sequencing after the Magnit Phase A live PASS:
+### Entry rules
 
-1. execute Magnit Phase B using the fixed 20-item corpus against two explicit `shopCode` contexts; prove stable identity, representative current/promo price semantics, availability semantics, sanitized deterministic fixtures and public-path repeatability;
-2. if Magnit Phase B passes, advance it to an accepted public-web path and evaluate whether the independent non-X5 plus second-acquisition-mode exit criteria are both satisfied;
-3. if Magnit Phase B exposes a blocker, record it fail-closed and continue Kuper/another supported aggregator or stable public-web path for the second acquisition mode while keeping Magnit in the registry;
-4. keep Perekrestok/Pyaterochka additional corpus/context validation and issue #54 persistent-session work as hardening rather than reopening their Phase A acceptance;
-5. continue Kuper/X5 supported-access work in parallel;
-6. continue remaining retailer-registry onboarding through the independent bridge/provider architecture;
-7. publish the outstanding `v0.1.0-rc.3` release proof when a release-capable path is available;
-8. once the independent non-X5 and second-mode criteria are satisfied, make the explicit M0 → M1 go/no-go decision.
+- fixture-first provider orchestration; live retailer access is never required for ordinary M1 tests;
+- unavailable/blocked registry entries remain visible rather than silently disappearing;
+- retailer identity, source-provider identity and fulfillment context remain distinct;
+- `UNKNOWN` availability remains first-class;
+- observation time is not misrepresented as a provider update timestamp;
+- production activation respects recorded usage-rights status;
+- Magnit recurring automated production polling remains disabled while #70 is unresolved;
+- Magnit automatic location discovery is not claimed while #69 is unresolved.
 
-## M1 — Shopping Core
+### Implementation sequence
 
-Goal: compare a manually entered grocery list across connected retailers while preserving explicit coverage state for every target registry entry.
+1. **Retailer registry + coverage-state model**
+   - canonical retailer/banner identity;
+   - supported acquisition paths per retailer;
+   - coverage states such as available, unavailable, blocked, unresolved and degraded;
+   - provider/path provenance kept outside shopping-list domain semantics.
+2. **Shopping-list aggregate + canonical quantities/units**
+   - item CRUD;
+   - quantity/unit primitives;
+   - deterministic normalization rules;
+   - validation that rejects ambiguous/invalid quantities rather than guessing.
+3. **Provider/path orchestration over deterministic fixtures**
+   - select an eligible provider/path for a retailer/context;
+   - partial-provider failure remains explicit;
+   - live adapters stay outside ordinary test execution.
+4. **Location / fulfillment-context boundary**
+   - product-level location input;
+   - provider-scoped context resolution/selection;
+   - no provider-specific identifiers leaking into shopping/basket domain logic.
+5. **Price and availability snapshots**
+   - observation time;
+   - currency/price minor units;
+   - explicit availability including `UNKNOWN`;
+   - source and fulfillment-context provenance;
+   - freshness limitation surfaced to callers/UI.
+6. **Deterministic product-matching baseline**
+   - exact/normalized matching first;
+   - explicit ambiguous/unmatched state;
+   - AI matching remains optional later, never required for baseline correctness.
+7. **Complete single-store basket comparison**
+   - package/quantity selection baseline;
+   - deterministic explainable ranking;
+   - incomplete basket is not presented as a complete cheapest basket.
+8. **Failure/coverage/freshness UX**
+   - unavailable retailer coverage;
+   - partial provider failures;
+   - stale/unknown freshness;
+   - ambiguous/unmatched shopping items.
+9. **Critical-journey browser E2E**
+   - manually enter list;
+   - choose location/context where supported;
+   - compare available retailers;
+   - inspect missing coverage/freshness/provenance honestly.
 
-Scope:
+### Scope
 
 - shopping list CRUD;
 - canonical units/quantities;
@@ -88,14 +113,16 @@ Scope:
 - complete-basket comparison;
 - partial-provider failure UX;
 - data freshness UX;
-- provider provenance UX when observations come through an aggregator, public-web adapter, or user-assisted browser connector.
+- provider provenance UX for aggregator, public-web and browser-assisted observations.
 
-Exit criteria:
+### Exit criteria
 
 - critical journey is covered by automated integration and browser E2E tests;
 - incomplete/ambiguous matches are transparent;
 - one-store ranking is deterministic and explainable;
-- unavailable target-retailer coverage is explicit rather than silently omitted.
+- unavailable target-retailer coverage is explicit rather than silently omitted;
+- no test or user-facing path requires hidden live retailer access;
+- provider provenance, fulfillment context and freshness limitations survive through basket comparison.
 
 ## M2 — Recipes
 
@@ -107,7 +134,7 @@ Scope:
 - servings;
 - normalized ingredient quantities;
 - instructions/content model;
-- recipe -> shopping requirement conversion;
+- recipe → shopping requirement conversion;
 - recipe editing and duplication;
 - import experiments only after core model is stable.
 
@@ -150,7 +177,8 @@ Scope:
 - feature flags/experiments;
 - stronger provider and retailer-path health monitoring;
 - performance and accessibility budgets;
-- public SEO/content surfaces where justified.
+- public SEO/content surfaces where justified;
+- production provider activation only after access/usage constraints are resolved.
 
 ## M6 — Native Mobile
 
@@ -164,11 +192,23 @@ Target stack:
 - generated OpenAPI client;
 - shared analytics vocabulary and design tokens.
 
-Mobile-specific work may include barcode/camera flows, push notifications, deep links, native sharing, and location UX only when validated by product needs.
+Mobile-specific work may include barcode/camera flows, push notifications, deep links, native sharing and location UX only when validated by product needs.
+
+## Parallel connectivity and engineering work
+
+These items continue without blocking the first M1 domain slices:
+
+- Kuper supported aggregator investigation (#36);
+- browser bridge persistent-session lifecycle hardening (#54);
+- Magnit location → public `shopCode` resolution (#69);
+- Magnit production usage-rights decision (#70);
+- Chizhik, Ozon Fresh, Samokat, Lenta, VkusVill and additional mandatory retailer onboarding;
+- additional X5 supported/partner paths where available;
+- successful real `v0.1.0-rc.3` release proof.
 
 ## Later candidates — not commitments
 
-- broader retailer/affiliate partnerships beyond the mandatory registry integration work;
+- broader retailer/affiliate partnerships beyond mandatory registry integration work;
 - direct cart creation/checkout handoff;
 - loyalty integration;
 - price history and alerts;
@@ -180,4 +220,4 @@ Mobile-specific work may include barcode/camera flows, push notifications, deep 
 
 ## Guiding rule
 
-Do not add infrastructure because it is fashionable. Add a technology only when a measured product, reliability, scaling, or team constraint makes its benefit exceed its operational cost.
+Do not add infrastructure because it is fashionable. Add a technology only when a measured product, reliability, scaling or team constraint makes its benefit exceed its operational cost.
