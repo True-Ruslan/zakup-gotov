@@ -8,8 +8,8 @@ const srcDir = resolve(root, "src");
 const e2e = process.argv.includes("--e2e");
 const outDir = resolve(root, e2e ? "dist-e2e" : "dist");
 
-const requireFromWeb = createRequire(resolve(root, "../web/package.json"));
-const ts = requireFromWeb("typescript");
+const require = createRequire(import.meta.url);
+const ts = require("typescript");
 
 async function sourceFiles(directory) {
   const entries = await readdir(directory, { withFileTypes: true });

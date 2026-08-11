@@ -1,9 +1,8 @@
 import { mkdtemp, readFile, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
-import playwright from "../../web/node_modules/@playwright/test/index.js";
+import { chromium, expect, test } from "@playwright/test";
 
-const { chromium, expect, test } = playwright;
 const bridgeRoot = resolve(process.cwd(), "../retailer-bridge");
 const extensionPath = resolve(bridgeRoot, "dist");
 const fixtureDir = resolve(bridgeRoot, "test/fixtures");

@@ -10,7 +10,7 @@ Repository: `True-Ruslan/zakup-gotov`
 Visibility: Public  
 Current phase: **M0 — Product & Integration Discovery**  
 Current execution stage: **M0B Universal Retailer Connectivity**  
-Current focus: **resolve retailer-bridge workspace debt (#50), prove an independent non-X5 retailer path and a second acquisition mode, then make the M0 → M1 go/no-go decision**
+Current focus: **prove an independent non-X5 retailer path and a second acquisition mode, then make the M0 → M1 go/no-go decision**
 
 ## Product connectivity invariant
 
@@ -36,12 +36,13 @@ The platform foundation is executable and automatically verified. The core multi
 - **Perekrestok:** `AVAILABLE_BROWSER_BRIDGE`, adapter v2;
 - **Pyaterochka:** `AVAILABLE_BROWSER_BRIDGE`, adapter v1.
 
-The remaining M0 blockers are no longer X5 per-banner connectivity. M0 still requires:
+The retailer-bridge maintenance threshold is now satisfied: `apps/retailer-bridge` is a first-class pnpm workspace importer with its own pinned TypeScript/Vitest/jsdom/Playwright toolchain and no `apps/web/node_modules` coupling.
+
+The remaining M0 blockers are:
 
 - at least one independent non-X5 retailer with a reproducible accepted path;
 - at least two distinct acquisition modes proven end to end;
-- the bridge workspace maintenance gate (#50) before another substantial browser adapter or bridge-owned dependency;
-- preservation of explicit retailer/provider/store provenance and deterministic sanitized verification.
+- preservation of explicit retailer/provider/store provenance and deterministic sanitized verification as coverage expands.
 
 ## M0B verified foundation
 
@@ -170,20 +171,28 @@ Issue #36 remains active for supported aggregator-backed access. Any Kuper obser
 
 Kuper remains strategically important because an accepted aggregator-backed path could satisfy the outstanding second-acquisition-mode criterion while broadening retailer coverage.
 
-## Bridge maintenance threshold
+## Retailer Bridge workspace — maintenance gate satisfied
 
-Issue #50 was created when Perekrestok Phase A reused TypeScript/Vitest/Playwright tooling from `apps/web` rather than making `apps/retailer-bridge` a first-class pnpm workspace importer.
+Issue #50 tracked the temporary tooling debt created when early bridge work reused TypeScript/Vitest/Playwright from `apps/web`.
 
-PR #58 introduced the second substantial browser adapter, so that maintenance threshold is reached. Issue #50 is now the **immediate implementation priority** before another substantial browser adapter or bridge-owned dependency.
+PR #60 resolves that boundary without changing retailer behavior:
 
-Issue #50 must:
+- `apps/retailer-bridge` is registered in the root pnpm workspace;
+- the bridge owns explicit pinned devDependencies for `typescript`, `vitest`, `jsdom`, `@playwright/test` and `@types/node`;
+- package scripts execute the bridge-owned toolchain directly;
+- `build.mjs` resolves TypeScript from the bridge package rather than `apps/web`;
+- bridge E2E imports `@playwright/test` normally rather than through `apps/web/node_modules`;
+- Retailer Bridge CI installs Playwright through the bridge importer;
+- `pnpm-lock.yaml` was regenerated normally with pinned pnpm `11.4.0` and contains an explicit `apps/retailer-bridge` importer;
+- frozen install continues to enforce the repository supply-chain policy;
+- unit tests, typecheck, production build and persistent-Chromium E2E all pass after the refactor.
 
-- add `apps/retailer-bridge` to the root pnpm workspace;
-- give the bridge explicit pinned devDependencies;
-- regenerate the lockfile normally;
-- remove `../web` tooling/node_modules coupling;
-- preserve frozen-install/supply-chain checks and all bridge security/E2E gates;
-- make no functional retailer behavior change.
+TDD/refactoring evidence:
+
+- RED: the intentionally stale lockfile failed `pnpm install --frozen-lockfile` with `ERR_PNPM_OUTDATED_LOCKFILE` and named exactly the five newly owned bridge dependencies;
+- GREEN: pnpm `11.4.0` regenerated the lockfile, a fresh frozen install passed, and the complete bridge behavior suite returned green.
+
+No adapter, manifest, observation-model, resource-policy or permission behavior is changed by this maintenance gate.
 
 ## Verified platform baseline
 
@@ -219,7 +228,8 @@ Issue #50 must:
 - Dependency Review;
 - Release Bundle/Contract CI;
 - Container Security CI with HIGH/CRITICAL fail-closed scans;
-- `Retailer Bridge CI` with unit/type/build/persistent-Chromium E2E verification;
+- first-class `apps/retailer-bridge` pnpm workspace importer;
+- `Retailer Bridge CI` with frozen install plus bridge-owned unit/type/build/persistent-Chromium E2E verification;
 - public Actuator limited to health/liveness/readiness/info.
 
 ## Release-engineering state
@@ -232,15 +242,14 @@ A successful real **`v0.1.0-rc.3` GitHub Release published event remains outstan
 
 ## Immediate next work
 
-1. Resolve issue #50 in a separate behavior-neutral maintenance PR before any third substantial browser adapter or bridge-owned dependency.
-2. Resolve at least one independent non-X5 retailer path, with Magnit PR #46 currently the nearest existing candidate after its failing API CI is diagnosed/fixed against current `main`.
-3. Prove a second accepted acquisition mode so M0 does not depend only on browser-assisted acquisition; Kuper/another supported aggregator or a stable public-web path are preferred candidates.
-4. Run additional Perekrestok/Pyaterochka corpus/context validation as hardening and product-quality evidence; neither is now a Phase A connectivity blocker.
-5. Resolve issue #54 before treating the browser bridge as a persistent-session transport across post-success store changes / SPA navigation.
-6. Continue Kuper/X5 supported-access work in parallel.
-7. Continue Chizhik, Ozon Fresh, Samokat, Lenta, VkusVill and additional chains through the same registry/adapter process after issue #50.
-8. Publish `v0.1.0-rc.3` through the real GitHub Release event when a release-capable path is available.
-9. Once the non-X5 and second-mode criteria are satisfied, make the explicit M0 → M1 go/no-go decision instead of starting Shopping Core prematurely.
+1. Resolve at least one independent non-X5 retailer path, with Magnit PR #46 currently the nearest existing candidate after its failing API CI is diagnosed/fixed against current `main`.
+2. Prove a second accepted acquisition mode so M0 does not depend only on browser-assisted acquisition; Kuper/another supported aggregator or a stable public-web path are preferred candidates.
+3. Run additional Perekrestok/Pyaterochka corpus/context validation as hardening and product-quality evidence; neither is now a Phase A connectivity blocker.
+4. Resolve issue #54 before treating the browser bridge as a persistent-session transport across post-success store changes / SPA navigation.
+5. Continue Kuper/X5 supported-access work in parallel.
+6. Continue Chizhik, Ozon Fresh, Samokat, Lenta, VkusVill and additional chains through the same registry/adapter process.
+7. Publish `v0.1.0-rc.3` through the real GitHub Release event when a release-capable path is available.
+8. Once the non-X5 and second-mode criteria are satisfied, make the explicit M0 → M1 go/no-go decision instead of starting Shopping Core prematurely.
 
 ## Definition of M0 success
 
