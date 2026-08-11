@@ -147,3 +147,74 @@ test("collects current catalog DOM after async shop and DOM evidence resolve", a
     await rm(userDataDir, { recursive: true, force: true });
   }
 });
+
+test("collects Pyaterochka catalog after async official service context and delayed DOM", async () => {
+  const userDataDir = await mkdtemp(join(tmpdir(), "zg-retailer-bridge-pyaterochka-"));
+  const context = await chromium.launchPersistentContext(userDataDir, {
+    channel: "chromium",
+    headless: true,
+    args: [
+      `--disable-extensions-except=${extensionPath}`,
+      `--load-extension=${extensionPath}`,
+    ],
+  });
+
+  try {
+    const liveFixture = await readFile(
+      resolve(fixtureDir, "pyaterochka-live-dom-async-state.html"),
+      "utf8",
+    );
+
+    await context.route("https://5ka.ru/**", async (route) => {
+      await route.fulfill({
+        status: 200,
+        contentType: "text/html; charset=utf-8",
+        body: liveFixture,
+      });
+    });
+    await context.route("https://5d.5ka.ru/**", async (route) => {
+      await route.fulfill({
+        status: 200,
+        headers: { "access-control-allow-origin": "https://5ka.ru" },
+        contentType: "application/json; charset=utf-8",
+        body: "{}",
+      });
+    });
+
+    await context.addCookies([
+      {
+        name: "session",
+        value: "SECRET_PYATEROCHKA_COOKIE",
+        domain: "5ka.ru",
+        path: "/",
+        secure: true,
+        sameSite: "Lax",
+      },
+    ]);
+
+    const page = await context.newPage();
+    await page.goto("https://5ka.ru/catalog/fixture-live-dom");
+
+    await expect.poll(() => page.locator("html").getAttribute("data-zg-bridge-status")).toBe("ok");
+    await expect.poll(() => page.locator("html").getAttribute("data-zg-bridge-count")).toBe("1");
+
+    const worker = context.serviceWorkers()[0] ?? (await context.waitForEvent("serviceworker"));
+    const stored = await worker.evaluate(async () =>
+      chrome.storage.local.get("zg.latestObservations"),
+    );
+    const serialized = JSON.stringify(stored);
+
+    expect(serialized).toContain("\"retailerId\":\"pyaterochka\"");
+    expect(serialized).toContain("\"sourceProviderId\":\"pyaterochka-browser\"");
+    expect(serialized).toContain("\"fulfillmentContextId\":\"ZG001\"");
+    expect(serialized).toContain("\"sku\":\"25113239\"");
+    expect(serialized).toContain("\"priceMinor\":9999");
+    expect(serialized).toContain("\"adapterVersion\":\"1\"");
+    expect(serialized).not.toContain("SECRET_RESOURCE_QUERY");
+    expect(serialized).not.toContain("SECRET_PYATEROCHKA_COOKIE");
+    expect(serialized).not.toContain("session=");
+  } finally {
+    await context.close();
+    await rm(userDataDir, { recursive: true, force: true });
+  }
+});

@@ -1,0 +1,22 @@
+<!doctype html>
+<html lang="ru">
+  <head>
+    <meta charset="utf-8" />
+    <title>Sanitized Pyaterochka async catalog fixture</title>
+  </head>
+  <body>
+    <main id="catalog-root"></main>
+    <script>
+      setTimeout(() => {
+        fetch("https://5d.5ka.ru/api/catalog/v2/stores/ZG001/products?session=SECRET_RESOURCE_QUERY").catch(() => {});
+      }, 10);
+
+      setTimeout(() => {
+        document.getElementById("catalog-root").insertAdjacentHTML(
+          "beforeend",
+          '<article class="product-card"><a href="/product/sanitized-product--25113239/" aria-label="Санитизированный продукт">Санитизированный продукт</a><div class="product-card__price">129,99 ₽ 99,99 ₽</div></article>',
+        );
+      }, 30);
+    </script>
+  </body>
+</html>

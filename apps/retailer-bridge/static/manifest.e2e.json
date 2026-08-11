@@ -11,6 +11,8 @@
     {
       "matches": [
         "https://www.perekrestok.ru/*",
+        "https://5ka.ru/*",
+        "https://www.5ka.ru/*",
         "http://127.0.0.1:4174/*"
       ],
       "js": ["content.js"],
