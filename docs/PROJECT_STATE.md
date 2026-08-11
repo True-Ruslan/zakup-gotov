@@ -1,6 +1,6 @@
 # Project State
 
-Updated: 2026-08-11
+Updated: 2026-08-12
 
 ## Project
 
@@ -10,7 +10,7 @@ Repository: `True-Ruslan/zakup-gotov`
 Visibility: Public  
 Current phase: **M0 — Product & Integration Discovery**  
 Current execution stage: **M0B Universal Retailer Connectivity**  
-Current focus: **prove an independent non-X5 retailer path and a second acquisition mode, then make the M0 → M1 go/no-go decision**
+Current focus: **execute Magnit Phase B on the fixed 20-item corpus and deterministic fixtures; if accepted, evaluate closure of the independent non-X5 and second-acquisition-mode M0 gates**
 
 ## Product connectivity invariant
 
@@ -36,13 +36,15 @@ The platform foundation is executable and automatically verified. The core multi
 - **Perekrestok:** `AVAILABLE_BROWSER_BRIDGE`, adapter v2;
 - **Pyaterochka:** `AVAILABLE_BROWSER_BRIDGE`, adapter v1.
 
-The retailer-bridge maintenance threshold is now satisfied: `apps/retailer-bridge` is a first-class pnpm workspace importer with its own pinned TypeScript/Vitest/jsdom/Playwright toolchain and no `apps/web/node_modules` coupling.
+The retailer-bridge maintenance threshold is satisfied: `apps/retailer-bridge` is a first-class pnpm workspace importer with its own pinned TypeScript/Vitest/jsdom/Playwright toolchain and no `apps/web/node_modules` coupling.
+
+**Magnit public-web Phase A now has a real live PASS** on merged `main`, proving that the same fixed SKU can expose SKU and RUB price evidence under two explicit `shopCode` contexts without login, cookies, partner credentials, browser automation or anti-bot bypass. Phase B is still required before Magnit becomes an accepted M0 path.
 
 The remaining M0 blockers are:
 
-- at least one independent non-X5 retailer with a reproducible accepted path;
-- at least two distinct acquisition modes proven end to end;
-- preservation of explicit retailer/provider/store provenance and deterministic sanitized verification as coverage expands.
+- at least one independent non-X5 retailer with a reproducible **accepted** path — Magnit is the active Phase B candidate;
+- at least two distinct acquisition modes proven end to end — browser bridge is accepted; Magnit public web is the active candidate for mode two;
+- deterministic sanitized fixture evidence and explicit price/availability semantics for the Magnit fixed corpus before its path is accepted.
 
 ## M0B verified foundation
 
@@ -159,23 +161,53 @@ Evidence:
 
 Issue #54 remains a non-blocking lifecycle-hardening item: after the first successful snapshot, same-document store changes or SPA navigation are not yet automatically refreshed. The accepted current path therefore assumes intended store selection followed by page reload.
 
-### Magnit
+### Magnit public web — Phase A LIVE PASS
 
-PR #46 remains the nearest independent non-X5 path candidate using public SSR product pages under explicit `shopCode` contexts without cookies/auth/API keys.
+PR #46 was brought up to the then-current `main`, retained the failing-before price/SKU binding regression, passed the full CI/security gate, and was squash-merged as:
 
-Its current branch is **not merge-ready** because `API CI` is failing. The failure must be diagnosed against current `main` before the path can be accepted. No support claim is made until the complete evidence path and CI gate pass.
+`295c82cf95ecf23aa6e5ca851a977d96d89c3f9f`
+
+The probe uses ordinary public SSR product pages, JDK `HttpClient`, fixed timeouts and two explicit `shopCode` contexts. It sends no Cookie, Authorization header or partner API key and performs no browser automation, CAPTCHA handling, proxy rotation, fingerprint evasion or retry/evasion loop.
+
+The real issue-gated workflow then ran from merged `main` and emitted:
+
+```text
+MAGNIT_PHASE_A first_status=200 first_sku_evidence=true first_price_present=true second_status=200 second_sku_evidence=true second_price_present=true prices_equal=true
+```
+
+Published status:
+
+**`Provider Live Probe / Magnit / pass-same-price` → success**
+
+The live Maven run completed 4 tests with 0 failures, 0 errors and 0 skipped tests.
+
+Current Magnit decision: **`PUBLIC_WEB_PHASE_A_PASS / PHASE_B_REQUIRED`**.
+
+This proves viability of the public-web acquisition hypothesis for the fixed Phase A product under two explicit contexts, but it does **not** yet claim an accepted M0 provider path. The following remain mandatory before acceptance:
+
+- fixed 20-item corpus coverage under two explicit contexts;
+- stable product identity;
+- representative regular/current/promo price semantics;
+- availability semantics without guessing stock from presence alone;
+- deterministic sanitized fixture replay;
+- documented freshness and location→`shopCode` limitations.
+
+Evidence:
+
+- Phase A design/procedure: [`integrations/magnit-phase-a.md`](integrations/magnit-phase-a.md);
+- live PASS: [`integrations/magnit-public-page-live-2026-08-12.md`](integrations/magnit-public-page-live-2026-08-12.md).
 
 ### Kuper
 
 Issue #36 remains active for supported aggregator-backed access. Any Kuper observation must preserve aggregator provider provenance separately from the underlying retailer/banner identity.
 
-Kuper remains strategically important because an accepted aggregator-backed path could satisfy the outstanding second-acquisition-mode criterion while broadening retailer coverage.
+Kuper remains strategically important because an accepted aggregator-backed path could satisfy the outstanding second-acquisition-mode criterion while broadening retailer coverage if Magnit Phase B does not close that gate first.
 
 ## Retailer Bridge workspace — maintenance gate satisfied
 
 Issue #50 tracked the temporary tooling debt created when early bridge work reused TypeScript/Vitest/Playwright from `apps/web`.
 
-PR #60 resolves that boundary without changing retailer behavior:
+PR #60 resolved that boundary without changing retailer behavior:
 
 - `apps/retailer-bridge` is registered in the root pnpm workspace;
 - the bridge owns explicit pinned devDependencies for `typescript`, `vitest`, `jsdom`, `@playwright/test` and `@types/node`;
@@ -192,7 +224,7 @@ TDD/refactoring evidence:
 - RED: the intentionally stale lockfile failed `pnpm install --frozen-lockfile` with `ERR_PNPM_OUTDATED_LOCKFILE` and named exactly the five newly owned bridge dependencies;
 - GREEN: pnpm `11.4.0` regenerated the lockfile, a fresh frozen install passed, and the complete bridge behavior suite returned green.
 
-No adapter, manifest, observation-model, resource-policy or permission behavior is changed by this maintenance gate.
+No adapter, manifest, observation-model, resource-policy or permission behavior was changed by this maintenance gate.
 
 ## Verified platform baseline
 
@@ -242,14 +274,15 @@ A successful real **`v0.1.0-rc.3` GitHub Release published event remains outstan
 
 ## Immediate next work
 
-1. Resolve at least one independent non-X5 retailer path, with Magnit PR #46 currently the nearest existing candidate after its failing API CI is diagnosed/fixed against current `main`.
-2. Prove a second accepted acquisition mode so M0 does not depend only on browser-assisted acquisition; Kuper/another supported aggregator or a stable public-web path are preferred candidates.
-3. Run additional Perekrestok/Pyaterochka corpus/context validation as hardening and product-quality evidence; neither is now a Phase A connectivity blocker.
-4. Resolve issue #54 before treating the browser bridge as a persistent-session transport across post-success store changes / SPA navigation.
-5. Continue Kuper/X5 supported-access work in parallel.
-6. Continue Chizhik, Ozon Fresh, Samokat, Lenta, VkusVill and additional chains through the same registry/adapter process.
-7. Publish `v0.1.0-rc.3` through the real GitHub Release event when a release-capable path is available.
-8. Once the non-X5 and second-mode criteria are satisfied, make the explicit M0 → M1 go/no-go decision instead of starting Shopping Core prematurely.
+1. Execute Magnit Phase B against the fixed 20-item corpus in two explicit `shopCode` contexts and preserve sanitized deterministic fixtures.
+2. Prove stable SKU identity, representative current/regular/promo price distinction and availability semantics; keep unknown availability explicit when stock is not proven.
+3. If Phase B passes, decide whether Magnit can advance to an accepted public-web acquisition path and therefore satisfy both the independent non-X5 and second-acquisition-mode M0 criteria.
+4. If Magnit Phase B fails an acceptance gate, record the failure fail-closed and continue Kuper/another supported aggregator or stable public-web path rather than weakening the criteria.
+5. Run additional Perekrestok/Pyaterochka corpus/context validation as hardening and product-quality evidence; neither is now a Phase A connectivity blocker.
+6. Resolve issue #54 before treating the browser bridge as a persistent-session transport across post-success store changes / SPA navigation.
+7. Continue Kuper/X5 supported-access work in parallel and continue remaining retailer-registry onboarding through the same architecture.
+8. Publish `v0.1.0-rc.3` through the real GitHub Release event when a release-capable path is available.
+9. Once the non-X5 and second-mode criteria are satisfied, make the explicit M0 → M1 go/no-go decision instead of starting Shopping Core prematurely.
 
 ## Definition of M0 success
 
@@ -257,8 +290,8 @@ M0 is complete only when:
 
 - Pyaterochka has at least one reproducible accepted path — **satisfied via `AVAILABLE_BROWSER_BRIDGE`**;
 - Perekrestok has at least one reproducible accepted path — **satisfied via `AVAILABLE_BROWSER_BRIDGE`**;
-- at least one independent non-X5 retailer has a reproducible accepted path — **outstanding**;
-- at least two acquisition modes are proven end to end — **outstanding; browser bridge is currently the only accepted mode**;
+- at least one independent non-X5 retailer has a reproducible accepted path — **outstanding; Magnit Phase A passed and Phase B is now the active acceptance gate**;
+- at least two acquisition modes are proven end to end — **outstanding; browser bridge is accepted and Magnit public web is the active candidate for mode two**;
 - deterministic sanitized fixtures/tests preserve retailer/provider/store provenance;
 - the registry/adapter architecture can add another chain without retailer-specific changes to shopping/basket domain logic.
 
