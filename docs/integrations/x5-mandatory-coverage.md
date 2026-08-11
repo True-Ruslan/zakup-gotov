@@ -15,9 +15,9 @@ The goal is not necessarily a direct retailer API. The goal is reliable banner- 
 ## Current X5 state
 
 - **Perekrestok:** `AVAILABLE_BROWSER_BRIDGE` for page-snapshot acquisition. Adapter v2 passed the repeated real first-party browser gate on 2026-08-11 with `status=ok`, 90 normalized observations, one fulfillment context, adapter version `2`, and zero validation failures.
-- **Pyaterochka:** direct anonymous JDK path remains `DIRECT_ANONYMOUS_HTTP_UNSUITABLE` after `store-403`; Browser Bridge Phase A is now deterministic-ready with adapter v1, retailer-neutral registry wiring, exact `5d.5ka.ru` store-resource allow-listing, and persistent-Chromium async-context/DOM coverage. Real first-party browser evidence is still required before acceptance.
+- **Pyaterochka:** `AVAILABLE_BROWSER_BRIDGE` for page-snapshot acquisition. Adapter v1 passed the real first-party browser gate on 2026-08-11 from merged `main` SHA `95e83c1c2d3e8217de10bf9c2bb160735ba17f94` with `status=ok`, 12 normalized observations, exactly one fulfillment context, exact `pyaterochka` / `pyaterochka-browser` provenance, adapter version `1`, and zero validation failures.
 
-Perekrestok therefore satisfies its M0 per-retailer connectivity requirement. Pyaterochka remains the mandatory X5 connectivity blocker until the real browser gate advances it from `BROWSER_BRIDGE_LIVE_PENDING` to an accepted state.
+Both mandatory X5 banner criteria are therefore satisfied for M0 through the user-assisted first-party browser acquisition mode. Direct anonymous HTTP remains unsuitable for both banners, so supported X5/partner and aggregator-backed paths remain important parallel work rather than prerequisites for the per-banner M0 criterion.
 
 ## Required observation contract
 
@@ -50,7 +50,7 @@ Issue #36 continues to investigate supported Kuper Client apps API coverage.
 
 ## Track C — user-assisted first-party browser bridge
 
-This path is **proven for Perekrestok page snapshots** and **deterministic-ready/live-pending for Pyaterochka**.
+This path is now **proven for both Perekrestok and Pyaterochka page snapshots**.
 
 Architecture/boundary:
 
@@ -92,11 +92,11 @@ Live evidence: [`perekrestok-browser-bridge-live-2026-08-11.md`](perekrestok-bro
 
 Issue #54 tracks persistent-session refresh after the first successful snapshot; it does not invalidate the accepted reload-based page-snapshot path.
 
-### Pyaterochka deterministic proof
+### Pyaterochka proof
 
 Issue #57 / PR #58 reuse the same transport without conflating banner provenance.
 
-Current deterministic behavior:
+Deterministic behavior:
 
 - production MV3 routing includes official `5ka.ru` / `www.5ka.ru` pages with no new privileged permissions;
 - `pyaterochkaBrowserAdapter` emits `retailerId=pyaterochka`, `sourceProviderId=pyaterochka-browser`, `adapterVersion=1`;
@@ -105,16 +105,26 @@ Current deterministic behavior:
 - catalog-only presence emits `availability=UNKNOWN` rather than invented stock semantics;
 - store context is accepted only from canonical `https://5d.5ka.ru/api/catalog/v2/stores/<store-id>/...` resource pathname metadata;
 - other service paths, lookalike origins, cross-retailer use, query strings and fragments are rejected before adapter input;
-- retailer-neutral adapter registry now routes Perekrestok and Pyaterochka separately;
+- retailer-neutral adapter registry routes Perekrestok and Pyaterochka separately;
 - async cross-origin context and delayed product DOM are covered in persistent Chromium;
 - sentinel query/cookie data is proven absent from extension storage;
 - ordinary CI has zero live retailer dependency.
 
 TDD includes separate RED→GREEN gates for manifest routing, adapter creation, adapter registry, async cross-origin context, and resource-policy security.
 
-Current decision: **Pyaterochka = `BROWSER_BRIDGE_LIVE_PENDING`**. Deterministic success is not a support claim.
+Real first-party browser evidence on merged `main` SHA `95e83c1c2d3e8217de10bf9c2bb160735ba17f94`:
 
-Procedure/evidence contract: [`pyaterochka-browser-bridge-phase-a.md`](pyaterochka-browser-bridge-phase-a.md).
+- bridge status `ok`;
+- 12 normalized observations;
+- retailer IDs exactly `pyaterochka`;
+- provider IDs exactly `pyaterochka-browser`;
+- adapter version exactly `1`;
+- exactly one nonblank fulfillment context;
+- zero invalid observations under the Phase A acceptance predicate.
+
+Decision: **Pyaterochka = `AVAILABLE_BROWSER_BRIDGE`** for reload-based page-snapshot acquisition.
+
+Live evidence: [`pyaterochka-browser-bridge-live-2026-08-11.md`](pyaterochka-browser-bridge-live-2026-08-11.md).
 
 ## Previously tested direct paths
 
@@ -124,7 +134,7 @@ The transparent JDK HTTP probe received `store-403` on the first coordinate-to-s
 
 Current direct-path state: `DIRECT_ANONYMOUS_HTTP_UNSUITABLE`.
 
-The selected technical fallback is now the deterministic-ready user-assisted browser bridge while supported/aggregator access work continues in parallel.
+The accepted technical fallback is now the user-assisted browser bridge while supported/aggregator access work continues in parallel.
 
 ### Perekrestok
 
@@ -132,22 +142,22 @@ The transparent first-party-cookie probe received `store-403` before store selec
 
 ## Execution order
 
-1. Treat issue #47 as the umbrella mandatory-X5 requirement.
-2. Merge the deterministic Pyaterochka Browser Bridge Phase A only after the complete repository CI/security gate and read-only review.
-3. Run the real first-party Pyaterochka browser gate; advance to `AVAILABLE_BROWSER_BRIDGE` only on sanitized PASS evidence.
-4. Resolve issue #50 as a separate maintenance PR before any third substantial browser adapter so the bridge becomes a first-class pnpm workspace package without mixing the refactor into retailer behavior.
+1. Treat issue #47 as the umbrella mandatory-X5 requirement; both per-banner connectivity criteria are now satisfied through Track C.
+2. Resolve issue #50 as a separate no-behavior-change maintenance PR before any third substantial browser adapter or bridge-owned dependency.
+3. Prove at least one independent non-X5 retailer path, with the existing Magnit candidate currently nearest.
+4. Prove a second accepted acquisition mode so M0 is not browser-transport-only.
 5. Continue Kuper issue #36 and supported X5 partnership work in parallel.
 6. Keep direct anonymous 403 probes as regression/evidence only; do not turn them into stealth automation.
-7. Run Perekrestok fixed-corpus/second-context validation as hardening, not as a Phase A acceptance blocker.
-8. M0 GO still requires Pyaterochka live acceptance plus at least one independent non-X5 retailer path and the remaining cross-mode criteria.
+7. Run Perekrestok and Pyaterochka additional corpus/context validation as hardening, not as Phase A acceptance blockers.
+8. Resolve issue #54 before treating the bridge as a persistent-session transport across post-success store changes / SPA navigation.
 
 ## M0 decision rule
 
-Zakup Gotov must not enter M1 on the assumption that X5 can be omitted.
+Zakup Gotov must not enter M1 merely because X5 coverage is complete.
 
 Current per-banner state:
 
 - Perekrestok usable through Track C: **satisfied**;
-- Pyaterochka deterministic Track C implementation: **ready, real-browser acceptance outstanding**.
+- Pyaterochka usable through Track C: **satisfied**.
 
-M0 additionally requires at least one independent non-X5 provider path, deterministic fixture tests for accepted paths, operational limitations/provenance visible in the product model, and the architecture-level multi-mode criteria defined in `ROADMAP.md` / `PROJECT_STATE.md`.
+M0 still requires at least one independent non-X5 provider path, at least two acquisition modes proven end to end, deterministic fixture tests for accepted paths, operational limitations/provenance visible in the product model, and the architecture-level multi-mode criteria defined in `ROADMAP.md` / `PROJECT_STATE.md`.
