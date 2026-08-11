@@ -96,16 +96,29 @@ final class MagnitPublicPageProbe {
         }
 
         var matcher = PRICE.matcher(text);
-        BigDecimal bestPrice = null;
-        var bestDistance = Integer.MAX_VALUE;
+        BigDecimal nearestBeforeSku = null;
+        var nearestBeforeDistance = Integer.MAX_VALUE;
+        BigDecimal nearestAfterSku = null;
+        var nearestAfterDistance = Integer.MAX_VALUE;
+
         while (matcher.find()) {
-            var distance = Math.abs(matcher.start() - skuIndex);
-            if (distance < bestDistance) {
-                bestDistance = distance;
-                bestPrice = new BigDecimal(matcher.group(1).replace(',', '.'));
+            var price = new BigDecimal(matcher.group(1).replace(',', '.'));
+            if (matcher.end() <= skuIndex) {
+                var distance = skuIndex - matcher.end();
+                if (distance < nearestBeforeDistance) {
+                    nearestBeforeDistance = distance;
+                    nearestBeforeSku = price;
+                }
+            } else if (matcher.start() >= skuIndex + expectedSku.length()) {
+                var distance = matcher.start() - (skuIndex + expectedSku.length());
+                if (distance < nearestAfterDistance) {
+                    nearestAfterDistance = distance;
+                    nearestAfterSku = price;
+                }
             }
         }
-        return Optional.ofNullable(bestPrice);
+
+        return Optional.ofNullable(nearestBeforeSku != null ? nearestBeforeSku : nearestAfterSku);
     }
 
     private static String visibleText(String html) {
