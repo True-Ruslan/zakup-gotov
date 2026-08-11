@@ -48,6 +48,17 @@ class MagnitCorpusProbeTest {
     }
 
     @Test
+    void usesCurrentOfficialEggCandidate() {
+        var eggs = MagnitCorpusProbe.fixedCorpus().stream()
+                .filter(item -> item.requirement().equals("eggs"))
+                .findFirst()
+                .orElseThrow();
+
+        assertThat(eggs.sku()).isEqualTo("2047000014");
+        assertThat(eggs.productSlug()).isEqualTo("2047000014-yaytso_kurinoe_stolovoe_so_10sht");
+    }
+
+    @Test
     void parsesCurrentAndRegularPromoPriceBoundToExpectedSku() throws Exception {
         var observation = MagnitCorpusProbe.parseProductPage(fixture("promo-available.html"), "9072651501");
 
