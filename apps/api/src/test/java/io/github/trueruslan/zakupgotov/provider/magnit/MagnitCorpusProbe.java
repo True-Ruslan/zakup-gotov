@@ -34,7 +34,7 @@ final class MagnitCorpusProbe {
                     "milk",
                     "1000013732",
                     "1000013732-moloko_selo_zelenoe_ultrapasterizovannoe_2_5_950ml"),
-            new CorpusItem("eggs", "1000135280", "1000135280-yaytso_kurinoe_s1_15sht_up_20"),
+            new CorpusItem("eggs", "2047000014", "2047000014-yaytso_kurinoe_stolovoe_so_10sht"),
             new CorpusItem(
                     "bread",
                     "1000134831",
