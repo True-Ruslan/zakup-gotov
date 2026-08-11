@@ -118,8 +118,9 @@ The format follows the spirit of Keep a Changelog and semantic versioning will b
 - Perekrestok browser adapter provenance advanced to v2 so observations produced by the current DOM/resource acquisition logic remain distinguishable from the original structured-state-only implementation.
 - Browser bridge adapter selection is now registry-based rather than hard-coded to Perekrestok, allowing multiple retailer adapters to coexist while preserving distinct retailer/provider provenance.
 - Pyaterochka browser connectivity advanced from `BROWSER_BRIDGE_LIVE_PENDING` to `AVAILABLE_BROWSER_BRIDGE` after adapter v1 passed the real first-party browser gate on merged `main` with 12 normalized observations, one fulfillment context and zero validation failures.
-- Both mandatory X5 per-banner M0 connectivity criteria are now satisfied through the user-assisted browser mode; the next hard M0 gates are issue #50, an independent non-X5 accepted path, and a second distinct acquisition mode.
-- Issue #50 is now the explicit maintenance gate before any third substantial browser adapter or bridge-owned dependency so the retailer bridge becomes a first-class pnpm workspace package without mixing that refactor into retailer behavior.
+- Both mandatory X5 per-banner M0 connectivity criteria are now satisfied through the user-assisted browser mode; the next hard M0 gates are an independent non-X5 accepted path and a second distinct acquisition mode.
+- Retailer Bridge is now a first-class pnpm workspace package with explicit pinned TypeScript/Vitest/jsdom/Playwright dependencies; its package scripts, build tooling, E2E imports and CI no longer resolve tooling through `apps/web`.
+- Issue #50's maintenance gate is satisfied without retailer behavior, MV3 permission or acquisition-contract changes; the generated lockfile has an explicit bridge importer and the bridge-owned frozen-install/unit/type/build/persistent-Chromium gate remains green.
 
 ### Fixed
 
