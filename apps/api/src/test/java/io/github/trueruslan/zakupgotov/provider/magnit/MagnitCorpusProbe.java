@@ -304,7 +304,8 @@ final class MagnitCorpusProbe {
                     + " stable_identity=" + stableIdentity
                     + " known_availability=" + knownAvailability
                     + " promo_observations=" + promoObservations
-                    + " failed_count=" + failedRequirements.size();
+                    + " failed_count=" + failedRequirements.size()
+                    + " failed_requirements=" + String.join(",", failedRequirements);
         }
     }
 }
