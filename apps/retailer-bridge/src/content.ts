@@ -1,4 +1,4 @@
-import { perekrestokBrowserAdapter } from "./adapters/perekrestok-browser-adapter";
+import { retailerBrowserAdapters } from "./adapters/retailer-browser-adapters";
 import { BrowserObservationCollector } from "./collector/browser-observation-collector";
 import {
   createChromeObservationClearer,
@@ -8,7 +8,7 @@ import {
 const sendMessage = (message: unknown) => chrome.runtime.sendMessage(message);
 const sink = createChromeObservationSink(sendMessage);
 const clearObservations = createChromeObservationClearer(sendMessage);
-const collector = new BrowserObservationCollector([perekrestokBrowserAdapter], sink);
+const collector = new BrowserObservationCollector(retailerBrowserAdapters, sink);
 const firstPartyResourceUrls = new Set<string>();
 
 let collectionInFlight = false;
