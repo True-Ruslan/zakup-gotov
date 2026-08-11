@@ -1,6 +1,6 @@
 # Roadmap
 
-Updated: 2026-08-10
+Updated: 2026-08-11
 
 The roadmap is evidence-driven. Milestones may change when retailer integration feasibility or product usage contradicts current assumptions.
 
@@ -15,6 +15,13 @@ The durable design is in [`superpowers/specs/2026-08-10-universal-retailer-conne
 ## M0 — Product & Integration Discovery
 
 Goal: prove that the core product promise and the universal retailer-connectivity architecture are technically viable before substantial shopping-core development.
+
+Current evidence status:
+
+- **Perekrestok retailer-path criterion: satisfied** through `AVAILABLE_BROWSER_BRIDGE` page-snapshot acquisition after the real adapter-v2 browser PASS on 2026-08-11;
+- **Pyaterochka retailer-path criterion: outstanding**; direct anonymous HTTP is unsuitable and the proven browser-bridge contract is the next technical path;
+- **independent non-X5 retailer criterion: outstanding**;
+- **second distinct acquisition-mode criterion: outstanding** until another accepted path proves a non-browser mode end to end.
 
 Deliverables:
 
@@ -37,7 +44,7 @@ Accepted provider paths may be direct retailer APIs, supported aggregator integr
 Exit criteria:
 
 - **Pyaterochka** can return usable location/store-specific product/offer data through at least one acceptable path;
-- **Perekrestok** can return usable location/store-specific product/offer data through at least one acceptable path;
+- **Perekrestok** can return usable location/store-specific product/offer data through at least one acceptable path — **satisfied via `AVAILABLE_BROWSER_BRIDGE`**;
 - at least one independent non-X5 retailer can return usable location-specific product/offer data through an acceptable path;
 - at least two acquisition modes have been proven end to end so M0 does not depend on a single transport assumption;
 - accepted results are reproducible through automated tests/sanitized fixtures;
