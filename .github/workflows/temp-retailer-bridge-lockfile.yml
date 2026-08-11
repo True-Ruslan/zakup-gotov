@@ -43,11 +43,25 @@ jobs:
             exit 0
           fi
 
-          lock_sha="$(gh api "repos/${GITHUB_REPOSITORY}/contents/pnpm-lock.yaml?ref=${GITHUB_REF_NAME}" --jq .sha)"
-          lock_content="$(base64 -w0 pnpm-lock.yaml)"
+          export LOCK_SHA="$(gh api "repos/${GITHUB_REPOSITORY}/contents/pnpm-lock.yaml?ref=${GITHUB_REF_NAME}" --jq .sha)"
+          python3 - <<'PY'
+          import base64
+          import json
+          import os
+
+          with open("pnpm-lock.yaml", "rb") as source:
+              content = base64.b64encode(source.read()).decode("ascii")
+
+          payload = {
+              "message": "chore(bridge): regenerate pnpm lockfile",
+              "content": content,
+              "sha": os.environ["LOCK_SHA"],
+              "branch": os.environ["GITHUB_REF_NAME"],
+          }
+          with open("/tmp/lockfile-update.json", "w", encoding="utf-8") as target:
+              json.dump(payload, target)
+          PY
+
           gh api --method PUT "repos/${GITHUB_REPOSITORY}/contents/pnpm-lock.yaml" \
-            -f message='chore(bridge): regenerate pnpm lockfile' \
-            -f content="${lock_content}" \
-            -f sha="${lock_sha}" \
-            -f branch="${GITHUB_REF_NAME}" \
+            --input /tmp/lockfile-update.json \
             >/dev/null
