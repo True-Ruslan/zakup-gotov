@@ -4,12 +4,13 @@ import {
   createChromeObservationClearer,
   createChromeObservationSink,
 } from "./collector/chrome-observation-sink";
+import { canonicalObservedResourceUrl } from "./resource-observation-policy";
 
 const sendMessage = (message: unknown) => chrome.runtime.sendMessage(message);
 const sink = createChromeObservationSink(sendMessage);
 const clearObservations = createChromeObservationClearer(sendMessage);
 const collector = new BrowserObservationCollector(retailerBrowserAdapters, sink);
-const firstPartyResourceUrls = new Set<string>();
+const observedResourceUrls = new Set<string>();
 
 let collectionInFlight = false;
 let collectionPending = false;
@@ -22,24 +23,19 @@ function publishDiagnostics(status: string, observationCount: number): void {
   document.documentElement.dataset.zgBridgeCount = String(observationCount);
 }
 
-function rememberFirstPartyResource(rawUrl: string): boolean {
-  try {
-    const resourceUrl = new URL(rawUrl, location.href);
-    if (resourceUrl.origin !== location.origin) return false;
+function rememberAllowedResource(rawUrl: string): boolean {
+  const canonical = canonicalObservedResourceUrl(rawUrl, new URL(location.href));
+  if (!canonical) return false;
 
-    const canonical = `${resourceUrl.origin}${resourceUrl.pathname}`;
-    const previousSize = firstPartyResourceUrls.size;
-    firstPartyResourceUrls.add(canonical);
-    return firstPartyResourceUrls.size !== previousSize;
-  } catch {
-    return false;
-  }
+  const previousSize = observedResourceUrls.size;
+  observedResourceUrls.add(canonical);
+  return observedResourceUrls.size !== previousSize;
 }
 
 function rememberResourceEntries(entries: readonly PerformanceEntry[]): boolean {
   let changed = false;
   entries.forEach((entry) => {
-    changed = rememberFirstPartyResource(entry.name) || changed;
+    changed = rememberAllowedResource(entry.name) || changed;
   });
   return changed;
 }
@@ -57,7 +53,7 @@ async function collectCurrentPage(): Promise<void> {
       document,
       new URL(location.href),
       new Date().toISOString(),
-      [...firstPartyResourceUrls],
+      [...observedResourceUrls],
     );
 
     if (result.status === "ok") {
