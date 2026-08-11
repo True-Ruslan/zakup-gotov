@@ -21,6 +21,7 @@ Current evidence status:
 - **Perekrestok retailer-path criterion: satisfied** through `AVAILABLE_BROWSER_BRIDGE` page-snapshot acquisition after the real adapter-v2 browser PASS on 2026-08-11;
 - **Pyaterochka retailer-path criterion: satisfied** through `AVAILABLE_BROWSER_BRIDGE` page-snapshot acquisition after adapter v1 passed the real first-party browser gate on 2026-08-11 from merged `main` SHA `95e83c1c2d3e8217de10bf9c2bb160735ba17f94` with 12 normalized observations, one fulfillment context and zero validation failures;
 - **mandatory X5 per-banner connectivity criterion: satisfied** for both Pyaterochka and Perekrestok through the browser-assisted acquisition mode;
+- **retailer-bridge workspace maintenance gate: satisfied** by making `apps/retailer-bridge` an independent pnpm workspace importer with pinned bridge-owned tooling and unchanged deterministic browser behavior;
 - **independent non-X5 retailer criterion: outstanding**;
 - **second distinct acquisition-mode criterion: outstanding** until another accepted path proves a non-browser mode end to end.
 
@@ -55,14 +56,15 @@ Exit criteria:
 
 Detailed X5 strategy: [`integrations/x5-mandatory-coverage.md`](integrations/x5-mandatory-coverage.md).
 
-Immediate M0 sequencing after Pyaterochka live acceptance:
+Immediate M0 sequencing after the retailer-bridge workspace gate:
 
-1. resolve issue #50 in a separate no-behavior-change maintenance PR so `apps/retailer-bridge` becomes a first-class pnpm workspace package before any third substantial browser adapter or bridge-owned dependency;
-2. prove at least one independent non-X5 retailer path, with the existing Magnit path currently the nearest candidate;
-3. prove a second accepted acquisition mode so M0 is not browser-transport-only;
-4. keep Perekrestok/Pyaterochka additional corpus/context validation and issue #54 persistent-session work as hardening rather than reopening their Phase A acceptance;
-5. continue Kuper/X5 supported-access work in parallel;
-6. publish the outstanding `v0.1.0-rc.3` release proof when a release-capable path is available.
+1. prove at least one independent non-X5 retailer path, with Magnit PR #46 currently the nearest candidate after its failing API CI is diagnosed/fixed against current `main`;
+2. prove a second accepted acquisition mode so M0 is not browser-transport-only;
+3. keep Perekrestok/Pyaterochka additional corpus/context validation and issue #54 persistent-session work as hardening rather than reopening their Phase A acceptance;
+4. continue Kuper/X5 supported-access work in parallel, with an accepted aggregator-backed path also able to satisfy the second-mode criterion;
+5. continue remaining retailer-registry onboarding through the now independent bridge/provider architecture;
+6. publish the outstanding `v0.1.0-rc.3` release proof when a release-capable path is available;
+7. once the independent non-X5 and second-mode criteria are satisfied, make the explicit M0 → M1 go/no-go decision.
 
 ## M1 — Shopping Core
 
