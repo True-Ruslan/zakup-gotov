@@ -1,13 +1,13 @@
 # Pyaterochka Browser Bridge — Phase A
 
-Status: `DETERMINISTIC_READY_LIVE_PENDING`
+Status: `AVAILABLE_BROWSER_BRIDGE`
 Tracking: issue #57 / umbrella #47 / PR #58
 
 ## Goal
 
 Provide one reproducible Pyaterochka acquisition path through the existing user-assisted first-party browser bridge after the direct anonymous server-side 5ka path failed closed with `store-403`.
 
-This Phase A proves deterministic parsing, provenance, privacy boundaries, async browser timing, and extension wiring. It does **not** advance Pyaterochka to `AVAILABLE_BROWSER_BRIDGE` until a real first-party browser gate passes.
+Phase A now proves deterministic parsing, provenance, privacy boundaries, async browser timing, extension wiring, and a real first-party browser PASS on the merged implementation.
 
 ## Browser contract
 
@@ -192,51 +192,32 @@ Phase A preserves the existing browser-bridge trust boundary:
 - stale observations are cleared on failed collection;
 - normal CI is live-retailer-free.
 
-## Real-browser gate
+## Real-browser gate — PASS on 2026-08-11
 
-After PR #58 is merged, build the current extension from `main`:
+PR #58 was squash-merged to `main` as `95e83c1c2d3e8217de10bf9c2bb160735ba17f94`. The extension was rebuilt from that merged implementation and exercised on the official Pyaterochka catalog in a normal Chromium-compatible first-party browser profile after normal user-controlled location/store selection and a full page reload.
 
-```bash
-git checkout main
-git pull
-pnpm install --frozen-lockfile
-pnpm --dir apps/retailer-bridge build
-```
+Sanitized page diagnostics:
 
-Then in a Chromium-compatible normal user browser profile:
+- bridge status: `ok`;
+- normalized observation count: `12`.
 
-1. load/reload unpacked `apps/retailer-bridge/dist`;
-2. open the official Pyaterochka web catalog;
-3. manually select the intended location/store and complete any first-party login/CAPTCHA manually if required;
-4. fully reload the catalog page;
-5. inspect only:
-   - `document.documentElement.dataset.zgBridgeStatus`;
-   - `document.documentElement.dataset.zgBridgeCount`.
+Aggregate normalized-observation validation:
 
-Expected first gate:
+- observation count: `12`;
+- retailer IDs: exactly `pyaterochka`;
+- provider IDs: exactly `pyaterochka-browser`;
+- adapter versions: exactly `1`;
+- fulfillment contexts: exactly `1` nonblank context;
+- invalid observations under the Phase A acceptance predicate: `0`.
 
-- status `ok`;
-- count greater than `0`.
+No raw observations, store identifier, exact address, cookies, tokens, request headers, response bodies, arbitrary browser-storage values, query strings or raw production HTML are retained as evidence.
 
-If the first gate passes, inspect only the normalized extension-local observations and validate:
+Sanitized evidence: [`pyaterochka-browser-bridge-live-2026-08-11.md`](pyaterochka-browser-bridge-live-2026-08-11.md).
 
-- `retailerId = pyaterochka`;
-- `sourceProviderId = pyaterochka-browser`;
-- `adapterVersion = 1`;
-- exactly one nonblank fulfillment context for the page snapshot;
-- nonblank SKU;
-- integer `priceMinor >= 0`;
-- `currencyCode = RUB`;
-- availability in `AVAILABLE`, `UNAVAILABLE`, `UNKNOWN`;
-- canonical `sourceReference` without query/hash;
-- zero invalid observations under that predicate.
+## Decision
 
-Do not export cookies, tokens, request headers, storage values, exact address, response bodies, or raw HTML for evidence.
+Current Phase A decision: **`AVAILABLE_BROWSER_BRIDGE`** for reload-based page-snapshot acquisition.
 
-## Decision rule
+The current accepted operation assumes the intended store is selected before a full page reload. Issue #54 remains the separate lifecycle-hardening item before the browser bridge is treated as a persistent-session transport across post-success same-document store changes or SPA navigation.
 
-Current Phase A decision: **`BROWSER_BRIDGE_LIVE_PENDING`**.
-
-Advance Pyaterochka to `AVAILABLE_BROWSER_BRIDGE` only after the real first-party browser gate above passes and sanitized evidence is committed.
-
-If the live shape differs, record only the minimum sanitized structural evidence required, add a failing regression fixture/test first, then change the adapter through another RED → GREEN cycle.
+The direct anonymous HTTP path remains `DIRECT_ANONYMOUS_HTTP_UNSUITABLE`; this live PASS accepts only the user-assisted browser acquisition mode with explicit `pyaterochka-browser` provenance.

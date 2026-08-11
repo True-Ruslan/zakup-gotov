@@ -12,6 +12,7 @@ This directory is the durable documentation entry point for Zakup Gotov. Documen
 | Retailer integration feasibility evidence | [`integrations/retailer-feasibility.md`](integrations/retailer-feasibility.md) |
 | Mandatory Pyaterochka/Perekrestok strategy | [`integrations/x5-mandatory-coverage.md`](integrations/x5-mandatory-coverage.md) |
 | Pyaterochka browser-bridge Phase A decision | [`integrations/pyaterochka-browser-bridge-phase-a.md`](integrations/pyaterochka-browser-bridge-phase-a.md) |
+| Pyaterochka real-browser PASS evidence | [`integrations/pyaterochka-browser-bridge-live-2026-08-11.md`](integrations/pyaterochka-browser-bridge-live-2026-08-11.md) |
 | Perekrestok browser-bridge Phase A decision | [`integrations/perekrestok-browser-bridge-phase-a.md`](integrations/perekrestok-browser-bridge-phase-a.md) |
 | Perekrestok v1 live failure/root-cause evidence | [`integrations/perekrestok-browser-bridge-live-2026-08-10.md`](integrations/perekrestok-browser-bridge-live-2026-08-10.md) |
 | Perekrestok v2 real-browser PASS evidence | [`integrations/perekrestok-browser-bridge-live-2026-08-11.md`](integrations/perekrestok-browser-bridge-live-2026-08-11.md) |

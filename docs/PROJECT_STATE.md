@@ -9,8 +9,8 @@ Updated: 2026-08-11
 Repository: `True-Ruslan/zakup-gotov`  
 Visibility: Public  
 Current phase: **M0 — Product & Integration Discovery**  
-Current execution stage: **M0A closure + M0B Universal Retailer Connectivity**  
-Current focus: **finish Pyaterochka Browser Bridge Phase A through the real first-party browser gate, then resolve bridge workspace debt before any third substantial browser adapter, prove an independent non-X5 path, and keep the outstanding `v0.1.0-rc.3` release proof explicit**
+Current execution stage: **M0B Universal Retailer Connectivity**  
+Current focus: **resolve retailer-bridge workspace debt (#50), prove an independent non-X5 retailer path and a second acquisition mode, then make the M0 → M1 go/no-go decision**
 
 ## Product connectivity invariant
 
@@ -31,17 +31,25 @@ The initial priority registry includes Pyaterochka, Perekrestok, Chizhik, Magnit
 
 The platform foundation is executable and automatically verified. The core multi-retailer basket-comparison user flow is **not implemented yet**. The web surface intentionally does not fake retailer prices or availability.
 
-**Perekrestok has one accepted acquisition path: `AVAILABLE_BROWSER_BRIDGE` for page-snapshot acquisition.**
+**Both mandatory X5 banners now have accepted page-snapshot acquisition paths:**
 
-**Pyaterochka Browser Bridge Phase A is deterministic-ready but remains `BROWSER_BRIDGE_LIVE_PENDING`.** PR #58 introduces the second browser adapter with distinct provenance, deterministic fixtures, exact official service-resource allow-listing, and persistent-Chromium async-context/DOM evidence. A real first-party browser PASS is still required before availability can be claimed.
+- **Perekrestok:** `AVAILABLE_BROWSER_BRIDGE`, adapter v2;
+- **Pyaterochka:** `AVAILABLE_BROWSER_BRIDGE`, adapter v1.
 
-Other target retailers remain in discovery/unimplemented states until their own evidence gates pass.
+The remaining M0 blockers are no longer X5 per-banner connectivity. M0 still requires:
+
+- at least one independent non-X5 retailer with a reproducible accepted path;
+- at least two distinct acquisition modes proven end to end;
+- the bridge workspace maintenance gate (#50) before another substantial browser adapter or bridge-owned dependency;
+- preservation of explicit retailer/provider/store provenance and deterministic sanitized verification.
 
 ## M0B verified foundation
 
 PR #35 established the normalized `ObservedOffer` trust boundary.
 
 PR #37 was squash-merged to `main` as `e318c8ee92ab5f62dd593f4fd214735eb8c59750` and established the reusable provider feasibility harness: provider capabilities, provider-scoped `LocationContext`, normalized `ProductQuery`, structural fixture/live provider separation, offline fixture verification and explicit live-probe entry points.
+
+PR #48 established Universal Retailer Connectivity as a registry invariant rather than a best-effort set of easy integrations.
 
 ## Retailer evidence
 
@@ -55,12 +63,12 @@ Interpretation:
 
 - direct anonymous server-side path: `DIRECT_ANONYMOUS_HTTP_UNSUITABLE`;
 - Pyaterochka product coverage: still mandatory;
-- selected technical fallback: user-assisted first-party browser bridge;
+- selected fallback: user-assisted first-party browser bridge;
 - supported X5/partner access and aggregator-backed coverage remain valid parallel tracks.
 
-### Pyaterochka Browser Bridge Phase A — deterministic ready, live pending
+### Pyaterochka Browser Bridge Phase A — LIVE PASS
 
-Issue #57 / PR #58 reuse the retailer-neutral browser transport already proven for Perekrestok without sharing retailer provenance.
+PR #58 was squash-merged to `main` as `95e83c1c2d3e8217de10bf9c2bb160735ba17f94`.
 
 Deterministic implementation:
 
@@ -72,14 +80,14 @@ Deterministic implementation:
 - fulfillment context is accepted only from canonical `https://5d.5ka.ru/api/catalog/v2/stores/<store-id>/...` resource pathname metadata;
 - runtime rejects other 5d paths, lookalike origins and cross-retailer use;
 - query strings/fragments are removed before resource evidence reaches adapters;
-- a retailer-neutral adapter registry now contains Perekrestok and Pyaterochka;
+- the retailer-neutral adapter registry contains Perekrestok and Pyaterochka;
 - shared `PerformanceObserver` + `MutationObserver` behavior handles late store context and late product DOM;
 - fail-closed stale clearing remains in place;
 - no cookies, tokens, request headers, response bodies, arbitrary storage values or raw production HTML are captured.
 
 TDD proof is recorded in [`integrations/pyaterochka-browser-bridge-phase-a.md`](integrations/pyaterochka-browser-bridge-phase-a.md).
 
-Key executable GREEN head before final docs synchronization: `73b73f1049c9e3b5f6c5000644ead07e1b0754b4`:
+Key executable GREEN head before final documentation synchronization: `73b73f1049c9e3b5f6c5000644ead07e1b0754b4`:
 
 - 23 unit tests PASS;
 - TypeScript PASS;
@@ -88,9 +96,28 @@ Key executable GREEN head before final docs synchronization: `73b73f1049c9e3b5f6
 - Pyaterochka async cross-origin store-context + delayed-DOM scenario PASS;
 - resource-query and browser-cookie sentinels do not reach extension storage.
 
-The implementation was built through explicit RED→GREEN gates for manifest routing, adapter creation, retailer-neutral registry wiring, async cross-origin context, and the resource observation security policy.
+#### Real first-party browser gate — 2026-08-11
 
-Current decision: **`BROWSER_BRIDGE_LIVE_PENDING`**. Deterministic success is not a retailer support claim. After PR #58 is merged, the rebuilt extension must pass the documented real first-party browser gate before Pyaterochka may advance to `AVAILABLE_BROWSER_BRIDGE`.
+The extension rebuilt from merged `main` SHA `95e83c1c2d3e8217de10bf9c2bb160735ba17f94` was exercised on the official Pyaterochka catalog in a normal Chromium-compatible first-party browser profile after normal user-controlled store/location selection and a full reload.
+
+Sanitized result:
+
+- `data-zg-bridge-status = ok`;
+- normalized observation count `12`;
+- retailer IDs: exactly `pyaterochka`;
+- provider IDs: exactly `pyaterochka-browser`;
+- adapter versions: exactly `1`;
+- exactly one nonblank fulfillment context;
+- normalized validation failures: `0`.
+
+Result: **PASS**.
+
+Current Pyaterochka decision: **`AVAILABLE_BROWSER_BRIDGE`** for reload-based page-snapshot acquisition through the user-assisted first-party browser transport.
+
+Evidence:
+
+- Phase A/TDD/security decision: [`integrations/pyaterochka-browser-bridge-phase-a.md`](integrations/pyaterochka-browser-bridge-phase-a.md);
+- final live PASS: [`integrations/pyaterochka-browser-bridge-live-2026-08-11.md`](integrations/pyaterochka-browser-bridge-live-2026-08-11.md).
 
 ### Perekrestok direct path
 
@@ -106,47 +133,22 @@ No browser-derived `Auth` was exported or replayed. The direct anonymous/ordinar
 
 PR #49 was squash-merged to `main` as `333ad5d6ffbdcce3622a587b09004690afbe8e60`. It established the Chromium Manifest V3 bridge, normalized observation boundary, sanitized extension-local storage, fail-closed stale-data clearing, deterministic fixtures and persistent-Chromium E2E.
 
-The first real browser gate on 2026-08-10 exposed an adapter-v1 mismatch:
+The first real browser gate on 2026-08-10 exposed an adapter-v1 mismatch. PR #53 then introduced adapter v2, using current semantic `.product-card` DOM plus same-origin shop-resource evidence.
 
-- bridge content script executed;
-- `data-zg-bridge-status = missing-context`;
-- observation count `0`;
-- result: **FAIL for adapter v1**.
+PR #53 was squash-merged to `main` as `218c96def777622ab66f1f8663f0466e35a9d804`; its exact final head passed the complete repository workflow/security gate.
 
-Sanitized diagnostics proved the current site uses stable `.product-card` DOM and a same-origin `/api/customer/.../shop/<numeric-id>` resource pathname rather than the original embedded product/store state.
+Repeated real-browser v2 evidence on 2026-08-11:
 
-PR #53 was squash-merged to `main` as `218c96def777622ab66f1f8663f0466e35a9d804`. Its exact final head `ac29d2d2d6fe50d3c999c96e26d5bbfe0f6ff7ca` passed the complete repository workflow/security gate.
-
-Adapter v2 on `main`:
-
-- preserves the legacy structured-state path;
-- falls back to semantic `.product-card` DOM when required;
-- derives SKU from the numeric product-link suffix;
-- normalizes visible RUB price to integer minor units;
-- uses `UNKNOWN` availability when catalog DOM does not prove stock;
-- accepts store context only from same-origin `/api/customer/<version>/shop/<numeric-id>` resource paths;
-- strips resource query/hash before adapter use;
-- handles late resource and late DOM evidence through `PerformanceObserver` + `MutationObserver`;
-- serializes overlapping collections and disconnects observers after first success;
-- keeps production permissions at `storage` only;
-- records adapter provenance as version `2`.
-
-#### Repeated real-browser gate — 2026-08-11
-
-The rebuilt v2 extension was exercised in the user's normal Yandex Browser profile on the official Perekrestok catalog after normal first-party store selection and full page reload.
-
-Observed live result:
-
-- `data-zg-bridge-status = ok`;
-- `data-zg-bridge-count = 90`;
-- adapter versions: exactly `2`;
-- fulfillment contexts: exactly one (`656`);
-- normalized validation failures: `0`;
-- sample observations contained nonblank SKU, integer non-negative `priceMinor`, `RUB`, `UNKNOWN` availability and canonical source references without query/hash.
+- bridge status `ok`;
+- 90 normalized observations;
+- adapter version exactly `2`;
+- exactly one fulfillment context;
+- zero invalid observations under the acceptance predicate;
+- canonical source references without query/hash.
 
 Result: **PASS**.
 
-Current Perekrestok decision: **`AVAILABLE_BROWSER_BRIDGE`** for page-snapshot acquisition through the user-assisted first-party browser transport.
+Current Perekrestok decision: **`AVAILABLE_BROWSER_BRIDGE`** for reload-based page-snapshot acquisition.
 
 Evidence:
 
@@ -154,21 +156,25 @@ Evidence:
 - final live PASS: [`integrations/perekrestok-browser-bridge-live-2026-08-11.md`](integrations/perekrestok-browser-bridge-live-2026-08-11.md);
 - Phase A decision/procedure: [`integrations/perekrestok-browser-bridge-phase-a.md`](integrations/perekrestok-browser-bridge-phase-a.md).
 
-Issue #54 remains a non-blocking lifecycle hardening item: after the first successful snapshot, same-document store changes or SPA navigation are not yet automatically refreshed. The accepted current path therefore assumes intended store selection followed by page reload.
+Issue #54 remains a non-blocking lifecycle-hardening item: after the first successful snapshot, same-document store changes or SPA navigation are not yet automatically refreshed. The accepted current path therefore assumes intended store selection followed by page reload.
 
 ### Magnit
 
-PR #46 remains an independent non-X5 path candidate using public SSR product pages under explicit `shopCode` contexts without cookies/auth/API keys. No support claim is made until that evidence path is resolved.
+PR #46 remains the nearest independent non-X5 path candidate using public SSR product pages under explicit `shopCode` contexts without cookies/auth/API keys.
+
+Its current branch is **not merge-ready** because `API CI` is failing. The failure must be diagnosed against current `main` before the path can be accepted. No support claim is made until the complete evidence path and CI gate pass.
 
 ### Kuper
 
 Issue #36 remains active for supported aggregator-backed access. Any Kuper observation must preserve aggregator provider provenance separately from the underlying retailer/banner identity.
 
+Kuper remains strategically important because an accepted aggregator-backed path could satisfy the outstanding second-acquisition-mode criterion while broadening retailer coverage.
+
 ## Bridge maintenance threshold
 
-Issue #50 was intentionally created when Perekrestok Phase A reused TypeScript/Vitest/Playwright tooling from `apps/web` rather than making `apps/retailer-bridge` a first-class pnpm workspace importer.
+Issue #50 was created when Perekrestok Phase A reused TypeScript/Vitest/Playwright tooling from `apps/web` rather than making `apps/retailer-bridge` a first-class pnpm workspace importer.
 
-PR #58 introduces the second substantial browser adapter, so that maintenance threshold is now reached. To keep the maintenance refactor behavior-neutral as issue #50 requires, it remains separate from PR #58 but becomes a **hard precondition before any third substantial browser adapter or bridge-owned dependency**.
+PR #58 introduced the second substantial browser adapter, so that maintenance threshold is reached. Issue #50 is now the **immediate implementation priority** before another substantial browser adapter or bridge-owned dependency.
 
 Issue #50 must:
 
@@ -176,7 +182,8 @@ Issue #50 must:
 - give the bridge explicit pinned devDependencies;
 - regenerate the lockfile normally;
 - remove `../web` tooling/node_modules coupling;
-- preserve frozen-install/supply-chain checks and all bridge security/E2E gates.
+- preserve frozen-install/supply-chain checks and all bridge security/E2E gates;
+- make no functional retailer behavior change.
 
 ## Verified platform baseline
 
@@ -225,25 +232,24 @@ A successful real **`v0.1.0-rc.3` GitHub Release published event remains outstan
 
 ## Immediate next work
 
-1. Finish PR #58 through exact-final-head repository CI/security verification and read-only review, then merge the deterministic Pyaterochka Browser Bridge implementation.
-2. Run the real first-party Pyaterochka browser gate from merged `main`; on PASS, commit sanitized live evidence and advance Pyaterochka to `AVAILABLE_BROWSER_BRIDGE`. On mismatch, add the minimum sanitized fixture and a failing regression test before any adapter change.
-3. Resolve issue #50 in a separate behavior-neutral maintenance PR before a third substantial browser adapter or bridge-owned dependency.
-4. Resolve at least one independent non-X5 retailer path, with Magnit currently the nearest existing candidate.
-5. Prove a second accepted acquisition mode so M0 does not depend only on browser-assisted acquisition.
-6. Run Perekrestok fixed-corpus/second-context validation as hardening and product-quality evidence; it is no longer the Phase A connectivity blocker.
-7. Resolve issue #54 before treating the bridge as a persistent-session transport across post-success store changes / SPA navigation.
-8. Continue Kuper/X5 supported-access work in parallel.
-9. Continue Chizhik, Ozon Fresh, Samokat, Lenta, VkusVill and additional chains through the same registry/adapter process after the issue #50 maintenance gate.
-10. Publish `v0.1.0-rc.3` through the real GitHub Release event when a release-capable path is available.
+1. Resolve issue #50 in a separate behavior-neutral maintenance PR before any third substantial browser adapter or bridge-owned dependency.
+2. Resolve at least one independent non-X5 retailer path, with Magnit PR #46 currently the nearest existing candidate after its failing API CI is diagnosed/fixed against current `main`.
+3. Prove a second accepted acquisition mode so M0 does not depend only on browser-assisted acquisition; Kuper/another supported aggregator or a stable public-web path are preferred candidates.
+4. Run additional Perekrestok/Pyaterochka corpus/context validation as hardening and product-quality evidence; neither is now a Phase A connectivity blocker.
+5. Resolve issue #54 before treating the browser bridge as a persistent-session transport across post-success store changes / SPA navigation.
+6. Continue Kuper/X5 supported-access work in parallel.
+7. Continue Chizhik, Ozon Fresh, Samokat, Lenta, VkusVill and additional chains through the same registry/adapter process after issue #50.
+8. Publish `v0.1.0-rc.3` through the real GitHub Release event when a release-capable path is available.
+9. Once the non-X5 and second-mode criteria are satisfied, make the explicit M0 → M1 go/no-go decision instead of starting Shopping Core prematurely.
 
 ## Definition of M0 success
 
 M0 is complete only when:
 
-- Pyaterochka has at least one reproducible accepted path — **deterministic browser implementation exists; real-browser acceptance remains outstanding**;
+- Pyaterochka has at least one reproducible accepted path — **satisfied via `AVAILABLE_BROWSER_BRIDGE`**;
 - Perekrestok has at least one reproducible accepted path — **satisfied via `AVAILABLE_BROWSER_BRIDGE`**;
-- at least one independent non-X5 retailer has a reproducible accepted path;
-- at least two acquisition modes are proven end to end;
+- at least one independent non-X5 retailer has a reproducible accepted path — **outstanding**;
+- at least two acquisition modes are proven end to end — **outstanding; browser bridge is currently the only accepted mode**;
 - deterministic sanitized fixtures/tests preserve retailer/provider/store provenance;
 - the registry/adapter architecture can add another chain without retailer-specific changes to shopping/basket domain logic.
 
