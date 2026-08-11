@@ -19,7 +19,7 @@ Goal: prove that the core product promise and the universal retailer-connectivit
 Current evidence status:
 
 - **Perekrestok retailer-path criterion: satisfied** through `AVAILABLE_BROWSER_BRIDGE` page-snapshot acquisition after the real adapter-v2 browser PASS on 2026-08-11;
-- **Pyaterochka retailer-path criterion: outstanding**; direct anonymous HTTP is unsuitable and the proven browser-bridge contract is the next technical path;
+- **Pyaterochka retailer-path criterion: live acceptance outstanding**; direct anonymous HTTP is unsuitable, while Browser Bridge Phase A is now deterministic-ready with adapter v1, distinct provenance, exact official service-resource allow-listing, and persistent-Chromium async-context/DOM proof. It remains `BROWSER_BRIDGE_LIVE_PENDING` until the real first-party browser gate passes;
 - **independent non-X5 retailer criterion: outstanding**;
 - **second distinct acquisition-mode criterion: outstanding** until another accepted path proves a non-browser mode end to end.
 
@@ -43,7 +43,7 @@ Accepted provider paths may be direct retailer APIs, supported aggregator integr
 
 Exit criteria:
 
-- **Pyaterochka** can return usable location/store-specific product/offer data through at least one acceptable path;
+- **Pyaterochka** can return usable location/store-specific product/offer data through at least one acceptable path — deterministic browser implementation exists, **real browser acceptance still required**;
 - **Perekrestok** can return usable location/store-specific product/offer data through at least one acceptable path — **satisfied via `AVAILABLE_BROWSER_BRIDGE`**;
 - at least one independent non-X5 retailer can return usable location-specific product/offer data through an acceptable path;
 - at least two acquisition modes have been proven end to end so M0 does not depend on a single transport assumption;
@@ -53,6 +53,15 @@ Exit criteria:
 - known limitations are documented rather than hidden.
 
 Detailed X5 strategy: [`integrations/x5-mandatory-coverage.md`](integrations/x5-mandatory-coverage.md).
+
+Immediate M0 sequencing after the current Pyaterochka Phase A implementation:
+
+1. complete the exact-head CI/security/review gate and merge the deterministic Pyaterochka bridge;
+2. run the real first-party Pyaterochka browser gate and record sanitized PASS/FAIL evidence;
+3. resolve issue #50 in a separate no-behavior-change maintenance PR before a third substantial browser adapter;
+4. prove at least one independent non-X5 retailer path, with the existing Magnit path currently the nearest candidate;
+5. prove a second accepted acquisition mode so M0 is not browser-transport-only;
+6. keep Perekrestok corpus/second-context and persistent-session work as hardening rather than reopening its Phase A acceptance.
 
 ## M1 — Shopping Core
 
