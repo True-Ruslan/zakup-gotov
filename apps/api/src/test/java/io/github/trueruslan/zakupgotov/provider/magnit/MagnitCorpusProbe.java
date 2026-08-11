@@ -22,6 +22,7 @@ final class MagnitCorpusProbe {
     private static final Duration CONNECT_TIMEOUT = Duration.ofSeconds(8);
     private static final Duration REQUEST_TIMEOUT = Duration.ofSeconds(12);
     private static final int NEAR_SKU_WINDOW = 900;
+    private static final int PRICE_BOUND_PROMO_WINDOW = 160;
     private static final String ARTICLE_MARKER = "Артикул ";
     private static final Map<String, String> REQUEST_HEADERS = Map.of(
             "Accept", "text/html,application/xhtml+xml",
@@ -108,6 +109,7 @@ final class MagnitCorpusProbe {
         var promoObservations = 0;
         var nearSkuMultiplePriceObservations = 0;
         var nearSkuPromoMarkerObservations = 0;
+        var priceBoundPromoMarkerObservations = 0;
         var failedRequirements = new ArrayList<String>();
 
         for (var item : FIXED_CORPUS) {
@@ -155,6 +157,12 @@ final class MagnitCorpusProbe {
             if (second.rawShape().promoMarker()) {
                 nearSkuPromoMarkerObservations++;
             }
+            if (first.priceBoundPromo().promoMarker()) {
+                priceBoundPromoMarkerObservations++;
+            }
+            if (second.priceBoundPromo().promoMarker()) {
+                priceBoundPromoMarkerObservations++;
+            }
             if (!first.usable() || !second.usable()) {
                 failedRequirements.add(item.requirement());
             }
@@ -172,6 +180,7 @@ final class MagnitCorpusProbe {
                 promoObservations,
                 nearSkuMultiplePriceObservations,
                 nearSkuPromoMarkerObservations,
+                priceBoundPromoMarkerObservations,
                 List.copyOf(failedRequirements));
     }
 
@@ -185,7 +194,8 @@ final class MagnitCorpusProbe {
                 requestBuilder.build(), HttpResponse.BodyHandlers.ofString(StandardCharsets.UTF_8));
         var observation = parseProductPage(response.body(), item.sku());
         var rawShape = inspectNearSkuRawShape(response.body(), item.sku());
-        return new HttpObservation(response.statusCode(), observation, rawShape);
+        var priceBoundPromo = inspectPriceBoundPromoShape(response.body(), item.sku());
+        return new HttpObservation(response.statusCode(), observation, rawShape, priceBoundPromo);
     }
 
     static PageObservation parseProductPage(String html, String expectedSku) {
@@ -268,6 +278,56 @@ final class MagnitCorpusProbe {
         return new RawShapeEvidence(multiplePriceCandidates, promoMarker);
     }
 
+    static PriceBoundPromoEvidence inspectPriceBoundPromoShape(String html, String expectedSku) {
+        if (expectedSku == null || expectedSku.isBlank()) {
+            throw new IllegalArgumentException("expectedSku must not be blank");
+        }
+
+        var text = visibleText(html);
+        var bestDistance = Integer.MAX_VALUE;
+        String bestScope = null;
+        var searchFrom = 0;
+        var skuIndex = text.indexOf(expectedSku, searchFrom);
+
+        while (skuIndex >= 0) {
+            var matcher = PRICE.matcher(text);
+            var priceStart = -1;
+            var priceEnd = -1;
+            while (matcher.find() && matcher.end() <= skuIndex) {
+                priceStart = matcher.start();
+                priceEnd = matcher.end();
+            }
+
+            if (priceEnd >= 0) {
+                var distance = skuIndex - priceEnd;
+                if (distance < bestDistance) {
+                    var scopeStart = Math.max(0, priceStart - PRICE_BOUND_PROMO_WINDOW);
+                    var currentArticleMarker = text.lastIndexOf(ARTICLE_MARKER, skuIndex);
+                    var previousArticleMarker = currentArticleMarker >= 0
+                            ? text.lastIndexOf(ARTICLE_MARKER, currentArticleMarker - 1)
+                            : -1;
+                    if (previousArticleMarker >= scopeStart) {
+                        scopeStart = previousArticleMarker + ARTICLE_MARKER.length();
+                    }
+
+                    bestDistance = distance;
+                    bestScope = text.substring(scopeStart, skuIndex);
+                }
+            }
+
+            searchFrom = skuIndex + expectedSku.length();
+            skuIndex = text.indexOf(expectedSku, searchFrom);
+        }
+
+        if (bestScope == null) {
+            return new PriceBoundPromoEvidence(false);
+        }
+
+        var lowerScope = bestScope.toLowerCase(Locale.ROOT);
+        var promoMarker = lowerScope.contains("финальная цена") || DISCOUNT.matcher(bestScope).find();
+        return new PriceBoundPromoEvidence(promoMarker);
+    }
+
     private static List<BigDecimal> distinctPrices(String text) {
         var prices = new ArrayList<BigDecimal>();
         var seen = new LinkedHashSet<BigDecimal>();
@@ -326,7 +386,13 @@ final class MagnitCorpusProbe {
 
     record RawShapeEvidence(boolean multiplePriceCandidates, boolean promoMarker) {}
 
-    private record HttpObservation(int status, PageObservation observation, RawShapeEvidence rawShape) {
+    record PriceBoundPromoEvidence(boolean promoMarker) {}
+
+    private record HttpObservation(
+            int status,
+            PageObservation observation,
+            RawShapeEvidence rawShape,
+            PriceBoundPromoEvidence priceBoundPromo) {
         boolean http2xx() {
             return status >= 200 && status < 300;
         }
@@ -348,6 +414,7 @@ final class MagnitCorpusProbe {
             int promoObservations,
             int nearSkuMultiplePriceObservations,
             int nearSkuPromoMarkerObservations,
+            int priceBoundPromoMarkerObservations,
             List<String> failedRequirements) {
 
         String toEvidenceLine() {
@@ -363,6 +430,7 @@ final class MagnitCorpusProbe {
                     + " promo_observations=" + promoObservations
                     + " near_sku_multi_price=" + nearSkuMultiplePriceObservations
                     + " near_sku_promo_marker=" + nearSkuPromoMarkerObservations
+                    + " price_bound_promo_marker=" + priceBoundPromoMarkerObservations
                     + " failed_count=" + failedRequirements.size()
                     + " failed_requirements=" + String.join(",", failedRequirements);
         }
