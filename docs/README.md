@@ -4,65 +4,64 @@ This directory is the durable documentation entry point for Zakup Gotov. Documen
 
 ## Start here
 
-| Purpose | Document |
-|---|---|
-| Current factual state | [`PROJECT_STATE.md`](PROJECT_STATE.md) |
-| Product and engineering roadmap | [`ROADMAP.md`](ROADMAP.md) |
-| Universal retailer connectivity design | [`superpowers/specs/2026-08-10-universal-retailer-connectivity-design.md`](superpowers/specs/2026-08-10-universal-retailer-connectivity-design.md) |
-| Retailer integration feasibility evidence | [`integrations/retailer-feasibility.md`](integrations/retailer-feasibility.md) |
-| Mandatory Pyaterochka/Perekrestok strategy | [`integrations/x5-mandatory-coverage.md`](integrations/x5-mandatory-coverage.md) |
-| Pyaterochka browser-bridge Phase A decision | [`integrations/pyaterochka-browser-bridge-phase-a.md`](integrations/pyaterochka-browser-bridge-phase-a.md) |
-| Pyaterochka real-browser PASS evidence | [`integrations/pyaterochka-browser-bridge-live-2026-08-11.md`](integrations/pyaterochka-browser-bridge-live-2026-08-11.md) |
-| Perekrestok browser-bridge Phase A decision | [`integrations/perekrestok-browser-bridge-phase-a.md`](integrations/perekrestok-browser-bridge-phase-a.md) |
-| Perekrestok v1 live failure/root-cause evidence | [`integrations/perekrestok-browser-bridge-live-2026-08-10.md`](integrations/perekrestok-browser-bridge-live-2026-08-10.md) |
-| Perekrestok v2 real-browser PASS evidence | [`integrations/perekrestok-browser-bridge-live-2026-08-11.md`](integrations/perekrestok-browser-bridge-live-2026-08-11.md) |
-| Local setup and verification | [`DEVELOPMENT.md`](DEVELOPMENT.md) |
-| Container/release workflow | [`RELEASES.md`](RELEASES.md) |
-| Mandatory engineering policy | [`ENGINEERING.md`](ENGINEERING.md) |
-| Repository governance and security controls | [`REPOSITORY_GOVERNANCE.md`](REPOSITORY_GOVERNANCE.md) |
-| Operational telemetry and privacy baseline | [`OBSERVABILITY.md`](OBSERVABILITY.md) |
+- [`PROJECT_STATE.md`](PROJECT_STATE.md) — factual current project snapshot, accepted paths, open constraints and immediate work.
+- [`ROADMAP.md`](ROADMAP.md) — milestone sequence and current M1 Shopping Core scope.
+- [`superpowers/specs/2026-08-12-m0-to-m1-go-decision.md`](superpowers/specs/2026-08-12-m0-to-m1-go-decision.md) — explicit M0 technical completion and M1 GO decision.
+- [`ARCHITECTURE.md`](ARCHITECTURE.md) — platform and module boundaries.
+- [`DEVELOPMENT.md`](DEVELOPMENT.md) — local development and verification.
+- [`RELEASES.md`](RELEASES.md) — container/release verification and publication model.
+- [`REPOSITORY_GOVERNANCE.md`](REPOSITORY_GOVERNANCE.md) — repository/merge/branch/security governance.
 
-Repository-level contributor/security/history files live at the root:
+## Integration evidence
 
-- [`../README.md`](../README.md) — public project overview;
-- [`../CHANGELOG.md`](../CHANGELOG.md) — notable changes that actually happened;
-- [`../CONTRIBUTING.md`](../CONTRIBUTING.md) — contribution workflow;
-- [`../SECURITY.md`](../SECURITY.md) — vulnerability reporting and security policy;
-- [`../CODE_OF_CONDUCT.md`](../CODE_OF_CONDUCT.md) — collaboration expectations.
+### Universal connectivity
 
-## Architectural decisions
+- [`superpowers/specs/2026-08-10-universal-retailer-connectivity-design.md`](superpowers/specs/2026-08-10-universal-retailer-connectivity-design.md) — permanent target-retailer coverage invariant and accepted acquisition modes.
+- [`integrations/retailer-feasibility.md`](integrations/retailer-feasibility.md) — current retailer/provider feasibility matrix and production limitations.
+- [`superpowers/plans/2026-08-10-m0b-provider-spikes.md`](superpowers/plans/2026-08-10-m0b-provider-spikes.md) — fixed M0B corpus and scorecard used for provider spikes.
 
-Durable decisions live in [`adr/`](adr/).
+### Pyaterochka
 
-Current accepted foundation decisions include:
+- [`integrations/pyaterochka-browser-bridge-phase-a.md`](integrations/pyaterochka-browser-bridge-phase-a.md) — browser-bridge design/TDD/security boundary.
+- [`integrations/pyaterochka-browser-bridge-live-2026-08-11.md`](integrations/pyaterochka-browser-bridge-live-2026-08-11.md) — final live PASS evidence.
 
-- [`adr/0001-platform-stack.md`](adr/0001-platform-stack.md) — long-term platform stack;
-- [`adr/0002-build-and-workspace-tooling.md`](adr/0002-build-and-workspace-tooling.md) — repository build/toolchain conventions.
+### Perekrestok
 
-An ADR records **why a durable decision was made**. It should not be used as a task tracker or current-state file.
+- [`integrations/perekrestok-browser-bridge-phase-a.md`](integrations/perekrestok-browser-bridge-phase-a.md) — accepted reload-based browser-bridge path.
+- [`integrations/perekrestok-browser-bridge-live-2026-08-10.md`](integrations/perekrestok-browser-bridge-live-2026-08-10.md) — initial real-browser mismatch/root cause.
+- [`integrations/perekrestok-browser-bridge-live-2026-08-11.md`](integrations/perekrestok-browser-bridge-live-2026-08-11.md) — adapter-v2 live PASS.
 
-## Specifications
+### Magnit
 
-Approved product/technical designs live in [`superpowers/specs/`](superpowers/specs/).
+- [`integrations/magnit-phase-a.md`](integrations/magnit-phase-a.md) — ordinary public-page Phase A hypothesis and acceptance.
+- [`integrations/magnit-public-page-live-2026-08-12.md`](integrations/magnit-public-page-live-2026-08-12.md) — Phase A real live PASS.
+- [`integrations/magnit-phase-b.md`](integrations/magnit-phase-b.md) — fixed 20-item Phase B parser/corpus/semantic contract and final technical status.
+- [`integrations/magnit-public-page-phase-b-live-2026-08-12.md`](integrations/magnit-public-page-phase-b-live-2026-08-12.md) — complete Phase B live chronology and final `AVAILABLE_PUBLIC_WEB` decision for explicit store contexts.
 
-Specifications define intended behavior and boundaries before implementation. Once approved, implementation should follow them or explicitly supersede them with a new decision.
+Production follow-up remains explicit:
 
-## Implementation plans
+- issue #69 — safe location/address → Magnit public `shopCode` resolution;
+- issue #70 — Magnit recurring production catalog usage-rights decision.
 
-Executable task breakdowns live in [`superpowers/plans/`](superpowers/plans/).
+## Engineering policy and operations
 
-Plans describe **how an approved specification will be implemented**. Completion claims still depend on current automated verification and `PROJECT_STATE.md`, not merely checked boxes in an old plan.
+- [`ENGINEERING_POLICY.md`](ENGINEERING_POLICY.md) — TDD, verification, automation and documentation discipline.
+- [`OBSERVABILITY.md`](OBSERVABILITY.md) — telemetry and disclosure rules.
+- [`TESTING.md`](TESTING.md) — test strategy where present/applicable.
+- root [`../CHANGELOG.md`](../CHANGELOG.md) — notable project history.
 
-## Documentation rules
+## Architecture decisions
 
-The repository follows these rules:
+See [`adr/`](adr/) for accepted architecture/build/platform decisions.
 
-1. `PROJECT_STATE.md` describes repository reality now.
-2. `ROADMAP.md` describes future milestones and exit criteria.
-3. ADRs describe durable architectural decisions.
-4. Specifications describe approved designs.
-5. Plans describe implementation sequencing.
-6. `CHANGELOG.md` records notable changes that actually happened.
-7. A PR that changes one of these truths updates the relevant document in the same PR.
+## Specs and implementation plans
 
-Stale documentation is treated as a defect. See [`ENGINEERING.md`](ENGINEERING.md) for the complete policy.
+- [`specs/`](specs/) — durable product/technical specifications.
+- [`superpowers/specs/`](superpowers/specs/) — approved design/decision documents produced during implementation work.
+- [`superpowers/plans/`](superpowers/plans/) — implementation plans and execution slices.
+
+## Current milestone rule
+
+M0 technical discovery is complete. M1 Shopping Core is the active milestone.
+
+Do not treat M0 completion as permission to hide unresolved production access constraints. M1 must remain fixture-first, provenance-aware, coverage-explicit and fail-closed for availability/freshness/usage-rights uncertainty.
