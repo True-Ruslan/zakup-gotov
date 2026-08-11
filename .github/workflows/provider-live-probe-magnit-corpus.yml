@@ -1,0 +1,123 @@
+name: Provider Live Probe - Magnit Corpus
+
+on:
+  issue_comment:
+    types: [created]
+
+permissions:
+  contents: read
+  statuses: write
+
+concurrency:
+  group: provider-live-probe-magnit-corpus-${{ github.event.issue.number || github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  magnit-corpus:
+    name: Magnit Public Page Phase B Corpus
+    if: >-
+      github.event_name == 'issue_comment' &&
+      github.event.issue.number == 45 &&
+      github.actor == 'True-Ruslan' &&
+      github.event.comment.body == '/provider-probe magnit-corpus'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Set up Java 25
+        uses: actions/setup-java@b6effb05e454b25005698d916606bdc6ffcbf961 # v5
+        with:
+          distribution: temurin
+          java-version: "25"
+          cache: maven
+          cache-dependency-path: apps/api/pom.xml
+
+      - name: Verify pinned toolchain
+        working-directory: apps/api
+        shell: bash
+        run: |
+          set -euo pipefail
+          java -version 2>&1 | grep -Eq 'version "25([.\"])'
+          ./mvnw --version | grep -F 'Apache Maven 3.9.16'
+
+      - name: Run Magnit fixed 20-item corpus
+        working-directory: apps/api
+        shell: bash
+        run: |
+          set -euo pipefail
+          set -o pipefail
+          ./mvnw --batch-mode --no-transfer-progress \
+            -Dtest=MagnitCorpusProbeTest \
+            -Dzakup.live.magnit.corpus=true \
+            test 2>&1 | tee "$RUNNER_TEMP/magnit-corpus-live-probe.log"
+
+      - name: Publish sanitized corpus evidence
+        if: always()
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          echo '## Magnit public-page Phase B corpus' >> "$GITHUB_STEP_SUMMARY"
+
+          evidence=''
+          if [[ -f "$RUNNER_TEMP/magnit-corpus-live-probe.log" ]]; then
+            evidence="$(grep -F 'MAGNIT_PHASE_B' "$RUNNER_TEMP/magnit-corpus-live-probe.log" | tail -n 1 || true)"
+          fi
+
+          state='failure'
+          outcome='no-evidence'
+          description='MAGNIT_PHASE_B no_sanitized_evidence=true'
+
+          if [[ -n "$evidence" ]]; then
+            description="$evidence"
+            printf '`%s`\n' "$evidence" >> "$GITHUB_STEP_SUMMARY"
+
+            total="$(sed -n 's/.*total_requirements=\([0-9]*\).*/\1/p' <<<"$evidence")"
+            requests="$(sed -n 's/.*total_requests=\([0-9]*\).*/\1/p' <<<"$evidence")"
+            first_http="$(sed -n 's/.*first_http_2xx=\([0-9]*\).*/\1/p' <<<"$evidence")"
+            second_http="$(sed -n 's/.*second_http_2xx=\([0-9]*\).*/\1/p' <<<"$evidence")"
+            first_usable="$(sed -n 's/.*first_usable=\([0-9]*\).*/\1/p' <<<"$evidence")"
+            second_usable="$(sed -n 's/.*second_usable=\([0-9]*\).*/\1/p' <<<"$evidence")"
+            stable="$(sed -n 's/.*stable_identity=\([0-9]*\).*/\1/p' <<<"$evidence")"
+            availability="$(sed -n 's/.*known_availability=\([0-9]*\).*/\1/p' <<<"$evidence")"
+            promo="$(sed -n 's/.*promo_observations=\([0-9]*\).*/\1/p' <<<"$evidence")"
+            failed="$(sed -n 's/.*failed_count=\([0-9]*\).*/\1/p' <<<"$evidence")"
+
+            if [[ "$total" == '20' && "$requests" == '40' \
+               && "$first_http" =~ ^([0-9]|1[0-9]|20)$ \
+               && "$second_http" =~ ^([0-9]|1[0-9]|20)$ \
+               && "$first_usable" =~ ^([0-9]|1[0-9]|20)$ \
+               && "$second_usable" =~ ^([0-9]|1[0-9]|20)$ \
+               && "$stable" =~ ^([0-9]|1[0-9]|20)$ \
+               && "$availability" =~ ^([0-9]|[12][0-9]|3[0-9]|40)$ \
+               && "$promo" =~ ^([0-9]|[12][0-9]|3[0-9]|40)$ \
+               && "$failed" =~ ^([0-9]|1[0-9]|20)$ ]]; then
+              state='success'
+              if [[ "$first_usable" == '20' && "$second_usable" == '20' && "$stable" == '20' && "$failed" == '0' ]]; then
+                outcome='observed-full'
+              elif (( first_usable > 0 || second_usable > 0 )); then
+                outcome='observed-partial'
+              else
+                outcome='observed-unusable'
+              fi
+            else
+              outcome='invalid-evidence'
+            fi
+          else
+            echo 'No sanitized Phase B evidence line was emitted.' >> "$GITHUB_STEP_SUMMARY"
+          fi
+
+          context="Provider Live Probe / Magnit Corpus / ${outcome}"
+          description="${description:0:140}"
+          gh api \
+            --method POST \
+            "repos/${GITHUB_REPOSITORY}/statuses/${GITHUB_SHA}" \
+            -f state="$state" \
+            -f context="$context" \
+            -f description="$description" >/dev/null
