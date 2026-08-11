@@ -12,7 +12,11 @@ describe("retailer bridge manifest", () => {
     expect(manifest.host_permissions ?? []).toEqual([]);
     expect(manifest.content_scripts).toEqual([
       expect.objectContaining({
-        matches: ["https://www.perekrestok.ru/*"],
+        matches: [
+          "https://www.perekrestok.ru/*",
+          "https://5ka.ru/*",
+          "https://www.5ka.ru/*",
+        ],
         js: ["content.js"],
         run_at: "document_idle",
         world: "ISOLATED",
