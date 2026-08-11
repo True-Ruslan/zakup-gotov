@@ -190,7 +190,9 @@ final class MagnitCorpusProbe {
         var text = visibleText(scope);
         var lowerText = text.toLowerCase(Locale.ROOT);
         var prices = distinctPrices(text);
-        var currentPrice = prices.isEmpty() ? Optional.<BigDecimal>empty() : Optional.of(prices.getFirst());
+        var currentPrice = prices.isEmpty()
+                ? MagnitPublicPageProbe.closestPriceToSku(html, expectedSku)
+                : Optional.of(prices.getFirst());
 
         Optional<BigDecimal> regularPrice = Optional.empty();
         var promoMarker = lowerText.contains("финальная цена") || DISCOUNT.matcher(text).find();

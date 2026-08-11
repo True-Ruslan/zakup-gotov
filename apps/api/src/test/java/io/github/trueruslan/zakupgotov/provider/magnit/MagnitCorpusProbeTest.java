@@ -58,6 +58,17 @@ class MagnitCorpusProbeTest {
     }
 
     @Test
+    void fallsBackToSkuBoundEmbeddedCurrentPriceWhenRenderedScopeHasNoPrice() throws Exception {
+        var observation = MagnitCorpusProbe.parseProductPage(fixture("embedded-current-price.html"), "9072651501");
+
+        assertThat(observation.skuEvidence()).isTrue();
+        assertThat(observation.currentPrice()).contains(new BigDecimal("123.45"));
+        assertThat(observation.regularPrice()).isEmpty();
+        assertThat(observation.promo()).isFalse();
+        assertThat(observation.availability()).isEqualTo(MagnitCorpusProbe.Availability.AVAILABLE);
+    }
+
+    @Test
     void treatsExplicitProductUnavailabilityAsUnavailable() throws Exception {
         var observation = MagnitCorpusProbe.parseProductPage(fixture("regular-unavailable.html"), "1000135280");
 
