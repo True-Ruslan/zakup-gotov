@@ -81,6 +81,14 @@ class MagnitCorpusProbeTest {
     }
 
     @Test
+    void detectsAggregateSafePromoShapeNearExpectedSku() throws Exception {
+        var shape = MagnitCorpusProbe.inspectNearSkuRawShape(fixture("embedded-promo-shape.html"), "9072651501");
+
+        assertThat(shape.multiplePriceCandidates()).isTrue();
+        assertThat(shape.promoMarker()).isTrue();
+    }
+
+    @Test
     void treatsExplicitProductUnavailabilityAsUnavailable() throws Exception {
         var observation = MagnitCorpusProbe.parseProductPage(fixture("regular-unavailable.html"), "1000135280");
 
@@ -111,10 +119,12 @@ class MagnitCorpusProbeTest {
     @Test
     void evidenceLineIncludesOnlyApprovedFailedRequirementNames() {
         var result = new MagnitCorpusProbe.CorpusResult(
-                20, 40, 19, 19, 19, 19, 19, 6, 0, List.of("tea", "beef/mince"));
+                20, 40, 19, 19, 19, 19, 19, 6, 0, 4, 3, List.of("tea", "beef/mince"));
 
         assertThat(result.toEvidenceLine())
                 .endsWith("failed_count=2 failed_requirements=tea,beef/mince");
+        assertThat(result.toEvidenceLine())
+                .contains("near_sku_multi_price=4 near_sku_promo_marker=3");
     }
 
     @Test
@@ -133,6 +143,8 @@ class MagnitCorpusProbeTest {
         assertThat(result.stableIdentity()).isBetween(0, 20);
         assertThat(result.knownAvailability()).isBetween(0, 40);
         assertThat(result.promoObservations()).isBetween(0, 40);
+        assertThat(result.nearSkuMultiplePriceObservations()).isBetween(0, 40);
+        assertThat(result.nearSkuPromoMarkerObservations()).isBetween(0, 40);
 
         var approvedRequirements = Set.copyOf(MagnitCorpusProbe.fixedCorpus().stream()
                 .map(MagnitCorpusProbe.CorpusItem::requirement)

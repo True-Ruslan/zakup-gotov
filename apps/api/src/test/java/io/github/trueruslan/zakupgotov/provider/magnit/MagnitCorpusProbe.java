@@ -21,6 +21,8 @@ final class MagnitCorpusProbe {
     private static final String ORIGIN = "https://magnit.ru";
     private static final Duration CONNECT_TIMEOUT = Duration.ofSeconds(8);
     private static final Duration REQUEST_TIMEOUT = Duration.ofSeconds(12);
+    private static final int NEAR_SKU_WINDOW = 900;
+    private static final String ARTICLE_MARKER = "Артикул ";
     private static final Map<String, String> REQUEST_HEADERS = Map.of(
             "Accept", "text/html,application/xhtml+xml",
             "User-Agent", "ZakupGotov-M0B-PublicPageProbe/0.1 (+https://github.com/True-Ruslan/zakup-gotov)");
@@ -104,6 +106,8 @@ final class MagnitCorpusProbe {
         var stableIdentity = 0;
         var knownAvailability = 0;
         var promoObservations = 0;
+        var nearSkuMultiplePriceObservations = 0;
+        var nearSkuPromoMarkerObservations = 0;
         var failedRequirements = new ArrayList<String>();
 
         for (var item : FIXED_CORPUS) {
@@ -139,6 +143,18 @@ final class MagnitCorpusProbe {
             if (second.observation().promo()) {
                 promoObservations++;
             }
+            if (first.rawShape().multiplePriceCandidates()) {
+                nearSkuMultiplePriceObservations++;
+            }
+            if (second.rawShape().multiplePriceCandidates()) {
+                nearSkuMultiplePriceObservations++;
+            }
+            if (first.rawShape().promoMarker()) {
+                nearSkuPromoMarkerObservations++;
+            }
+            if (second.rawShape().promoMarker()) {
+                nearSkuPromoMarkerObservations++;
+            }
             if (!first.usable() || !second.usable()) {
                 failedRequirements.add(item.requirement());
             }
@@ -154,6 +170,8 @@ final class MagnitCorpusProbe {
                 stableIdentity,
                 knownAvailability,
                 promoObservations,
+                nearSkuMultiplePriceObservations,
+                nearSkuPromoMarkerObservations,
                 List.copyOf(failedRequirements));
     }
 
@@ -166,7 +184,8 @@ final class MagnitCorpusProbe {
         var response = httpClient.send(
                 requestBuilder.build(), HttpResponse.BodyHandlers.ofString(StandardCharsets.UTF_8));
         var observation = parseProductPage(response.body(), item.sku());
-        return new HttpObservation(response.statusCode(), observation);
+        var rawShape = inspectNearSkuRawShape(response.body(), item.sku());
+        return new HttpObservation(response.statusCode(), observation, rawShape);
     }
 
     static PageObservation parseProductPage(String html, String expectedSku) {
@@ -213,6 +232,40 @@ final class MagnitCorpusProbe {
                 regularPrice,
                 regularPrice.isPresent(),
                 availability);
+    }
+
+    static RawShapeEvidence inspectNearSkuRawShape(String html, String expectedSku) {
+        if (expectedSku == null || expectedSku.isBlank()) {
+            throw new IllegalArgumentException("expectedSku must not be blank");
+        }
+
+        var text = visibleText(html);
+        var multiplePriceCandidates = false;
+        var promoMarker = false;
+        var searchFrom = 0;
+        var skuIndex = text.indexOf(expectedSku, searchFrom);
+
+        while (skuIndex >= 0) {
+            var windowStart = Math.max(0, skuIndex - NEAR_SKU_WINDOW);
+            var currentArticleMarker = text.lastIndexOf(ARTICLE_MARKER, skuIndex);
+            var previousArticleMarker = currentArticleMarker >= 0
+                    ? text.lastIndexOf(ARTICLE_MARKER, currentArticleMarker - 1)
+                    : -1;
+            if (previousArticleMarker >= windowStart) {
+                windowStart = previousArticleMarker + ARTICLE_MARKER.length();
+            }
+
+            var scope = text.substring(windowStart, skuIndex);
+            var prices = distinctPrices(scope);
+            multiplePriceCandidates |= prices.size() >= 2;
+            var lowerScope = scope.toLowerCase(Locale.ROOT);
+            promoMarker |= lowerScope.contains("финальная цена") || DISCOUNT.matcher(scope).find();
+
+            searchFrom = skuIndex + expectedSku.length();
+            skuIndex = text.indexOf(expectedSku, searchFrom);
+        }
+
+        return new RawShapeEvidence(multiplePriceCandidates, promoMarker);
     }
 
     private static List<BigDecimal> distinctPrices(String text) {
@@ -271,7 +324,9 @@ final class MagnitCorpusProbe {
         }
     }
 
-    private record HttpObservation(int status, PageObservation observation) {
+    record RawShapeEvidence(boolean multiplePriceCandidates, boolean promoMarker) {}
+
+    private record HttpObservation(int status, PageObservation observation, RawShapeEvidence rawShape) {
         boolean http2xx() {
             return status >= 200 && status < 300;
         }
@@ -291,6 +346,8 @@ final class MagnitCorpusProbe {
             int stableIdentity,
             int knownAvailability,
             int promoObservations,
+            int nearSkuMultiplePriceObservations,
+            int nearSkuPromoMarkerObservations,
             List<String> failedRequirements) {
 
         String toEvidenceLine() {
@@ -304,6 +361,8 @@ final class MagnitCorpusProbe {
                     + " stable_identity=" + stableIdentity
                     + " known_availability=" + knownAvailability
                     + " promo_observations=" + promoObservations
+                    + " near_sku_multi_price=" + nearSkuMultiplePriceObservations
+                    + " near_sku_promo_marker=" + nearSkuPromoMarkerObservations
                     + " failed_count=" + failedRequirements.size()
                     + " failed_requirements=" + String.join(",", failedRequirements);
         }
