@@ -5,6 +5,7 @@ import static org.junit.jupiter.api.Assumptions.assumeTrue;
 
 import java.math.BigDecimal;
 import java.nio.charset.StandardCharsets;
+import java.util.List;
 import java.util.Set;
 import org.junit.jupiter.api.Test;
 
@@ -94,6 +95,15 @@ class MagnitCorpusProbeTest {
         assertThat(observation.currentPrice()).isEmpty();
         assertThat(observation.regularPrice()).isEmpty();
         assertThat(observation.availability()).isEqualTo(MagnitCorpusProbe.Availability.UNKNOWN);
+    }
+
+    @Test
+    void evidenceLineIncludesOnlyApprovedFailedRequirementNames() {
+        var result = new MagnitCorpusProbe.CorpusResult(
+                20, 40, 19, 19, 19, 19, 19, 6, 0, List.of("tea", "beef/mince"));
+
+        assertThat(result.toEvidenceLine())
+                .endsWith("failed_count=2 failed_requirements=tea,beef/mince");
     }
 
     @Test
