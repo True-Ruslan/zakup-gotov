@@ -66,6 +66,7 @@ The format follows the spirit of Keep a Changelog and semantic versioning will b
 - Universal Retailer Connectivity design and Perekrestok Browser Bridge Phase A implementation plan, making retailer coverage transport-agnostic rather than tied to direct server APIs.
 - Chromium Manifest V3 `apps/retailer-bridge` package with a Perekrestok structured-state adapter, normalized browser-observation trust boundary, sanitized local storage, deterministic fixtures, and dedicated `Retailer Bridge CI` including persistent-Chromium extension E2E.
 - Sanitized first-real-browser Perekrestok evidence record plus a current-live-shape fixture and persistent-Chromium regression covering semantic `.product-card` extraction with asynchronous first-party shop-context arrival.
+- Sanitized Perekrestok adapter-v2 real-browser PASS evidence proving 90 normalized observations, one fulfillment context, adapter version `2`, zero acceptance-validation failures, and canonical source references without query/hash.
 
 ### Changed
 
@@ -110,7 +111,7 @@ The format follows the spirit of Keep a Changelog and semantic versioning will b
 - Pyaterochka Phase A is complete with a fail-closed **`store-403`** result from the ordinary JDK HTTP probe; the currently known 5ka consumer backend is classified `UNSUITABLE_PUBLIC_PATH`, Phase B fixtures/corpus are intentionally cancelled, and no browser/CAPTCHA/stealth/proxy workaround will be introduced.
 - Live-probe evidence publication uses a dedicated legacy commit-status context with a finite sanitized outcome suffix so connected tooling can distinguish HTTP gates/shape failures without raw retailer payloads or broader write permissions.
 - Retailer connectivity is now a universal registry invariant: a failed direct API changes the acquisition mode under investigation but does not remove the retailer from product scope.
-- Perekrestok browser connectivity is `BROWSER_BRIDGE_LIVE_PENDING`: adapter v1 has a recorded real-browser `missing-context` FAIL, while adapter v2 is deterministic-ready for a repeated live gate using semantic catalog DOM plus first-party shop-resource pathname evidence.
+- Perekrestok browser connectivity advanced from `BROWSER_BRIDGE_LIVE_PENDING` to `AVAILABLE_BROWSER_BRIDGE` for page-snapshot acquisition after adapter v2 passed the repeated real first-party browser gate.
 - Perekrestok browser adapter provenance advanced to v2 so observations produced by the current DOM/resource acquisition logic remain distinguishable from the original structured-state-only implementation.
 
 ### Fixed
