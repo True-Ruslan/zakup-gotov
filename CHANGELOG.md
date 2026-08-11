@@ -69,6 +69,7 @@ The format follows the spirit of Keep a Changelog and semantic versioning will b
 - Sanitized Perekrestok adapter-v2 real-browser PASS evidence proving 90 normalized observations, one fulfillment context, adapter version `2`, zero acceptance-validation failures, and canonical source references without query/hash.
 - Pyaterochka Browser Bridge Phase A with official `5ka.ru` MV3 routing, distinct `pyaterochka`/`pyaterochka-browser` provenance, semantic rendered-product parsing, exact `5d.5ka.ru/api/catalog/v2/stores/<store-id>/...` context evidence, retailer-neutral adapter registry wiring, sanitized fixtures, and persistent-Chromium async-context/delayed-DOM coverage.
 - `docs/integrations/pyaterochka-browser-bridge-phase-a.md` recording the complete RED→GREEN evidence sequence, privacy boundary, deterministic acceptance and real first-party browser gate required before retailer availability can be claimed.
+- Sanitized Pyaterochka real-browser PASS evidence proving 12 normalized observations, exactly one fulfillment context, exact `pyaterochka` / `pyaterochka-browser` provenance, adapter version `1`, zero acceptance-validation failures, and advancement to `AVAILABLE_BROWSER_BRIDGE`.
 
 ### Changed
 
@@ -116,7 +117,8 @@ The format follows the spirit of Keep a Changelog and semantic versioning will b
 - Perekrestok browser connectivity advanced from `BROWSER_BRIDGE_LIVE_PENDING` to `AVAILABLE_BROWSER_BRIDGE` for page-snapshot acquisition after adapter v2 passed the repeated real first-party browser gate.
 - Perekrestok browser adapter provenance advanced to v2 so observations produced by the current DOM/resource acquisition logic remain distinguishable from the original structured-state-only implementation.
 - Browser bridge adapter selection is now registry-based rather than hard-coded to Perekrestok, allowing multiple retailer adapters to coexist while preserving distinct retailer/provider provenance.
-- Pyaterochka browser connectivity is `BROWSER_BRIDGE_LIVE_PENDING`: deterministic unit/type/build/persistent-Chromium evidence is GREEN, but a real first-party browser observation is still required before `AVAILABLE_BROWSER_BRIDGE` may be claimed.
+- Pyaterochka browser connectivity advanced from `BROWSER_BRIDGE_LIVE_PENDING` to `AVAILABLE_BROWSER_BRIDGE` after adapter v1 passed the real first-party browser gate on merged `main` with 12 normalized observations, one fulfillment context and zero validation failures.
+- Both mandatory X5 per-banner M0 connectivity criteria are now satisfied through the user-assisted browser mode; the next hard M0 gates are issue #50, an independent non-X5 accepted path, and a second distinct acquisition mode.
 - Issue #50 is now the explicit maintenance gate before any third substantial browser adapter or bridge-owned dependency so the retailer bridge becomes a first-class pnpm workspace package without mixing that refactor into retailer behavior.
 
 ### Fixed
