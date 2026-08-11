@@ -81,6 +81,14 @@ class MagnitCorpusProbeTest {
     }
 
     @Test
+    void detectsAggregateSafePromoShapeNearExpectedSku() throws Exception {
+        var shape = MagnitCorpusProbe.inspectNearSkuRawShape(fixture("embedded-promo-shape.html"), "9072651501");
+
+        assertThat(shape.multiplePriceCandidates()).isTrue();
+        assertThat(shape.promoMarker()).isTrue();
+    }
+
+    @Test
     void treatsExplicitProductUnavailabilityAsUnavailable() throws Exception {
         var observation = MagnitCorpusProbe.parseProductPage(fixture("regular-unavailable.html"), "1000135280");
 
