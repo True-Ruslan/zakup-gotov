@@ -6,7 +6,7 @@ on:
       - chore/m0b-retailer-bridge-workspace
 
 permissions:
-  contents: read
+  contents: write
 
 jobs:
   generate:
@@ -33,10 +33,21 @@ jobs:
       - name: Verify generated lockfile with frozen install
         run: pnpm install --frozen-lockfile
 
-      - name: Upload generated lockfile
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
-        with:
-          name: retailer-bridge-pnpm-lock
-          path: pnpm-lock.yaml
-          if-no-files-found: error
-          retention-days: 1
+      - name: Commit exact generated lockfile when changed
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          if git diff --quiet -- pnpm-lock.yaml; then
+            echo "Generated lockfile already matches the branch."
+            exit 0
+          fi
+
+          lock_sha="$(gh api "repos/${GITHUB_REPOSITORY}/contents/pnpm-lock.yaml?ref=${GITHUB_REF_NAME}" --jq .sha)"
+          lock_content="$(base64 -w0 pnpm-lock.yaml)"
+          gh api --method PUT "repos/${GITHUB_REPOSITORY}/contents/pnpm-lock.yaml" \
+            -f message='chore(bridge): regenerate pnpm lockfile' \
+            -f content="${lock_content}" \
+            -f sha="${lock_sha}" \
+            -f branch="${GITHUB_REF_NAME}" \
+            >/dev/null
