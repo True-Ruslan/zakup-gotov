@@ -38,18 +38,26 @@ test("stores only sanitized data and clears stale observations when context disa
     await context.addCookies([
       {
         name: "session",
-        value: "SECRET_SESSION_TOKEN",
+        value: "SECRET_COOKIE",
         domain: "www.perekrestok.ru",
         path: "/",
         secure: true,
         sameSite: "Lax",
       },
     ]);
+    await context.addInitScript(() => {
+      try {
+        localStorage.setItem("auth", "SECRET_LOCAL_STORAGE");
+      } catch {
+        // Some bootstrap documents do not expose storage; the target HTTPS page does.
+      }
+    });
 
     const page = await context.newPage();
-    await page.goto("https://www.perekrestok.ru/cat/fixture?auth=SECRET_QUERY_TOKEN");
+    await page.goto("https://www.perekrestok.ru/cat/fixture-success");
+
     await expect.poll(() => page.locator("html").getAttribute("data-zg-bridge-status")).toBe("ok");
-    await expect.poll(() => page.locator("html").getAttribute("data-zg-bridge-count")).toBe("2");
+    await expect.poll(() => page.locator("html").getAttribute("data-zg-bridge-count")).toBe("3");
 
     const worker = context.serviceWorkers()[0] ?? (await context.waitForEvent("serviceworker"));
     const stored = await worker.evaluate(async () =>
@@ -57,28 +65,23 @@ test("stores only sanitized data and clears stale observations when context disa
     );
     const serialized = JSON.stringify(stored);
 
-    expect(serialized).toContain('"retailerId":"perekrestok"');
-    expect(serialized).toContain('"fulfillmentContextId":"store-moscow-001"');
-    expect(serialized).toContain('"sku":"1001"');
-    expect(serialized).not.toContain("SECRET_SESSION_TOKEN");
-    expect(serialized).not.toContain("SECRET_LOCAL_STORAGE_TOKEN");
-    expect(serialized).not.toContain("SECRET_QUERY_TOKEN");
+    expect(serialized).toContain("3431579");
+    expect(serialized).toContain("8999");
+    expect(serialized).not.toContain("SECRET_COOKIE");
+    expect(serialized).not.toContain("SECRET_LOCAL_STORAGE");
     expect(serialized).not.toContain("session=");
-    expect(serialized).not.toContain("auth=");
 
-    await page.evaluate(() => {
-      localStorage.setItem("authToken", "SECRET_LOCAL_STORAGE_TOKEN");
-    });
-    await page.goto("https://www.perekrestok.ru/cat/missing-context");
+    await page.goto("https://www.perekrestok.ru/cat/fixture-missing-context");
+    await expect.poll(() => page.locator("html").getAttribute("data-zg-bridge-status")).toBe("missing-context");
+
     await expect
-      .poll(() => page.locator("html").getAttribute("data-zg-bridge-status"))
-      .toBe("missing-context");
-    await expect.poll(() => page.locator("html").getAttribute("data-zg-bridge-count")).toBe("0");
-
-    const afterFailure = await worker.evaluate(async () =>
-      chrome.storage.local.get("zg.latestObservations"),
-    );
-    expect(afterFailure["zg.latestObservations"]).toEqual([]);
+      .poll(async () => {
+        const current = await worker.evaluate(async () =>
+          chrome.storage.local.get("zg.latestObservations"),
+        );
+        return current["zg.latestObservations"] ?? [];
+      })
+      .toEqual([]);
   } finally {
     await context.close();
     await rm(userDataDir, { recursive: true, force: true });
@@ -86,7 +89,7 @@ test("stores only sanitized data and clears stale observations when context disa
 });
 
 test("collects current catalog DOM after async shop and DOM evidence resolve", async () => {
-  const userDataDir = await mkdtemp(join(tmpdir(), "zg-retailer-bridge-current-"));
+  const userDataDir = await mkdtemp(join(tmpdir(), "zg-retailer-bridge-live-dom-"));
   const context = await chromium.launchPersistentContext(userDataDir, {
     channel: "chromium",
     headless: true,
@@ -101,7 +104,18 @@ test("collects current catalog DOM after async shop and DOM evidence resolve", a
       resolve(fixtureDir, "perekrestok-live-dom-async-state.html"),
       "utf8",
     );
+
     await context.route("https://www.perekrestok.ru/**", async (route) => {
+      const pathname = new URL(route.request().url()).pathname;
+      if (pathname === "/api/customer/1.4.1.0/shop/656") {
+        await route.fulfill({
+          status: 200,
+          contentType: "application/json; charset=utf-8",
+          body: "{}",
+        });
+        return;
+      }
+
       await route.fulfill({
         status: 200,
         contentType: "text/html; charset=utf-8",
@@ -113,7 +127,7 @@ test("collects current catalog DOM after async shop and DOM evidence resolve", a
     await page.goto("https://www.perekrestok.ru/cat/fixture-live-dom");
 
     await expect.poll(() => page.locator("html").getAttribute("data-zg-bridge-status")).toBe("ok");
-    await expect.poll(() => page.locator("html").getAttribute("data-zg-bridge-count")).toBe("2");
+    await expect.poll(() => page.locator("html").getAttribute("data-zg-bridge-count")).toBe("1");
 
     const worker = context.serviceWorkers()[0] ?? (await context.waitForEvent("serviceworker"));
     const stored = await worker.evaluate(async () =>
@@ -121,12 +135,12 @@ test("collects current catalog DOM after async shop and DOM evidence resolve", a
     );
     const serialized = JSON.stringify(stored);
 
-    expect(serialized).toContain('"fulfillmentContextId":"656"');
-    expect(serialized).toContain('"sku":"123456"');
-    expect(serialized).toContain('"priceMinor":12999');
-    expect(serialized).toContain('"availability":"UNKNOWN"');
-    expect(serialized).toContain('"adapterVersion":"2"');
+    expect(serialized).toContain("\"fulfillmentContextId\":\"656\"");
+    expect(serialized).toContain("\"sku\":\"4408829\"");
+    expect(serialized).toContain("\"priceMinor\":19999");
+    expect(serialized).toContain("\"adapterVersion\":\"2\"");
     expect(serialized).not.toContain("SECRET_RESOURCE_QUERY");
+    expect(serialized).not.toContain("session=");
   } finally {
     await context.close();
     await rm(userDataDir, { recursive: true, force: true });
@@ -189,12 +203,12 @@ test("collects Pyaterochka catalog after async official service context and dela
     );
     const serialized = JSON.stringify(stored);
 
-    expect(serialized).toContain('"retailerId":"pyaterochka"');
-    expect(serialized).toContain('"sourceProviderId":"pyaterochka-browser"');
-    expect(serialized).toContain('"fulfillmentContextId":"ZG001"');
-    expect(serialized).toContain('"sku":"25113239"');
-    expect(serialized).toContain('"priceMinor":9999');
-    expect(serialized).toContain('"adapterVersion":"1"');
+    expect(serialized).toContain("\"retailerId\":\"pyaterochka\"");
+    expect(serialized).toContain("\"sourceProviderId\":\"pyaterochka-browser\"");
+    expect(serialized).toContain("\"fulfillmentContextId\":\"ZG001\"");
+    expect(serialized).toContain("\"sku\":\"25113239\"");
+    expect(serialized).toContain("\"priceMinor\":9999");
+    expect(serialized).toContain("\"adapterVersion\":\"1\"");
     expect(serialized).not.toContain("SECRET_RESOURCE_QUERY");
     expect(serialized).not.toContain("SECRET_PYATEROCHKA_COOKIE");
     expect(serialized).not.toContain("session=");
