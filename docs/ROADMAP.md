@@ -19,7 +19,8 @@ Goal: prove that the core product promise and the universal retailer-connectivit
 Current evidence status:
 
 - **Perekrestok retailer-path criterion: satisfied** through `AVAILABLE_BROWSER_BRIDGE` page-snapshot acquisition after the real adapter-v2 browser PASS on 2026-08-11;
-- **Pyaterochka retailer-path criterion: live acceptance outstanding**; direct anonymous HTTP is unsuitable, while Browser Bridge Phase A is now deterministic-ready with adapter v1, distinct provenance, exact official service-resource allow-listing, and persistent-Chromium async-context/DOM proof. It remains `BROWSER_BRIDGE_LIVE_PENDING` until the real first-party browser gate passes;
+- **Pyaterochka retailer-path criterion: satisfied** through `AVAILABLE_BROWSER_BRIDGE` page-snapshot acquisition after adapter v1 passed the real first-party browser gate on 2026-08-11 from merged `main` SHA `95e83c1c2d3e8217de10bf9c2bb160735ba17f94` with 12 normalized observations, one fulfillment context and zero validation failures;
+- **mandatory X5 per-banner connectivity criterion: satisfied** for both Pyaterochka and Perekrestok through the browser-assisted acquisition mode;
 - **independent non-X5 retailer criterion: outstanding**;
 - **second distinct acquisition-mode criterion: outstanding** until another accepted path proves a non-browser mode end to end.
 
@@ -43,7 +44,7 @@ Accepted provider paths may be direct retailer APIs, supported aggregator integr
 
 Exit criteria:
 
-- **Pyaterochka** can return usable location/store-specific product/offer data through at least one acceptable path — deterministic browser implementation exists, **real browser acceptance still required**;
+- **Pyaterochka** can return usable location/store-specific product/offer data through at least one acceptable path — **satisfied via `AVAILABLE_BROWSER_BRIDGE`**;
 - **Perekrestok** can return usable location/store-specific product/offer data through at least one acceptable path — **satisfied via `AVAILABLE_BROWSER_BRIDGE`**;
 - at least one independent non-X5 retailer can return usable location-specific product/offer data through an acceptable path;
 - at least two acquisition modes have been proven end to end so M0 does not depend on a single transport assumption;
@@ -54,14 +55,14 @@ Exit criteria:
 
 Detailed X5 strategy: [`integrations/x5-mandatory-coverage.md`](integrations/x5-mandatory-coverage.md).
 
-Immediate M0 sequencing after the current Pyaterochka Phase A implementation:
+Immediate M0 sequencing after Pyaterochka live acceptance:
 
-1. complete the exact-head CI/security/review gate and merge the deterministic Pyaterochka bridge;
-2. run the real first-party Pyaterochka browser gate and record sanitized PASS/FAIL evidence;
-3. resolve issue #50 in a separate no-behavior-change maintenance PR before a third substantial browser adapter;
-4. prove at least one independent non-X5 retailer path, with the existing Magnit path currently the nearest candidate;
-5. prove a second accepted acquisition mode so M0 is not browser-transport-only;
-6. keep Perekrestok corpus/second-context and persistent-session work as hardening rather than reopening its Phase A acceptance.
+1. resolve issue #50 in a separate no-behavior-change maintenance PR so `apps/retailer-bridge` becomes a first-class pnpm workspace package before any third substantial browser adapter or bridge-owned dependency;
+2. prove at least one independent non-X5 retailer path, with the existing Magnit path currently the nearest candidate;
+3. prove a second accepted acquisition mode so M0 is not browser-transport-only;
+4. keep Perekrestok/Pyaterochka additional corpus/context validation and issue #54 persistent-session work as hardening rather than reopening their Phase A acceptance;
+5. continue Kuper/X5 supported-access work in parallel;
+6. publish the outstanding `v0.1.0-rc.3` release proof when a release-capable path is available.
 
 ## M1 — Shopping Core
 
