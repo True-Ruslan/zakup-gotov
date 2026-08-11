@@ -67,6 +67,8 @@ The format follows the spirit of Keep a Changelog and semantic versioning will b
 - Chromium Manifest V3 `apps/retailer-bridge` package with a Perekrestok structured-state adapter, normalized browser-observation trust boundary, sanitized local storage, deterministic fixtures, and dedicated `Retailer Bridge CI` including persistent-Chromium extension E2E.
 - Sanitized first-real-browser Perekrestok evidence record plus a current-live-shape fixture and persistent-Chromium regression covering semantic `.product-card` extraction with asynchronous first-party shop-context arrival.
 - Sanitized Perekrestok adapter-v2 real-browser PASS evidence proving 90 normalized observations, one fulfillment context, adapter version `2`, zero acceptance-validation failures, and canonical source references without query/hash.
+- Pyaterochka Browser Bridge Phase A with official `5ka.ru` MV3 routing, distinct `pyaterochka`/`pyaterochka-browser` provenance, semantic rendered-product parsing, exact `5d.5ka.ru/api/catalog/v2/stores/<store-id>/...` context evidence, retailer-neutral adapter registry wiring, sanitized fixtures, and persistent-Chromium async-context/delayed-DOM coverage.
+- `docs/integrations/pyaterochka-browser-bridge-phase-a.md` recording the complete RED→GREEN evidence sequence, privacy boundary, deterministic acceptance and real first-party browser gate required before retailer availability can be claimed.
 
 ### Changed
 
@@ -113,6 +115,9 @@ The format follows the spirit of Keep a Changelog and semantic versioning will b
 - Retailer connectivity is now a universal registry invariant: a failed direct API changes the acquisition mode under investigation but does not remove the retailer from product scope.
 - Perekrestok browser connectivity advanced from `BROWSER_BRIDGE_LIVE_PENDING` to `AVAILABLE_BROWSER_BRIDGE` for page-snapshot acquisition after adapter v2 passed the repeated real first-party browser gate.
 - Perekrestok browser adapter provenance advanced to v2 so observations produced by the current DOM/resource acquisition logic remain distinguishable from the original structured-state-only implementation.
+- Browser bridge adapter selection is now registry-based rather than hard-coded to Perekrestok, allowing multiple retailer adapters to coexist while preserving distinct retailer/provider provenance.
+- Pyaterochka browser connectivity is `BROWSER_BRIDGE_LIVE_PENDING`: deterministic unit/type/build/persistent-Chromium evidence is GREEN, but a real first-party browser observation is still required before `AVAILABLE_BROWSER_BRIDGE` may be claimed.
+- Issue #50 is now the explicit maintenance gate before any third substantial browser adapter or bridge-owned dependency so the retailer bridge becomes a first-class pnpm workspace package without mixing that refactor into retailer behavior.
 
 ### Fixed
 
@@ -132,6 +137,7 @@ The format follows the spirit of Keep a Changelog and semantic versioning will b
 - Browser-bridge fail-closed navigation now replaces stale prior retailer observations with an empty payload, preventing an earlier store/page price snapshot from remaining current after the active page loses a valid fulfillment context.
 - Perekrestok catalog extraction no longer depends exclusively on obsolete embedded product/store JSON; adapter v2 can use the current semantic product-card DOM with explicit `UNKNOWN` availability.
 - Perekrestok browser collection no longer loses asynchronously arriving shop context because runtime resource observation triggers a serialized recollection instead of relying on a single `document_idle` snapshot.
+- Browser resource observation no longer rejects the official Pyaterochka catalog-service context solely because it is cross-origin; it now permits only the exact allow-listed `5ka.ru` → `5d.5ka.ru/api/catalog/v2/stores/...` path and still fails closed for unrelated cross-origin resources.
 
 ### Security
 
@@ -158,3 +164,4 @@ The format follows the spirit of Keep a Changelog and semantic versioning will b
 - The Pyaterochka live-probe workflow keeps `contents: read` and adds only `statuses: write` for sanitized evidence; it has no retailer credentials, a fixed owner/issue command gate, finite timeouts, no retry/evasion behavior, and publishes no retailer response bodies or exact store/product IDs.
 - Perekrestok browser bridge production permissions are limited to `storage`; browser credentials remain in the first-party profile, adapter output is projected through an allow-list, source URLs lose query/hash, deterministic E2E seeds sentinel cookie/localStorage secrets and verifies neither reaches extension storage, and normal CI makes no live Perekrestok request.
 - Perekrestok v2 runtime context evidence is restricted to same-origin canonical resource `origin + pathname` values; query/fragment data, request headers, response bodies, cookies, tokens and arbitrary storage values are not passed to the adapter or persisted.
+- Pyaterochka browser bridge preserves the same `storage`-only MV3 permission surface; cross-origin context is restricted to the exact official `https://5d.5ka.ru/api/catalog/v2/stores/<store-id>/...` pathname while other 5d paths, lookalike origins and cross-retailer use are rejected, query/hash are stripped, and persistent-Chromium sentinel tests prove resource-query and browser-cookie secrets do not reach extension storage.
