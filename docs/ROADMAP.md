@@ -1,55 +1,97 @@
 # Roadmap
 
-Updated: 2026-08-09
+Updated: 2026-08-11
 
 The roadmap is evidence-driven. Milestones may change when retailer integration feasibility or product usage contradicts current assumptions.
 
+## Product connectivity invariant
+
+Zakup Gotov targets **universal connectivity for the retailer registry**, not a permanently curated subset of easy integrations.
+
+Every retailer/banner added to the target registry is mandatory coverage work until at least one reproducible acquisition path is available. A failed direct API does not remove that retailer from scope; it moves integration work to another accepted path such as a supported aggregator, public web surface, or user-assisted first-party browser bridge.
+
+The durable design is in [`superpowers/specs/2026-08-10-universal-retailer-connectivity-design.md`](superpowers/specs/2026-08-10-universal-retailer-connectivity-design.md).
+
 ## M0 — Product & Integration Discovery
 
-Goal: prove that the core product promise is technically and legally viable before substantial feature development.
+Goal: prove that the core product promise and the universal retailer-connectivity architecture are technically viable before substantial shopping-core development.
+
+Current evidence status:
+
+- **Perekrestok retailer-path criterion: satisfied** through `AVAILABLE_BROWSER_BRIDGE` page-snapshot acquisition after the real adapter-v2 browser PASS on 2026-08-11;
+- **Pyaterochka retailer-path criterion: satisfied** through `AVAILABLE_BROWSER_BRIDGE` page-snapshot acquisition after adapter v1 passed the real first-party browser gate on 2026-08-11 from merged `main` SHA `95e83c1c2d3e8217de10bf9c2bb160735ba17f94` with 12 normalized observations, one fulfillment context and zero validation failures;
+- **mandatory X5 per-banner connectivity criterion: satisfied** for both Pyaterochka and Perekrestok through the browser-assisted acquisition mode;
+- **retailer-bridge workspace maintenance gate: satisfied** by making `apps/retailer-bridge` an independent pnpm workspace importer with pinned bridge-owned tooling and unchanged deterministic browser behavior;
+- **independent non-X5 retailer criterion: outstanding**;
+- **second distinct acquisition-mode criterion: outstanding** until another accepted path proves a non-browser mode end to end.
 
 Deliverables:
 
 - approved product/architecture foundation;
 - repository quality and security baseline;
 - provider integration research matrix for major target retailers;
+- universal target-retailer registry/connectivity design;
+- mandatory Pyaterochka/Perekrestok coverage strategy as the first hard case;
 - location/fulfillment-context model;
 - provider port contract;
 - feasibility harness for external integrations;
-- at least two provider spikes for one supported city/location context;
+- supported-path spikes for both mandatory X5 banners plus at least one independent non-X5 provider;
+- proof of at least two distinct acquisition modes among direct/partner API, aggregator, public web and user-assisted browser bridge;
 - recorded fixtures and automated contract/parser tests;
-- documented freshness, availability, rate-limit, and legal constraints;
+- documented freshness, availability, rate-limit, provenance, operational, and legal constraints;
 - go/no-go decision for M1.
+
+Accepted provider paths may be direct retailer APIs, supported aggregator integrations, stable public web/API surfaces, or user-assisted first-party browser connectors. Provenance and limitations must remain explicit.
 
 Exit criteria:
 
-- at least two providers can return usable location-specific product/offer data through an acceptable integration path;
-- results are reproducible through automated tests/fixtures;
+- **Pyaterochka** can return usable location/store-specific product/offer data through at least one acceptable path — **satisfied via `AVAILABLE_BROWSER_BRIDGE`**;
+- **Perekrestok** can return usable location/store-specific product/offer data through at least one acceptable path — **satisfied via `AVAILABLE_BROWSER_BRIDGE`**;
+- at least one independent non-X5 retailer can return usable location-specific product/offer data through an acceptable path;
+- at least two acquisition modes have been proven end to end so M0 does not depend on a single transport assumption;
+- accepted results are reproducible through automated tests/sanitized fixtures;
+- direct, aggregator-backed, public-web, and browser-assisted provenance cannot be confused in the product model;
+- the retailer registry and onboarding contract can add another chain without changes to shopping-list/basket domain logic;
 - known limitations are documented rather than hidden.
+
+Detailed X5 strategy: [`integrations/x5-mandatory-coverage.md`](integrations/x5-mandatory-coverage.md).
+
+Immediate M0 sequencing after the retailer-bridge workspace gate:
+
+1. prove at least one independent non-X5 retailer path, with Magnit PR #46 currently the nearest candidate after its failing API CI is diagnosed/fixed against current `main`;
+2. prove a second accepted acquisition mode so M0 is not browser-transport-only;
+3. keep Perekrestok/Pyaterochka additional corpus/context validation and issue #54 persistent-session work as hardening rather than reopening their Phase A acceptance;
+4. continue Kuper/X5 supported-access work in parallel, with an accepted aggregator-backed path also able to satisfy the second-mode criterion;
+5. continue remaining retailer-registry onboarding through the now independent bridge/provider architecture;
+6. publish the outstanding `v0.1.0-rc.3` release proof when a release-capable path is available;
+7. once the independent non-X5 and second-mode criteria are satisfied, make the explicit M0 → M1 go/no-go decision.
 
 ## M1 — Shopping Core
 
-Goal: compare a manually entered grocery list across supported retailers.
+Goal: compare a manually entered grocery list across connected retailers while preserving explicit coverage state for every target registry entry.
 
 Scope:
 
 - shopping list CRUD;
 - canonical units/quantities;
 - address/location input;
+- retailer registry and coverage-state visibility;
 - retailer discovery;
-- provider orchestration;
+- provider/path orchestration;
 - deterministic product matching baseline;
 - package/quantity selection baseline;
 - price and availability snapshots;
 - complete-basket comparison;
 - partial-provider failure UX;
-- data freshness UX.
+- data freshness UX;
+- provider provenance UX when observations come through an aggregator, public-web adapter, or user-assisted browser connector.
 
 Exit criteria:
 
 - critical journey is covered by automated integration and browser E2E tests;
 - incomplete/ambiguous matches are transparent;
-- one-store ranking is deterministic and explainable.
+- one-store ranking is deterministic and explainable;
+- unavailable target-retailer coverage is explicit rather than silently omitted.
 
 ## M2 — Recipes
 
@@ -102,7 +144,7 @@ Scope:
 - saved lists/recipes/preferences;
 - product analytics abstraction;
 - feature flags/experiments;
-- stronger provider health monitoring;
+- stronger provider and retailer-path health monitoring;
 - performance and accessibility budgets;
 - public SEO/content surfaces where justified.
 
@@ -122,7 +164,7 @@ Mobile-specific work may include barcode/camera flows, push notifications, deep 
 
 ## Later candidates — not commitments
 
-- retailer/affiliate partnerships;
+- broader retailer/affiliate partnerships beyond the mandatory registry integration work;
 - direct cart creation/checkout handoff;
 - loyalty integration;
 - price history and alerts;

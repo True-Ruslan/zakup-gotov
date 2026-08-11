@@ -51,11 +51,12 @@ The script intentionally fails if the pinned Java/Node/pnpm toolchains are not a
 2. frozen pnpm workspace installation;
 3. OpenAPI generated-client regeneration/drift check;
 4. API-client strict typecheck, Vitest tests, and build;
-5. web ESLint, strict typecheck, component tests, and production build.
+5. retailer-bridge strict typecheck, deterministic fixture/unit tests, and production extension build;
+6. web ESLint, strict typecheck, component tests, and production build.
 
 It does not silently skip Testcontainers or convert infrastructure failures into success.
 
-Cloud-only security gates such as CodeQL and Dependency Review remain GitHub checks and cannot be fully reproduced by this script.
+Cloud-only security gates such as CodeQL and Dependency Review remain GitHub checks and cannot be fully reproduced by this script. Retailer Bridge Chromium E2E is also kept in its dedicated CI gate because it requires a Playwright-managed Chromium installation.
 
 ## Production container bundle
 
@@ -122,6 +123,50 @@ pnpm --filter web test:e2e
 ```
 
 The suite currently exercises desktop (1440×900) and mobile (390×844) Chromium profiles with retries disabled.
+
+## Retailer browser bridge
+
+The browser bridge is a Chromium Manifest V3 extension under `apps/retailer-bridge`. It is intentionally separate from the web application and from server-side provider probes.
+
+Deterministic local verification:
+
+```bash
+pnpm --dir apps/retailer-bridge typecheck
+pnpm --dir apps/retailer-bridge test
+pnpm --dir apps/retailer-bridge build
+```
+
+The bridge Chromium E2E uses the real production retailer URL match pattern but intercepts the test page before network access and fulfills it from committed sanitized fixtures. Install the pinned Playwright Chromium and run it with:
+
+```bash
+pnpm --dir apps/web exec playwright install chromium
+pnpm --dir apps/retailer-bridge test:e2e
+```
+
+The E2E profile deliberately contains sentinel cookie/localStorage secrets and verifies they are not copied into extension storage. It also verifies that stale observations are replaced with `[]` when the current page has no valid store context.
+
+### Perekrestok first-party live Phase A
+
+The live check is manual/opt-in and is **not** part of normal CI:
+
+```bash
+pnpm --dir apps/retailer-bridge build
+```
+
+Then:
+
+1. open `chrome://extensions` in the user's normal Chrome/Chromium profile;
+2. enable Developer mode;
+3. choose **Load unpacked** and select `apps/retailer-bridge/dist`;
+4. open the official Perekrestok site;
+5. manually choose the intended store/location and manually complete any login/CAPTCHA required by the retailer;
+6. open a product/search/catalog page with a current displayed price;
+7. inspect the page root attributes `data-zg-bridge-status` and `data-zg-bridge-count`;
+8. inspect `zg.latestObservations` in the extension service worker storage.
+
+A live observation is acceptable only when it contains retailer/source provenance, one explicit fulfillment context, SKU/PLU, current price in integer minor units, currency, explicit/unknown availability, timestamp, canonical source URL and adapter version. Browser cookies, authorization material, browser storage values, CAPTCHA artifacts, exact street address and raw page HTML must not appear in persisted observations or evidence.
+
+Current procedure/status is recorded in [`integrations/perekrestok-browser-bridge-phase-a.md`](integrations/perekrestok-browser-bridge-phase-a.md).
 
 ## Running PostgreSQL for the API
 
@@ -194,6 +239,15 @@ pnpm --filter @zakup-gotov/api-client check:generated
 pnpm --filter @zakup-gotov/api-client typecheck
 pnpm --filter @zakup-gotov/api-client test
 pnpm --filter @zakup-gotov/api-client build
+```
+
+### Retailer bridge
+
+```bash
+pnpm --dir apps/retailer-bridge typecheck
+pnpm --dir apps/retailer-bridge test
+pnpm --dir apps/retailer-bridge build
+pnpm --dir apps/retailer-bridge test:e2e
 ```
 
 ### Web

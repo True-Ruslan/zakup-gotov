@@ -1,0 +1,33 @@
+<!doctype html>
+<html lang="ru">
+  <head>
+    <meta charset="utf-8" />
+    <script type="application/json">{"namedChunks":[]}</script>
+    <script>
+      fetch("/api/customer/1.4.1.0/shop/656?session=SECRET_RESOURCE_QUERY#fragment").catch(() => {});
+    </script>
+  </head>
+  <body>
+    <main class="catalog-content"></main>
+    <script>
+      setTimeout(() => {
+        document.querySelector(".catalog-content").insertAdjacentHTML(
+          "beforeend",
+          `<article class="product-card">
+            <a class="product-card__link" href="/cat/1768/p/sanitized-ready-meal-4408829"></a>
+            <div class="product-card__content">
+              <div class="product-card__title-wrapper">
+                <div class="product-card__title">
+                  <a class="product-card__title-link" href="/cat/1768/p/sanitized-ready-meal-4408829">Санитизированный готовый продукт</a>
+                </div>
+              </div>
+              <div class="product-card__pricing">
+                <div class="product-card__price"><span class="price-new">199,99 ₽</span></div>
+              </div>
+            </div>
+          </article>`,
+        );
+      }, 250);
+    </script>
+  </body>
+</html>
