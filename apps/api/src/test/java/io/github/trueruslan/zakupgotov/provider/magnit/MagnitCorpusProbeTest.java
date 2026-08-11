@@ -4,6 +4,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assumptions.assumeTrue;
 
 import java.math.BigDecimal;
+import java.nio.charset.StandardCharsets;
 import java.util.Set;
 import org.junit.jupiter.api.Test;
 
@@ -46,73 +47,37 @@ class MagnitCorpusProbeTest {
     }
 
     @Test
-    void parsesCurrentAndRegularPromoPriceBoundToExpectedSku() {
-        var html = """
-                <html><body>
-                  <aside>Другой товар 9 ₽ Нет в наличии</aside>
-                  <h1>Бананы 1кг</h1>
-                  <div>Финальная цена</div>
-                  <div>159,99 ₽</div>
-                  <div>199,99 ₽</div>
-                  <div>-20%</div>
-                  <button>Добавить в корзину</button>
-                  <section>Характеристики Артикул 9072651501</section>
-                  <footer>999 ₽</footer>
-                </body></html>
-                """;
-
-        var observation = MagnitCorpusProbe.parseProductPage(html, "9072651501");
+    void parsesCurrentAndRegularPromoPriceBoundToExpectedSku() throws Exception {
+        var observation = MagnitCorpusProbe.parseProductPage(fixture("promo-available.html"), "9072651501");
 
         assertThat(observation.skuEvidence()).isTrue();
-        assertThat(observation.currentPrice()).contains(new BigDecimal("159.99"));
-        assertThat(observation.regularPrice()).contains(new BigDecimal("199.99"));
+        assertThat(observation.currentPrice()).contains(new BigDecimal("123.45"));
+        assertThat(observation.regularPrice()).contains(new BigDecimal("150.00"));
         assertThat(observation.promo()).isTrue();
         assertThat(observation.availability()).isEqualTo(MagnitCorpusProbe.Availability.AVAILABLE);
     }
 
     @Test
-    void treatsExplicitProductUnavailabilityAsUnavailable() {
-        var html = """
-                <h1>Яйцо куриное С1 15шт</h1>
-                <div>Нет в наличии</div>
-                <div>159.99 ₽</div>
-                <section>Характеристики Артикул 1000135280</section>
-                """;
+    void treatsExplicitProductUnavailabilityAsUnavailable() throws Exception {
+        var observation = MagnitCorpusProbe.parseProductPage(fixture("regular-unavailable.html"), "1000135280");
 
-        var observation = MagnitCorpusProbe.parseProductPage(html, "1000135280");
-
-        assertThat(observation.currentPrice()).contains(new BigDecimal("159.99"));
+        assertThat(observation.currentPrice()).contains(new BigDecimal("111.11"));
         assertThat(observation.regularPrice()).isEmpty();
         assertThat(observation.promo()).isFalse();
         assertThat(observation.availability()).isEqualTo(MagnitCorpusProbe.Availability.UNAVAILABLE);
     }
 
     @Test
-    void keepsAvailabilityUnknownWhenNoExplicitStockSemanticExists() {
-        var html = """
-                <h1>Рис длиннозерный 800г</h1>
-                <div>62.59 ₽</div>
-                <section>Характеристики Артикул 3152910005</section>
-                """;
+    void keepsAvailabilityUnknownWhenNoExplicitStockSemanticExists() throws Exception {
+        var observation = MagnitCorpusProbe.parseProductPage(fixture("regular-unknown.html"), "3152910003");
 
-        var observation = MagnitCorpusProbe.parseProductPage(html, "3152910005");
-
-        assertThat(observation.currentPrice()).contains(new BigDecimal("62.59"));
+        assertThat(observation.currentPrice()).contains(new BigDecimal("88.88"));
         assertThat(observation.availability()).isEqualTo(MagnitCorpusProbe.Availability.UNKNOWN);
     }
 
     @Test
-    void refusesPriceAndAvailabilityWhenExpectedSkuIsMissing() {
-        var html = """
-                <h1>Другой товар</h1>
-                <div>Финальная цена</div>
-                <div>10 ₽</div>
-                <div>20 ₽</div>
-                <button>Добавить в корзину</button>
-                <section>Артикул 1111111111</section>
-                """;
-
-        var observation = MagnitCorpusProbe.parseProductPage(html, "9072651501");
+    void refusesPriceAndAvailabilityWhenExpectedSkuIsMissing() throws Exception {
+        var observation = MagnitCorpusProbe.parseProductPage(fixture("promo-available.html"), "1111111111");
 
         assertThat(observation.skuEvidence()).isFalse();
         assertThat(observation.currentPrice()).isEmpty();
@@ -136,11 +101,17 @@ class MagnitCorpusProbeTest {
         assertThat(result.stableIdentity()).isBetween(0, 20);
         assertThat(result.knownAvailability()).isBetween(0, 40);
         assertThat(result.promoObservations()).isBetween(0, 40);
-        assertThat(result.failedRequirements())
-                .allSatisfy(requirement -> assertThat(Set.copyOf(
-                                MagnitCorpusProbe.fixedCorpus().stream()
-                                        .map(MagnitCorpusProbe.CorpusItem::requirement)
-                                        .toList()))
-                        .contains(requirement));
+
+        var approvedRequirements = Set.copyOf(MagnitCorpusProbe.fixedCorpus().stream()
+                .map(MagnitCorpusProbe.CorpusItem::requirement)
+                .toList());
+        assertThat(result.failedRequirements()).allSatisfy(requirement -> assertThat(approvedRequirements).contains(requirement));
+    }
+
+    private String fixture(String name) throws Exception {
+        try (var input = getClass().getResourceAsStream("/provider/magnit/" + name)) {
+            assertThat(input).as("fixture %s", name).isNotNull();
+            return new String(input.readAllBytes(), StandardCharsets.UTF_8);
+        }
     }
 }
