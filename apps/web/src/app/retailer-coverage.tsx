@@ -7,6 +7,7 @@ type Coverage = components["schemas"]["RetailerCoverageStatus"];
 type ProductionAccess = components["schemas"]["RetailerProductionAccessStatus"];
 type ComparisonStatus = components["schemas"]["RetailerComparisonStatus"];
 type Reason = components["schemas"]["RetailerComparisonReason"];
+type Freshness = components["schemas"]["RetailerFreshness"];
 
 const coverageLabels: Record<Coverage, string> = {
   CONNECTED: "Источник подключён",
@@ -53,6 +54,19 @@ function formatTotal(item: RetailerItem) {
     style: "currency",
     currency: item.total.currencyCode,
   }).format(item.total.amount);
+}
+
+function FreshnessEvidence({ freshness }: { freshness: Freshness }) {
+  return (
+    <div className="mt-4 space-y-1 text-xs leading-5 text-stone-500">
+      <p>Последнее наблюдение: {freshness.observedAt}</p>
+      {freshness.basis === "PROVIDER_TIMESTAMP" && freshness.providerUpdatedAt ? (
+        <p>Обновлено источником: {freshness.providerUpdatedAt}</p>
+      ) : (
+        <p>Источник не сообщает отдельное время обновления.</p>
+      )}
+    </div>
+  );
 }
 
 export function RetailerCoverageSection({
@@ -130,11 +144,7 @@ export function RetailerCoverageSection({
                   </ul>
                 ) : null}
 
-                {retailer.freshness ? (
-                  <p className="mt-4 text-xs leading-5 text-stone-500">
-                    Данные наблюдались: {retailer.freshness.observedAt}
-                  </p>
-                ) : null}
+                {retailer.freshness ? <FreshnessEvidence freshness={retailer.freshness} /> : null}
               </li>
             );
           })}
