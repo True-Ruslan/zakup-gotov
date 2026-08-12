@@ -1,7 +1,7 @@
 # Magnit Structured Package Characteristics Design
 
 Updated: 2026-08-12
-Status: implementation direction
+Status: implementation direction, review-hardened
 
 ## Context
 
@@ -27,7 +27,16 @@ This slice is technical evidence/extraction only and must not activate recurring
 
 Implement a pure, deterministic, fail-closed Magnit package-quantity extractor that reads only supported labeled fields inside the official `Характеристики` section and returns canonical package evidence when exactly one supported physical dimension is unambiguous.
 
-Integrate the extractor with the existing deterministic/test-only Magnit public-page parser so source feasibility can be verified without changing production activation.
+Prove that a `FOUND` extraction can enter the already accepted #81 provider/snapshot package-evidence path, without changing the existing Magnit fixed-corpus probe or production activation in the same slice.
+
+### Why corpus instrumentation is separate
+
+The original draft coupled extractor semantics with `MagnitCorpusProbe` instrumentation. Review split these concerns deliberately:
+
+1. #82 establishes and reviews the semantic contract of the pure extractor;
+2. the next evidence slice instruments the existing explicit/manual fixed-corpus probe and measures real distribution across products.
+
+This avoids changing the measurement harness before the semantics being measured are accepted. Existing Magnit price/availability probes therefore remain behaviorally unchanged in #82.
 
 ## Supported v1 fields
 
@@ -36,7 +45,7 @@ Integrate the extractor with the existing deterministic/test-only Magnit public-
 - exact semantic: packaged product mass in kilograms as published in Magnit characteristics;
 - convert through canonical `Quantity(..., KILOGRAM)` → grams;
 - positive decimal only;
-- dot and comma decimal separators are accepted because both occur in rendered Russian pages/data.
+- dot and comma decimal separators accepted.
 
 ### `Объем, л`
 
@@ -47,7 +56,7 @@ Integrate the extractor with the existing deterministic/test-only Magnit public-
 
 ### Deliberately deferred: `Количество в упаковке`
 
-Although official pages can expose this label, current evidence shows it as a variant/selector surface and not yet as the same stable characteristics contract. Supporting count would also create multi-dimensional products (for example count + package mass) under the current single-`Quantity` model.
+Although official pages can expose this label, current evidence shows it as a variant/selector surface and not yet as the same stable characteristics contract. Supporting count would also create multi-dimensional products under the current single-`Quantity` model.
 
 Do not accept it in v1. It requires a separate evidence decision.
 
@@ -86,22 +95,21 @@ Statuses:
 
 1. **Never parse product title, slug, SKU, URL, description or marketing text.** A title like `Макароны 450г` alone yields `MISSING`.
 2. Only exact supported labels inside `Характеристики` may create evidence.
-3. Duplicate occurrences of the same label/value are harmless and deduplicated.
-4. Distinct values for the same dimension are `CONFLICTING_VALUES`; choose neither.
-5. Weight + volume on the same page are `AMBIGUOUS_DIMENSIONS`; do not infer that one is more appropriate from category/title/product type.
-6. Invalid supported fields make the result `INVALID_VALUE`; do not silently ignore a malformed authoritative field and use another value.
-7. `Количество в упаковке` is ignored in v1 and cannot create a piece quantity.
-8. Missing/ambiguous/conflicting/invalid extraction remains package-unknown to M1 basket logic.
-9. No network call exists in the production extractor.
-10. Existing live Magnit probes remain explicit/manual test tooling; ordinary CI remains deterministic and live-retailer-free.
+3. Exact supported labels before the section or after a known following section marker do not create evidence.
+4. Duplicate occurrences of the same label/value are harmless and deduplicated.
+5. Distinct values for the same dimension are `CONFLICTING_VALUES`; choose neither.
+6. Weight + volume on the same page are `AMBIGUOUS_DIMENSIONS`; do not infer that one is more appropriate from category/title/product type.
+7. Invalid supported fields make the result `INVALID_VALUE`; do not silently ignore a malformed authoritative field and use another value.
+8. `Количество в упаковке` is ignored in v1 and cannot create a piece quantity, even if it appears inside `Характеристики`.
+9. Missing/ambiguous/conflicting/invalid extraction remains package-unknown to M1 basket logic.
+10. No network call exists in the production extractor.
+11. Existing live Magnit probes remain explicit/manual test tooling; ordinary CI remains deterministic and live-retailer-free.
 
 ## Architecture
 
-Create a pure production utility/value boundary under:
+Production boundary:
 
 `io.github.trueruslan.zakupgotov.provider.magnit`
-
-Suggested API:
 
 ```java
 public final class MagnitPackageQuantityExtractor {
@@ -115,13 +123,13 @@ public record MagnitPackageQuantityExtraction(
 
 The extractor is source-specific but transport-free: it takes already obtained HTML, performs no HTTP and owns only Magnit's exact characteristic semantics.
 
-The existing test-only `MagnitCorpusProbe.parseProductPage(...)` should call the pure extractor and expose the extraction result in `PageObservation`. This demonstrates that the accepted public-page surface can feed #81's package-evidence value without converting the probe into a production poller.
+A bridge regression creates an `ObservedOffer` using the extraction result and verifies that #81 preserves it through `OfferSnapshot`. Ambiguous extraction produces an empty package quantity downstream.
 
 Do not add a Spring bean or wire the production `ComparisonRuntimeEvidenceSource` in this slice.
 
-## Deterministic evidence matrix
+Do not modify the existing fixed-corpus live measurement behavior in this slice; that is the immediate follow-up once extractor semantics are accepted.
 
-At minimum:
+## Deterministic evidence matrix
 
 | Fixture | Characteristics | Expected |
 |---|---|---|
@@ -130,9 +138,11 @@ At minimum:
 | duplicate weight | `Вес, кг 0.45` repeated | `FOUND`, `450 GRAM` |
 | milk | `Объем, л 1` + `Вес, кг 1.028` | `AMBIGUOUS_DIMENSIONS`, empty |
 | conflicting | `Вес, кг 0.45` + `Вес, кг 0.50` | `CONFLICTING_VALUES`, empty |
-| invalid | `Вес, кг 0` or malformed | `INVALID_VALUE`, empty |
-| title-only | title/slug contains `450г`, no characteristic | `MISSING`, empty |
+| invalid | `Вес, кг 0` / negative / malformed | `INVALID_VALUE`, empty |
+| title-only | title contains `450г`, no characteristic | `MISSING`, empty |
+| outside section | supported label before/after section boundary | `MISSING`, empty |
 | count-only | `Количество в упаковке 10`, no weight/volume | `MISSING`, empty in v1 |
+| script/style | supported-looking text only in script/style | `MISSING`, empty |
 
 ## Security / privacy / access
 
@@ -145,20 +155,21 @@ At minimum:
 
 ## Exit criteria
 
-- deterministic tests cover the evidence matrix;
+- deterministic tests cover the evidence matrix and section boundaries;
 - exact labeled weight/volume characteristics produce canonical quantities;
 - multi-dimensional/conflicting/invalid pages fail closed;
-- title/slug/count-only text cannot produce package evidence;
-- the deterministic Magnit public-page parser exposes the extraction result;
-- existing Magnit price/availability probe behavior remains unchanged;
+- title/slug/count-only/script/style/out-of-section text cannot produce package evidence;
+- `FOUND` output is proven compatible with `ObservedOffer` → `OfferSnapshot` package evidence;
+- ambiguous output is proven package-unknown downstream;
+- existing Magnit live/price/availability probe behavior is unchanged;
 - ordinary CI contains no live Magnit dependency;
-- durable docs explicitly distinguish technical extraction proof from production activation;
+- durable docs explicitly distinguish technical extraction proof from production activation and corpus measurement;
 - exact-head CI/security gate passes and independent review has no blocking findings.
 
 ## Follow-up
 
 After this slice ships:
 
-1. run an explicit/manual Magnit live evidence probe over the fixed corpus to measure how often v1 fields are `FOUND`, `MISSING`, `AMBIGUOUS_DIMENSIONS`, `CONFLICTING_VALUES` or `INVALID_VALUE`;
+1. instrument the explicit/manual Magnit fixed-corpus probe with the accepted extractor and measure `FOUND`, `MISSING`, `AMBIGUOUS_DIMENSIONS`, `CONFLICTING_VALUES`, `INVALID_VALUE` distribution;
 2. only if evidence quality is sufficient, design the production adapter activation path subject to #69/#70;
 3. evaluate `Количество в упаковке` separately, including whether the domain should support multiple package dimensions rather than forcing one `Quantity`.
