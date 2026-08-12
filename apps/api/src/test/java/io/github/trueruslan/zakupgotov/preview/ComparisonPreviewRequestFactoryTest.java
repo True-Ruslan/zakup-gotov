@@ -22,8 +22,7 @@ class ComparisonPreviewRequestFactoryTest {
                 List.of(new ComparisonPreviewItemRequest(
                         MILK_ID,
                         "  Молоко   3,2%  ",
-                        new BigDecimal("2"),
-                        QuantityUnit.LITER)));
+                        new ComparisonPreviewQuantityRequest(new BigDecimal("2"), QuantityUnit.LITER))));
 
         var input = ComparisonPreviewRequestFactory.create(request);
 
@@ -74,48 +73,56 @@ class ComparisonPreviewRequestFactoryTest {
     void rejectsBlankAndOverlongRequirements() {
         assertThatThrownBy(() -> ComparisonPreviewRequestFactory.create(request(
                         "Москва",
-                        new ComparisonPreviewItemRequest(MILK_ID, "   ", BigDecimal.ONE, QuantityUnit.PIECE))))
+                        new ComparisonPreviewItemRequest(MILK_ID, "   ", quantity(BigDecimal.ONE, QuantityUnit.PIECE)))))
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessageContaining("requirement");
         assertThatThrownBy(() -> ComparisonPreviewRequestFactory.create(request(
                         "Москва",
-                        new ComparisonPreviewItemRequest(MILK_ID, "м".repeat(241), BigDecimal.ONE, QuantityUnit.PIECE))))
+                        new ComparisonPreviewItemRequest(MILK_ID, "м".repeat(241), quantity(BigDecimal.ONE, QuantityUnit.PIECE)))))
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessageContaining("240");
     }
 
     @Test
-    void rejectsNullZeroAndNegativeQuantityValues() {
+    void rejectsNullQuantityAndNullZeroNegativeQuantityValues() {
         assertThatThrownBy(() -> ComparisonPreviewRequestFactory.create(request(
                         "Москва",
-                        new ComparisonPreviewItemRequest(MILK_ID, "Молоко", null, QuantityUnit.LITER))))
+                        new ComparisonPreviewItemRequest(MILK_ID, "Молоко", null))))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("quantity");
+        assertThatThrownBy(() -> ComparisonPreviewRequestFactory.create(request(
+                        "Москва",
+                        new ComparisonPreviewItemRequest(MILK_ID, "Молоко", quantity(null, QuantityUnit.LITER)))))
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessageContaining("amount");
         assertThatThrownBy(() -> ComparisonPreviewRequestFactory.create(request(
                         "Москва",
-                        new ComparisonPreviewItemRequest(MILK_ID, "Молоко", BigDecimal.ZERO, QuantityUnit.LITER))))
+                        new ComparisonPreviewItemRequest(MILK_ID, "Молоко", quantity(BigDecimal.ZERO, QuantityUnit.LITER)))))
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessageContaining("amount");
         assertThatThrownBy(() -> ComparisonPreviewRequestFactory.create(request(
                         "Москва",
-                        new ComparisonPreviewItemRequest(MILK_ID, "Молоко", BigDecimal.ONE.negate(), QuantityUnit.LITER))))
+                        new ComparisonPreviewItemRequest(MILK_ID, "Молоко", quantity(BigDecimal.ONE.negate(), QuantityUnit.LITER)))))
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessageContaining("amount");
         assertThatThrownBy(() -> ComparisonPreviewRequestFactory.create(request(
                         "Москва",
-                        new ComparisonPreviewItemRequest(MILK_ID, "Молоко", BigDecimal.ONE, null))))
+                        new ComparisonPreviewItemRequest(MILK_ID, "Молоко", quantity(BigDecimal.ONE, null)))))
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessageContaining("unit");
     }
 
     @Test
-    void publicRequestTypesExposeNoAddressOrProviderIdentifiers() {
+    void publicRequestTypesExposeNestedQuantityAndNoAddressOrProviderIdentifiers() {
         assertThat(List.of(ComparisonPreviewRequest.class.getRecordComponents()))
                 .extracting(component -> component.getName())
                 .containsExactly("locality", "items");
         assertThat(List.of(ComparisonPreviewItemRequest.class.getRecordComponents()))
                 .extracting(component -> component.getName())
-                .containsExactly("id", "requirement", "amount", "unit");
+                .containsExactly("id", "requirement", "quantity");
+        assertThat(List.of(ComparisonPreviewQuantityRequest.class.getRecordComponents()))
+                .extracting(component -> component.getName())
+                .containsExactly("amount", "unit");
     }
 
     private static ComparisonPreviewRequest request(String locality, ComparisonPreviewItemRequest item) {
@@ -123,6 +130,10 @@ class ComparisonPreviewRequestFactoryTest {
     }
 
     private static ComparisonPreviewItemRequest item(UUID id) {
-        return new ComparisonPreviewItemRequest(id, "Молоко", BigDecimal.ONE, QuantityUnit.LITER);
+        return new ComparisonPreviewItemRequest(id, "Молоко", quantity(BigDecimal.ONE, QuantityUnit.LITER));
+    }
+
+    private static ComparisonPreviewQuantityRequest quantity(BigDecimal amount, QuantityUnit unit) {
+        return new ComparisonPreviewQuantityRequest(amount, unit);
     }
 }

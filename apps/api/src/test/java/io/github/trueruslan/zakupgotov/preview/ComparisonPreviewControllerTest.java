@@ -22,7 +22,7 @@ class ComparisonPreviewControllerTest extends PostgresIntegrationSupport {
     MockMvc mockMvc;
 
     @Test
-    void productionEndpointNormalizesRequestAndNeverFabricatesRuntimeRetailerData() throws Exception {
+    void productionEndpointNormalizesNestedQuantityAndNeverFabricatesRuntimeRetailerData() throws Exception {
         var body = """
                 {
                   "locality": "  Москва  ",
@@ -30,8 +30,10 @@ class ComparisonPreviewControllerTest extends PostgresIntegrationSupport {
                     {
                       "id": "c281d71c-2b27-46ef-a7af-3d624a7447cf",
                       "requirement": "  Молоко  ",
-                      "amount": 2,
-                      "unit": "LITER"
+                      "quantity": {
+                        "amount": 2,
+                        "unit": "LITER"
+                      }
                     }
                   ]
                 }
@@ -63,7 +65,7 @@ class ComparisonPreviewControllerTest extends PostgresIntegrationSupport {
     }
 
     @Test
-    void invalidQuantityReturnsStableProductSafeProblemDetails() throws Exception {
+    void invalidNestedQuantityReturnsStableProductSafeProblemDetails() throws Exception {
         var body = """
                 {
                   "locality": "Москва",
@@ -71,8 +73,10 @@ class ComparisonPreviewControllerTest extends PostgresIntegrationSupport {
                     {
                       "id": "c281d71c-2b27-46ef-a7af-3d624a7447cf",
                       "requirement": "Молоко",
-                      "amount": 0,
-                      "unit": "LITER"
+                      "quantity": {
+                        "amount": 0,
+                        "unit": "LITER"
+                      }
                     }
                   ]
                 }
@@ -88,7 +92,7 @@ class ComparisonPreviewControllerTest extends PostgresIntegrationSupport {
                 .andExpect(jsonPath("$.status").value(400))
                 .andExpect(jsonPath("$.code").value("INVALID_COMPARISON_PREVIEW"))
                 .andExpect(jsonPath("$.errors", hasSize(1)))
-                .andExpect(jsonPath("$.errors[0].field").value("items[0].amount"))
+                .andExpect(jsonPath("$.errors[0].field").value("items[0].quantity.amount"))
                 .andExpect(jsonPath("$.errors[0].message").value("must be greater than 0"))
                 .andExpect(jsonPath("$..sourceProviderId").doesNotExist())
                 .andExpect(jsonPath("$..exception").doesNotExist())
