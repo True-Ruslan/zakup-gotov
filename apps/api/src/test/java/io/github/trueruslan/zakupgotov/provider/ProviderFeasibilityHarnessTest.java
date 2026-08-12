@@ -3,6 +3,7 @@ package io.github.trueruslan.zakupgotov.provider;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
+import io.github.trueruslan.zakupgotov.retailer.RetailerId;
 import java.math.BigDecimal;
 import java.time.Instant;
 import java.util.List;
@@ -23,7 +24,9 @@ class ProviderFeasibilityHarnessTest {
         var offers = ProviderFeasibilityHarness.offline().search(provider, LOCATION, QUERY);
 
         assertThat(offers).hasSize(1);
-        assertThat(offers.getFirst().providerId()).isEqualTo("provider-a");
+        assertThat(offers.getFirst().retailerId()).isEqualTo(RetailerId.PYATEROCHKA);
+        assertThat(offers.getFirst().sourceProviderId()).isEqualTo("provider-a");
+        assertThat(offers.getFirst().sourceMode()).isEqualTo(AcquisitionMode.DIRECT_API);
         assertThat(offers.getFirst().fulfillmentContextId()).isEqualTo("store-42");
     }
 
@@ -31,7 +34,6 @@ class ProviderFeasibilityHarnessTest {
     void offlineHarnessExposesFixtureOnlyProviderBoundary() throws NoSuchMethodException {
         var search = ProviderFeasibilityHarness.class.getMethod(
                 "search", FixtureRetailerProvider.class, LocationContext.class, ProductQuery.class);
-
         assertThat(search.getParameterTypes()[0]).isEqualTo(FixtureRetailerProvider.class);
     }
 
@@ -39,7 +41,9 @@ class ProviderFeasibilityHarnessTest {
     void liveProviderRunsOnlyThroughExplicitLiveProbe() {
         var invoked = new AtomicBoolean(false);
         LiveRetailerProvider provider = new FakeLiveProvider(
+                RetailerId.PYATEROCHKA,
                 "provider-a",
+                AcquisitionMode.DIRECT_API,
                 ProviderAccessType.PUBLIC_UNOFFICIAL_API,
                 Set.of(ProviderCapability.PRODUCT_SEARCH, ProviderCapability.PRICE),
                 invoked);
@@ -51,19 +55,18 @@ class ProviderFeasibilityHarnessTest {
     }
 
     @Test
-    void rejectsLocationContextOwnedByAnotherProvider() {
+    void rejectsLocationContextOwnedByAnotherSourceProvider() {
         var provider = fixtureProvider("provider-a", Set.of(ProviderCapability.PRODUCT_SEARCH, ProviderCapability.PRICE));
         var foreignLocation = new LocationContext("provider-b", "store-42", "Москва");
 
         assertThatThrownBy(() -> ProviderFeasibilityHarness.offline().search(provider, foreignLocation, QUERY))
                 .isInstanceOf(IllegalArgumentException.class)
-                .hasMessageContaining("providerId");
+                .hasMessageContaining("sourceProviderId");
     }
 
     @Test
     void rejectsProviderWithoutProductSearchCapability() {
         var provider = fixtureProvider("provider-a", Set.of(ProviderCapability.PRICE));
-
         assertThatThrownBy(() -> ProviderFeasibilityHarness.offline().search(provider, LOCATION, QUERY))
                 .isInstanceOf(IllegalStateException.class)
                 .hasMessageContaining("PRODUCT_SEARCH");
@@ -72,7 +75,6 @@ class ProviderFeasibilityHarnessTest {
     @Test
     void rejectsProviderWithoutPriceCapability() {
         var provider = fixtureProvider("provider-a", Set.of(ProviderCapability.PRODUCT_SEARCH));
-
         assertThatThrownBy(() -> ProviderFeasibilityHarness.offline().search(provider, LOCATION, QUERY))
                 .isInstanceOf(IllegalStateException.class)
                 .hasMessageContaining("PRICE");
@@ -82,8 +84,18 @@ class ProviderFeasibilityHarnessTest {
     void rejectsOfferThatDoesNotBelongToRequestedFulfillmentContext() {
         FixtureRetailerProvider provider = new FixtureRetailerProvider() {
             @Override
-            public String providerId() {
+            public RetailerId retailerId() {
+                return RetailerId.PYATEROCHKA;
+            }
+
+            @Override
+            public String sourceProviderId() {
                 return "provider-a";
+            }
+
+            @Override
+            public AcquisitionMode acquisitionMode() {
+                return AcquisitionMode.DIRECT_API;
             }
 
             @Override
@@ -98,7 +110,7 @@ class ProviderFeasibilityHarnessTest {
 
             @Override
             public List<ObservedOffer> search(LocationContext location, ProductQuery query) {
-                return List.of(offer("provider-a", "store-99"));
+                return List.of(offer(RetailerId.PYATEROCHKA, "provider-a", AcquisitionMode.DIRECT_API, "store-99"));
             }
         };
 
@@ -107,13 +119,24 @@ class ProviderFeasibilityHarnessTest {
                 .hasMessageContaining("fulfillmentContextId");
     }
 
-    private static FixtureRetailerProvider fixtureProvider(String providerId, Set<ProviderCapability> capabilities) {
-        return new FakeFixtureProvider(providerId, ProviderAccessType.PUBLIC_UNOFFICIAL_API, capabilities);
+    private static FixtureRetailerProvider fixtureProvider(String sourceProviderId, Set<ProviderCapability> capabilities) {
+        return new FakeFixtureProvider(
+                RetailerId.PYATEROCHKA,
+                sourceProviderId,
+                AcquisitionMode.DIRECT_API,
+                ProviderAccessType.PUBLIC_UNOFFICIAL_API,
+                capabilities);
     }
 
-    private static ObservedOffer offer(String providerId, String fulfillmentContextId) {
+    private static ObservedOffer offer(
+            RetailerId retailerId,
+            String sourceProviderId,
+            AcquisitionMode mode,
+            String fulfillmentContextId) {
         return new ObservedOffer(
-                providerId,
+                retailerId,
+                sourceProviderId,
+                mode,
                 fulfillmentContextId,
                 "sku-milk-1",
                 new BigDecimal("99.90"),
@@ -124,18 +147,22 @@ class ProviderFeasibilityHarnessTest {
     }
 
     private record FakeFixtureProvider(
-            String providerId,
+            RetailerId retailerId,
+            String sourceProviderId,
+            AcquisitionMode acquisitionMode,
             ProviderAccessType accessType,
             Set<ProviderCapability> capabilities) implements FixtureRetailerProvider {
 
         @Override
         public List<ObservedOffer> search(LocationContext location, ProductQuery query) {
-            return List.of(offer(providerId, location.fulfillmentContextId()));
+            return List.of(offer(retailerId, sourceProviderId, acquisitionMode, location.fulfillmentContextId()));
         }
     }
 
     private record FakeLiveProvider(
-            String providerId,
+            RetailerId retailerId,
+            String sourceProviderId,
+            AcquisitionMode acquisitionMode,
             ProviderAccessType accessType,
             Set<ProviderCapability> capabilities,
             AtomicBoolean invoked) implements LiveRetailerProvider {
@@ -143,7 +170,7 @@ class ProviderFeasibilityHarnessTest {
         @Override
         public List<ObservedOffer> search(LocationContext location, ProductQuery query) {
             invoked.set(true);
-            return List.of(offer(providerId, location.fulfillmentContextId()));
+            return List.of(offer(retailerId, sourceProviderId, acquisitionMode, location.fulfillmentContextId()));
         }
     }
 }

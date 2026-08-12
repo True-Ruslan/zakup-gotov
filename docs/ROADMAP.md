@@ -38,7 +38,7 @@ Goal: compare a manually entered grocery list across connected retailers while p
 
 - fixture-first provider orchestration;
 - unavailable/blocked registry entries remain visible;
-- retailer identity, source-provider identity and fulfillment context remain distinct;
+- retailer identity, source-provider identity, acquisition mode and fulfillment context remain distinct;
 - `UNKNOWN` availability remains first-class;
 - observation time is not misrepresented as provider update time;
 - production activation respects usage-rights state;
@@ -61,16 +61,24 @@ Goal: compare a manually entered grocery list across connected retailers while p
    - piece quantities preserved;
    - non-positive quantities rejected;
    - package/container selection deliberately deferred to matching/basket optimization.
-3. **Provider/path orchestration over deterministic fixtures — NEXT**
-   - evolve `ObservedOffer` provenance to explicit retailer/source-provider/source-mode fields;
-   - ordered/capability-aware path selection;
-   - no retailer-specific branches in shopping domain;
-   - partial/path failure stays explicit;
+3. **Provider/path orchestration over deterministic fixtures — COMPLETE (PR #74)**
+   - `ObservedOffer` preserves explicit `retailerId`, `sourceProviderId` and acquisition/source mode;
+   - `RetailerProvider` declares retailer, source provider and acquisition mode separately;
+   - deterministic priority `DIRECT_API → AGGREGATOR → PUBLIC_WEB → BROWSER_BRIDGE`;
+   - stable source-provider tie-break for same-mode candidates;
+   - capability-aware and provider-context-aware eligibility;
+   - explicit attempt states for missing capabilities, missing context, expected failure and success;
+   - fallback only on explicit expected path-unavailable failure;
+   - successful empty search does not mix/fallback to another provider;
+   - unexpected provider defects propagate;
+   - trust boundary rejects retailer/source-provider/source-mode/fulfillment-context provenance mismatch;
    - live adapters remain outside ordinary CI.
-4. **Location / fulfillment-context boundary**
-   - product-level location input;
+4. **Location / fulfillment-context boundary — NEXT**
+   - provider-neutral product location input;
    - provider-scoped context resolution/selection;
-   - no provider-specific identifiers leaking into shopping/basket logic.
+   - explicit/manual contexts where automatic resolution is unavailable;
+   - no `shopCode`, X5 store IDs or other provider identifiers leaking into shopping/basket logic;
+   - precise user addresses stay out of fixtures/logs by default.
 5. **Price and availability snapshots**
    - observation time;
    - currency/price representation;

@@ -21,6 +21,10 @@ All notable project changes are recorded here. Zakup Gotov is pre-release; entri
 - M1 canonical retailer registry covering Pyaterochka, Perekrestok, Chizhik, Magnit, Lenta, VkusVill, Ozon Fresh and Samokat with explicit technical coverage and independent production-access status.
 - M1 canonical quantity primitives: positive decimal quantities, `kg → g`, `l → ml`, piece quantities and stable normalized `BigDecimal` equality.
 - M1 shopping-list aggregate with UUID list/item identity, stable insertion order, immutable item views, whitespace-only requirement normalization and explicit add/replace/remove semantics.
+- Provenance-complete M1 `ObservedOffer` contract with separate `retailerId`, `sourceProviderId`, `sourceMode`, fulfillment context and existing SKU/price/availability/time/source-reference evidence.
+- `AcquisitionMode` with explicit `DIRECT_API`, `AGGREGATOR`, `PUBLIC_WEB` and `BROWSER_BRIDGE` values independent from technical `ProviderAccessType`.
+- Deterministic fixture-only provider/path orchestrator with explicit selected-path and per-attempt outcome records.
+- Explicit expected provider-path failure type (`ProviderPathUnavailableException`) used as the only fallback trigger.
 
 ### Changed
 
@@ -34,7 +38,12 @@ All notable project changes are recorded here. Zakup Gotov is pre-release; entri
 - Shopping requirements canonicalize measurement dimensions before matching while deliberately leaving package/container selection to later matching/basket optimization.
 - Requirement text normalization is intentionally limited to whitespace in the shopping domain; synonyms, aliases, categories and semantic canonicalization remain matching responsibilities.
 - Automatic duplicate-item merging is not performed by the M1 shopping-list aggregate; recipe/weekly-plan consolidation remains later scope.
-- `docs/PROJECT_STATE.md` and `docs/ROADMAP.md` now mark the retailer registry and shopping-list/quantity slices complete and move the active M1 focus to provider/path orchestration.
+- `RetailerProvider` now declares retailer identity, source-provider identity and acquisition mode separately; provider-specific location context is keyed by source-provider identity rather than an ambiguous generic provider ID.
+- M1 provider-path priority is deterministic: `DIRECT_API → AGGREGATOR → PUBLIC_WEB → BROWSER_BRIDGE`, with stable source-provider ID tie-breaking within a mode.
+- Provider path selection is capability/context-aware; missing capabilities and missing source-provider contexts are explicit outcomes and do not invoke the provider.
+- A successful empty provider search remains a success and does not silently combine/fallback to a lower-priority source.
+- Only explicit expected path unavailability triggers fallback; unexpected runtime defects propagate fail-fast.
+- `docs/PROJECT_STATE.md` and `docs/ROADMAP.md` now mark provenance-aware provider/path orchestration complete and move the active M1 focus to the location/fulfillment-context product boundary.
 
 ### Fixed
 
@@ -43,6 +52,7 @@ All notable project changes are recorded here. Zakup Gotov is pre-release; entri
 - The stale Magnit `eggs` corpus candidate was replaced with the current public product candidate after diagnostics isolated it as the sole failed requirement.
 - Magnit promo status is now independent from regular-price presence: a proven price-bound promo marker may set `promo=true`, while regular/old price remains empty unless a second supported price is actually present.
 - Documentation index links were corrected to reference only documents that exist in the repository.
+- Provider offer validation now rejects retailer, source-provider, acquisition-mode and fulfillment-context mismatches before observations can reach comparison logic.
 
 ## [0.1.0-rc.2] — 2026-08-09
 

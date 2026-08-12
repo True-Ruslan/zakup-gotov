@@ -11,7 +11,7 @@ Visibility: Public
 Current phase: **M1 — Shopping Core**  
 M0 status: **technical discovery COMPLETE**  
 M0→M1 decision: **GO** — [`superpowers/specs/2026-08-12-m0-to-m1-go-decision.md`](superpowers/specs/2026-08-12-m0-to-m1-go-decision.md)  
-Current focus: **provider/path orchestration over deterministic fixtures with explicit retailer/source-provider/acquisition-mode provenance**
+Current focus: **location / fulfillment-context product boundary over the completed provenance-aware provider/path orchestration layer**
 
 ## Product connectivity invariant
 
@@ -19,7 +19,7 @@ Universal Retailer Connectivity remains a permanent product rule beyond M0:
 
 > Every retailer/banner in the target registry remains mandatory coverage work until at least one reproducible accepted acquisition path exists. A failed transport changes the acquisition mode under investigation; it does not remove the retailer from product scope.
 
-Accepted acquisition-mode families are supported/partner API, aggregator-backed observations, stable public web/API surfaces and user-assisted first-party browser bridge.
+Accepted acquisition-mode families are supported/direct API, aggregator-backed observations, stable public web/API surfaces and user-assisted first-party browser bridge.
 
 ## M0 exit status
 
@@ -58,21 +58,38 @@ Initial accepted technical states are preserved:
 
 ### Slice 2 — shopping-list core + canonical quantities — COMPLETE
 
-PR #73 establishes deterministic shopping requirements without provider dependencies:
+PR #73 established deterministic shopping requirements without provider dependencies:
 
-- `Quantity` accepts positive decimal amounts only;
+- positive decimal `Quantity` values only;
 - kilograms normalize to grams;
 - liters normalize to milliliters;
 - piece quantities remain piece-based;
 - equivalent decimal representations normalize to stable value equality;
-- package/container units are intentionally not part of the requirement model because package selection belongs to matching/basket optimization;
-- `ShoppingRequirement` performs whitespace-only normalization and preserves user wording/case for later matching;
+- package/container selection remains outside the requirement model and belongs to matching/basket optimization;
+- `ShoppingRequirement` performs whitespace-only normalization and preserves user wording/case;
 - `ShoppingList` owns stable UUID list/item identity and insertion order;
-- add/replace/remove semantics reject duplicate or unknown item IDs instead of guessing;
+- add/replace/remove reject duplicate or unknown item IDs instead of guessing;
 - exposed item views are immutable;
-- no automatic duplicate-name merging is performed in M1; recipe/weekly-plan merging remains later scope.
+- automatic duplicate-name merging is intentionally deferred.
 
-Both M1 slices were implemented through explicit RED→GREEN cycles and verified by full Maven `verify` before final repository gating.
+### Slice 3 — provenance-aware provider/path orchestration — COMPLETE
+
+PR #74 establishes the first deterministic M1 acquisition-routing boundary:
+
+- normalized `ObservedOffer` now preserves `retailerId`, `sourceProviderId` and `sourceMode` independently from fulfillment context, SKU, price, availability, observation time and source reference;
+- `AcquisitionMode` distinguishes `DIRECT_API`, `AGGREGATOR`, `PUBLIC_WEB` and `BROWSER_BRIDGE` without overloading `ProviderAccessType`;
+- `RetailerProvider` declares its retailer identity, source-provider identity and acquisition mode explicitly;
+- `LocationContext` is source-provider scoped rather than ambiguously provider-labelled;
+- fixture-only `ProviderPathOrchestrator` selects deterministic priority `DIRECT_API → AGGREGATOR → PUBLIC_WEB → BROWSER_BRIDGE`, then source-provider ID as a stable tie-breaker;
+- providers for other retailers are ignored rather than mixed into the requested retailer result;
+- missing required capabilities and missing provider-scoped context are explicit non-invoking attempt states;
+- only the explicit `ProviderPathUnavailableException` triggers fallback to another path;
+- a successful empty search remains a successful selected path and does not silently mix results from a lower-priority source;
+- unexpected runtime defects propagate instead of being hidden by fallback;
+- unsuccessful routing returns an explicit outcome with attempted-path evidence rather than pretending the retailer is absent;
+- the common trust boundary rejects observations whose retailer, source provider, acquisition mode or fulfillment context do not match the provider/request contract.
+
+All three provider/orchestration behaviors were developed through separate RED→GREEN cycles and verified by full Maven `verify` before final repository gating. Ordinary CI still performs no live retailer traffic.
 
 ## Accepted retailer paths
 
@@ -116,25 +133,23 @@ Evidence:
 
 ## Provider foundation
 
-Verified connectivity infrastructure includes:
+Verified connectivity infrastructure now includes:
 
-- current `ObservedOffer` trust boundary;
-- provider-scoped `LocationContext`;
+- provenance-complete `ObservedOffer` trust boundary;
+- source-provider-scoped `LocationContext`;
 - normalized `ProductQuery`;
-- `RetailerProvider` port;
+- metadata-explicit `RetailerProvider` port;
 - structural fixture/live provider separation;
-- explicit live-probe entry points;
+- deterministic fixture-only path orchestration and explicit attempt outcomes;
+- explicit live-probe entry points kept outside ordinary CI;
 - retailer-neutral browser adapter registry;
-- first-class `apps/retailer-bridge` workspace and persistent-Chromium gate;
-- ordinary CI remains free of live retailer network dependencies.
-
-The next M1 domain evolution must update offer provenance to distinguish at least `retailerId`, `sourceProviderId` and acquisition/source mode before multiple accepted paths are orchestrated together.
+- first-class `apps/retailer-bridge` workspace and persistent-Chromium gate.
 
 ## M1 entry rules
 
 1. shopping/basket logic runs deterministically over fixtures;
 2. retailer coverage remains explicit and unavailable paths are never silently omitted;
-3. retailer, source-provider and fulfillment-context provenance remain distinct;
+3. retailer, source-provider, acquisition mode and fulfillment-context provenance remain distinct;
 4. `UNKNOWN` availability is preserved;
 5. observation time is not misrepresented as provider-side freshness;
 6. production activation respects recorded usage-rights state;
@@ -142,16 +157,15 @@ The next M1 domain evolution must update offer provenance to distinguish at leas
 
 ## Immediate next work
 
-1. **Provider/path orchestration over deterministic fixtures — NEXT**
-   - evolve normalized offer provenance to explicit retailer/source-provider/source-mode fields;
-   - define ordered/capability-aware path selection without blind retailer-specific branches;
-   - preserve partial/path failure explicitly;
-   - keep live adapters outside ordinary CI.
-2. Location / fulfillment-context product boundary.
-3. Price/availability snapshots with provenance and freshness semantics.
-4. Deterministic matching baseline.
-5. Complete single-store basket comparison.
-6. Coverage/failure/freshness UX and critical browser E2E.
+1. **Location / fulfillment-context product boundary — NEXT**
+   - define provider-neutral user/product location input separately from provider-specific fulfillment contexts;
+   - prevent `shopCode`, X5 store IDs and other provider identifiers from leaking into shopping/basket domain objects;
+   - support explicit/manual contexts where automatic resolution is not proven;
+   - keep precise user addresses out of fixtures/logs by default.
+2. Price/availability snapshots with provenance and freshness semantics.
+3. Deterministic product-matching baseline.
+4. Complete single-store basket comparison.
+5. Coverage/failure/freshness UX and critical browser E2E.
 
 ## Parallel open work
 

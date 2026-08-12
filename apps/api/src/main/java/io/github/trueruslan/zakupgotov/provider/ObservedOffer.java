@@ -1,11 +1,14 @@
 package io.github.trueruslan.zakupgotov.provider;
 
+import io.github.trueruslan.zakupgotov.retailer.RetailerId;
 import java.math.BigDecimal;
 import java.time.Instant;
 import java.util.Currency;
 
 public record ObservedOffer(
-        String providerId,
+        RetailerId retailerId,
+        String sourceProviderId,
+        AcquisitionMode sourceMode,
         String fulfillmentContextId,
         String sku,
         BigDecimal price,
@@ -15,7 +18,9 @@ public record ObservedOffer(
         String sourceReference) {
 
     public ObservedOffer {
-        providerId = requireText(providerId, "providerId");
+        retailerId = requireValue(retailerId, "retailerId");
+        sourceProviderId = requireText(sourceProviderId, "sourceProviderId");
+        sourceMode = requireValue(sourceMode, "sourceMode");
         fulfillmentContextId = requireText(fulfillmentContextId, "fulfillmentContextId");
         sku = requireText(sku, "sku");
         price = requireValue(price, "price");

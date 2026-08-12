@@ -2,6 +2,7 @@ package io.github.trueruslan.zakupgotov.provider;
 
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
+import io.github.trueruslan.zakupgotov.retailer.RetailerId;
 import java.math.BigDecimal;
 import java.time.Instant;
 import org.junit.jupiter.api.Test;
@@ -18,8 +19,8 @@ class ObservedOfferTest {
     }
 
     @Test
-    void rejectsOfferWithoutProvider() {
-        assertInvalid("providerId", () -> offer(" ", "fulfillment-context-1", "sku-1", new BigDecimal("149.90"),
+    void rejectsOfferWithoutSourceProvider() {
+        assertInvalid("sourceProviderId", () -> offer(" ", "fulfillment-context-1", "sku-1", new BigDecimal("149.90"),
                 "RUB", AvailabilityStatus.AVAILABLE, OBSERVED_AT, SOURCE_REFERENCE));
     }
 
@@ -73,7 +74,7 @@ class ObservedOfferTest {
     }
 
     private static ObservedOffer offer(
-            String providerId,
+            String sourceProviderId,
             String fulfillmentContextId,
             String sku,
             BigDecimal price,
@@ -82,7 +83,9 @@ class ObservedOfferTest {
             Instant observedAt,
             String sourceReference) {
         return new ObservedOffer(
-                providerId,
+                RetailerId.PYATEROCHKA,
+                sourceProviderId,
+                AcquisitionMode.DIRECT_API,
                 fulfillmentContextId,
                 sku,
                 price,
