@@ -18,6 +18,7 @@ All notable project changes are recorded here. Zakup Gotov is pre-release; entri
 - Product-facing retailer comparison/readiness model that always preserves all canonical retailers and keeps provider/acquisition identifiers internal.
 - Stateless `POST /api/v1/comparison-previews` manual-list comparison API, synchronized OpenAPI/generated TypeScript client and responsive web journey.
 - Desktop/mobile Playwright critical-journey coverage for ready, uncertain, incomplete, unavailable, unmatched, ambiguous, package-unknown and unit-mismatch paths.
+- M1 final acceptance document with explicit **GO to M2 Recipes** for deterministic product/core development.
 
 #### Structured package evidence
 
@@ -28,7 +29,6 @@ All notable project changes are recorded here. Zakup Gotov is pre-release; entri
 - Magnit 20-product × 2-shop fixed-corpus package instrumentation that separates transport/identity failure from missing metadata.
 - SKU-bound Magnit JSON-LD package extraction from the same PUBLIC_WEB response using exact `Product.sku`, proven scalar `weight` and exact `additionalProperty[name="Объем, л"]` semantics.
 - Finite JSON-LD corpus evidence: 40/40 HTTP 2xx and usable observations, 20/20 stable identity, 36/40 `FOUND`, 0 `MISSING`, 4 explicit multi-dimensional ambiguities, 0 conflicts and 0 invalid values.
-- Diagnostic evidence identifying the four ambiguity observations as milk SKU `1000013732` and kefir SKU `1000330180` in both shop contexts; structured egg mass remains mass rather than count.
 
 #### Magnit location/store context
 
@@ -36,18 +36,8 @@ All notable project changes are recorded here. Zakup Gotov is pre-release; entri
 - Sanitized response parser accepting only `items.items[].externalId.storeCode + coordinates` and rejecting conflicting store identity evidence.
 - Fail-closed store resolution semantics: zero → `NO_STORES`, exactly one → `RESOLVED`, many → `AMBIGUOUS`, conflicting duplicate identity → `CONFLICTING_STORE_EVIDENCE`.
 - Provider-scoped Magnit fulfillment bindings reusing `sourceProviderId="magnit-public-page"`; `shopCode` remains internal `LocationContext.fulfillmentContextId`.
-- Explicit manual store selection using the same provider identity without introducing a first/nearest-store heuristic.
-- Test-only merged-main live gate for issue #69, runnable only by repository owner through exact issue command `/provider-probe magnit-shopcode` and never on a schedule.
-- Direct-stateless live client contract with no cookie jar, no authenticator, `Redirect.NEVER`, no Magnit application/auth headers and exactly two requests.
-- Merged-main LOCATION_RESOLUTION proof on SHA `6ff8372c9e9e61b4c48c43d0d0c159fb65ffe7a1`, workflow run `31642543544`:
-  - both responses HTTP 200;
-  - one candidate each;
-  - public `shopCode=992301` present both times;
-  - no response `Set-Cookie` in either attempt;
-  - identical candidate-code sets;
-  - no conflicting evidence;
-  - exactly two requests;
-  - focused tests 3/3 PASS and Maven `BUILD SUCCESS`.
+- Owner-only merged-main live gate for issue #69 with direct stateless no-cookie/no-auth/no-redirect requests and sanitized evidence.
+- Merged-main location-resolution proof for public `shopCode=992301` across two identical candidate-set requests.
 
 #### Retailer connectivity and engineering
 
@@ -55,32 +45,30 @@ All notable project changes are recorded here. Zakup Gotov is pre-release; entri
 - Chromium MV3 retailer bridge with minimal permissions, sanitized local storage, deterministic fixtures and persistent-Chromium E2E.
 - Accepted first-party browser paths for Perekrestok v2 and Pyaterochka v1.
 - Magnit public-page Phase A/B evidence establishing `AVAILABLE_PUBLIC_WEB` technical feasibility.
-- M0 → M1 GO decision and explicit production-access/right-to-operate gate.
 - Magnit right-to-operate decision memo documenting why recurring production public-web reuse remains disabled pending affirmative permission or licensed/supported access terms.
+- Pre-acquisition production-access gate: runtime evidence sources receive only immutable production-ready retailer IDs; empty scope skips source invocation; out-of-scope evidence is rejected before matching/basket work.
 - Architecture guards protecting basket/comparison/preview dependency direction and preventing production code from depending on fixtures/test support.
 
 ### Changed
 
-- Project phase advanced from M0 Product & Integration Discovery to **M1 Shopping Core** after satisfying technical exit criteria.
+- Project phase advanced from M0 Product & Integration Discovery to M1 Shopping Core and, after final acceptance, to **M2 Recipes**.
+- M1 Shopping Core is **COMPLETE / ACCEPTED** on the post-merge pre-acquisition-gate baseline `779d0b219a13e0bf82263a1e655fb732553ed5fe`.
+- The M1→M2 decision is **GO for deterministic product/core development**; it does not claim every retailer is production-ready.
 - Retailer onboarding remains transport-neutral and universal; a failed direct path changes acquisition mode rather than retailer scope.
 - `ObservedOffer` is the provider trust boundary and `OfferSnapshot` the immutable comparison record.
 - Observation time and provider-side update time remain distinct.
 - Matching never breaks semantic ambiguity using price, availability, freshness, acquisition mode or SKU ordering.
 - Package quantity is modeled only as explicit structured evidence; product names, URLs, slugs, category and other presentation text are non-authoritative.
-- Existing integrations remain package-unknown unless they provide a proven structured quantity.
-- Magnit visible-text corpus result `0 FOUND / 40 MISSING` is treated as a rendering blind spot because the same raw responses contain SKU-bound JSON-LD package metadata.
-- Magnit corpus projection now consumes the JSON-LD extractor without changing price/promo/availability request or identity semantics.
 - Package arithmetic requires canonical unit equality; mass/volume evidence cannot satisfy a `PIECE` requirement.
 - `UNKNOWN` availability propagates into an uncertain basket instead of confirmed availability.
 - Incomplete baskets expose no aggregate total and cannot masquerade as complete winners.
-- The home page now centers the stateless comparison journey rather than readiness-only status.
-- Production comparison evidence remains deliberately no-op/fail-closed; deterministic extraction and finite live research do not activate recurring retailer polling.
-- Magnit technical location resolution for the proven bbox/store-selection boundary is **accepted (#69)** after deterministic #86, test/workflow #87 and merged-main live reproduction.
+- Production comparison evidence remains deliberately no-op/fail-closed under the current production registry.
+- Magnit technical location resolution for the proven bbox/store-selection boundary is accepted (#69).
 - Automatic arbitrary text/address → coordinates remains intentionally unimplemented because no acceptable public contract was proven.
-- Magnit remains technically `AVAILABLE_PUBLIC_WEB`, but its production-access state changes from `UNRESOLVED` to **`BLOCKED` by Zakup Gotov product policy (#70)** because current authoritative evidence does not establish affirmative permission for the intended recurring production catalog-acquisition/reuse model.
-- Product-facing retailer readiness now exposes Magnit as `CONNECTED + BLOCKED + UNAVAILABLE` with reason `PRODUCTION_ACCESS_BLOCKED`, without totals or freshness evidence.
-- `BLOCKED` is explicitly an operational fail-closed state, not a claim that Magnit has expressly forbidden every automated HTTP request or that the intended use has been adjudicated unlawful.
-- The next M1 step is the final end-to-end acceptance pass; M2 Recipes begins only after an explicit GO decision.
+- Magnit remains technically `AVAILABLE_PUBLIC_WEB`, while production access is **`BLOCKED` by Zakup Gotov product policy (#70)** pending affirmative permission or licensed/supported terms.
+- Product-facing Magnit readiness is `CONNECTED + BLOCKED + UNAVAILABLE` with reason `PRODUCTION_ACCESS_BLOCKED`, without totals or freshness evidence.
+- Production-access policy is now enforced before acquisition rather than relying only on post-load filtering.
+- The next primary product slice is deterministic `Recipe → explicit ingredients → canonical quantities → ShoppingList`.
 
 ### Fixed
 
@@ -98,7 +86,8 @@ All notable project changes are recorded here. Zakup Gotov is pre-release; entri
 - Magnit corpus metrics exclude non-2xx and wrong-identity pages rather than counting them as missing metadata.
 - Magnit store-search request constructors enforce the proven bbox/store-type invariants even when nested records are instantiated directly.
 - Magnit store response parsing deduplicates equivalent candidates and exposes conflicting identity evidence instead of choosing an arbitrary record.
-- Issue #69 was reopened after GitHub auto-closed it on #86 merge; it remained open until its own merged-main live acceptance contract was satisfied.
+- A future runtime evidence source can no longer be invoked when the registry has no production-ready retailers.
+- A runtime evidence source cannot silently return evidence for a retailer outside its requested production-ready scope.
 
 ## [0.1.0-rc.2] — 2026-08-09
 
