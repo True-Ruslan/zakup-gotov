@@ -11,7 +11,7 @@ Visibility: Public
 Current phase: **M1 — Shopping Core**  
 M0 status: **technical discovery COMPLETE**  
 M0→M1 decision: **GO** — [`superpowers/specs/2026-08-12-m0-to-m1-go-decision.md`](superpowers/specs/2026-08-12-m0-to-m1-go-decision.md)  
-Current focus: **finish the stateless critical comparison journey in #80, then harden trusted retailer evidence/package extraction and remaining connectivity blockers**
+Current focus: **trusted structured package evidence plus remaining retailer connectivity/production-access hardening after the accepted #80 critical journey**
 
 ## Product connectivity invariant
 
@@ -60,8 +60,8 @@ M0 completion is **technical feasibility**, not blanket production-data-access a
 8. **Failure / coverage / freshness product boundary — COMPLETE (#79)**  
    Merged to `main` at `3c4a60f`. All eight canonical retailers remain visible; technical coverage, production access, comparison status, product-safe reasons and freshness are separated. `GET /api/v1/retailers`, OpenAPI/generated client and responsive web readiness behavior are shipped in the repository. Provider IDs, acquisition modes, source references and precise addresses remain internal.
 
-9. **Stateless critical comparison journey — IMPLEMENTED IN PR #80; FINAL SHIPPING GATE IN PROGRESS**  
-   The branch `feat/m1-stateless-comparison-preview` now provides:
+9. **Stateless critical comparison journey — COMPLETE / ACCEPTED (#80)**  
+   #80 provides:
    - `POST /api/v1/comparison-previews` with locality-only public location input;
    - repeatable manual shopping-list items with client UUIDs and positive typed quantities;
    - orchestration through the existing shopping/location/provider/snapshot/matching/basket/comparison layers;
@@ -73,16 +73,20 @@ M0 completion is **technical feasibility**, not blanket production-data-access a
    - OpenAPI/generated TypeScript client synchronization;
    - responsive comparison form/results UI and bounded 3-second server action timeout;
    - desktop/mobile Playwright coverage with deterministic mock API and no live retailer dependency;
-   - an explicit architecture guard preventing upstream production domains from depending back on `preview` and preventing production preview code from depending on fixture/test-support namespaces.
+   - architecture guards preventing upstream production domains from depending back on `preview` and preventing production preview code from depending on fixture/test-support namespaces;
+   - fail-closed JSON deserialization for unknown request fields, matching OpenAPI `additionalProperties: false` and preventing unsupported provider/store-shaped input from silently weakening the public contract.
 
-The Web E2E failure found during #80 hardening was an ambiguous text-count assertion, not a product-path failure. It was corrected by scoping item-level assertions to the corresponding retailer card; the resulting exact-head `683f29a` completed all repository workflow groups successfully before the final architecture/docs candidate was prepared.
+Acceptance evidence before the docs-only shipping marker:
+- exact candidate `16eff25` passed API CI, Contract CI, Web CI + responsive Web E2E, Retailer Bridge CI, Dependency Review, CodeQL Java + JS/TS, Container Security CI, Release Bundle CI and Release Contract CI;
+- final read-only change review reported **no P0/P1/P2 findings**;
+- the earlier Web E2E ambiguity was an assertion-scoping defect and was corrected without weakening product behavior.
 
 Design: [`superpowers/specs/2026-08-12-m1-stateless-comparison-preview-design.md`](superpowers/specs/2026-08-12-m1-stateless-comparison-preview-design.md)  
 Implementation plan: [`superpowers/plans/2026-08-12-m1-stateless-comparison-preview.md`](superpowers/plans/2026-08-12-m1-stateless-comparison-preview.md)
 
 ## Important M1 limitations
 
-- Production comparison evidence remains deliberately **no-op/fail-closed** in #80. Passing the critical journey proves the product/API/core integration, not live production retailer acquisition.
+- Production comparison evidence remains deliberately **no-op/fail-closed** in #80. The critical journey proves the product/API/core integration, not live production retailer acquisition.
 - Accepted retailer adapters still do **not** expose a universal structured package-quantity field. Missing package evidence remains `PACKAGE_QUANTITY_UNKNOWN`; presentation text must not be parsed heuristically.
 - Magnit location/address → public `shopCode` resolution is still unresolved (#69).
 - Magnit recurring production acquisition usage rights remain unresolved (#70); default recurring polling must remain disabled until authoritative acceptance.
@@ -125,15 +129,17 @@ Constraints:
 12. Ordinary CI and #80 browser acceptance make no live retailer requests.
 13. Production preview evidence fails closed rather than falling back to deterministic fixtures.
 14. Public comparison requests remain stateless and persistence-free in M1.
-15. Universal retailer connectivity remains mandatory for every registry entry.
+15. Unknown public JSON request fields fail closed rather than being ignored.
+16. Universal retailer connectivity remains mandatory for every registry entry.
 
 ## Immediate next work
 
-1. **Finish #80 shipping:** final exact-head API/contract/web/E2E/security/release gates, read-only change review, shipping marker, squash merge and post-merge `main` verification.
-2. **Add structured package-quantity extraction only where a trusted source proves semantics.** Do not parse presentation names heuristically.
-3. Continue #54, #69, #70, #36 and remaining canonical retailer onboarding in parallel.
-4. Prove a successful real `v0.1.0-rc.3` release event.
-5. Move to **M2 Recipes** only after M1 exit criteria remain true on the merged critical journey and the remaining evidence limitations are explicitly accepted rather than hidden.
+1. **Trusted structured package-quantity extraction** where a supported retailer/source proves the field semantics. Do not parse presentation names heuristically.
+2. Continue **#54** browser-bridge lifecycle hardening and **#69** Magnit location → `shopCode` resolution.
+3. Resolve **#70** Magnit production usage rights before recurring polling and continue **#36** Kuper supported-access investigation.
+4. Continue mandatory Chizhik, Ozon Fresh, Samokat, Lenta, VkusVill and additional retailer onboarding.
+5. Prove a successful real `v0.1.0-rc.3` release event.
+6. Move to **M2 Recipes** only after remaining M1 evidence/production constraints are explicitly accepted rather than hidden.
 
 ## Platform baseline
 
