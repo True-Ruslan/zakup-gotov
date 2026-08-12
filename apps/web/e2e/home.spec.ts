@@ -43,8 +43,12 @@ test("runs the deterministic comparison preview journey without horizontal overf
   await expect(page.getByText("Есть неопределённость")).toHaveCount(1);
   await expect(page.getByText("Корзина неполная")).toHaveCount(4);
   await expect(page.getByText("Сравнение пока недоступно")).toHaveCount(2);
-  await expect(page.getByText("Неизвестен размер упаковки")).toHaveCount(1);
-  await expect(page.getByText("Товар не найден")).toHaveCount(1);
+
+  const magnit = page.getByRole("article", { name: "Магнит" });
+  await expect(magnit.getByText("Неизвестен размер упаковки", { exact: true })).toHaveCount(1);
+
+  const lenta = page.getByRole("article", { name: "Лента" });
+  await expect(lenta.getByText("Товар не найден", { exact: true })).toHaveCount(1);
 
   const body = await page.locator("body").innerText();
   expect(body).not.toContain("sourceProviderId");
