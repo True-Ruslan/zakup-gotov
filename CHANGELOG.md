@@ -30,6 +30,9 @@ All notable project changes are recorded here. Zakup Gotov is pre-release; entri
 - ArchUnit privacy/modularity rule preventing production `location` classes from depending on provider or retailer packages.
 - Typed `FulfillmentContextBinding` / `FulfillmentContextSet` with `MANUAL` and `RESOLVED` selection provenance, stable order and duplicate/cross-location rejection.
 - Location-boundary implementation plan at `docs/superpowers/plans/2026-08-12-m1-location-boundary.md`.
+- `FreshnessEvidence` / `FreshnessBasis` M1 values that keep Zakup Gotov observation time distinct from optional trusted provider-side update time.
+- Immutable `OfferSnapshotId` / `OfferSnapshot` comparison record created only from an already-valid `ObservedOffer`, preserving all provider provenance, price, availability, observation and source-reference evidence.
+- Snapshot implementation plan at `docs/superpowers/plans/2026-08-12-m1-offer-snapshots.md`.
 
 ### Changed
 
@@ -51,7 +54,9 @@ All notable project changes are recorded here. Zakup Gotov is pre-release; entri
 - Provider routing now accepts a typed `FulfillmentContextSet` instead of a raw `Map<String, LocationContext>` and therefore never receives precise `ProductLocation`/`SensitiveAddress` values.
 - Provider-specific `shopCode`, X5 store IDs and similar identifiers stay inside source-provider-scoped `LocationContext` values bound to an opaque product location identity.
 - Manual provider context selection and already-resolved context selection are represented explicitly without claiming universal automatic address resolution.
-- `docs/PROJECT_STATE.md` and `docs/ROADMAP.md` now mark the location/fulfillment-context boundary complete and move the active M1 focus to price/availability snapshots.
+- `ObservedOffer` remains the provider trust-boundary record; immutable comparison snapshot semantics live in a separate `OfferSnapshot` type rather than overloading adapter-normalization data.
+- Observation time and provider-side update time are now explicit distinct concepts; observation-only data never claims provider freshness and provider timestamps later than observation fail closed.
+- `docs/PROJECT_STATE.md` and `docs/ROADMAP.md` now mark price/availability snapshots complete and move the active M1 focus to deterministic product matching.
 
 ### Fixed
 
@@ -62,6 +67,7 @@ All notable project changes are recorded here. Zakup Gotov is pre-release; entri
 - Documentation index links were corrected to reference only documents that exist in the repository.
 - Provider offer validation now rejects retailer, source-provider, acquisition-mode and fulfillment-context mismatches before observations can reach comparison logic.
 - Precise user addresses are excluded from default `toString()` output for both `SensitiveAddress` and `ProductLocation`.
+- Snapshot freshness validation rejects provider update timestamps after the Zakup Gotov observation time instead of silently coercing or reinterpreting them.
 
 ## [0.1.0-rc.2] — 2026-08-09
 

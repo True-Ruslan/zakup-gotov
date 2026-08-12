@@ -1,6 +1,6 @@
 # M1 Price / Availability Snapshot Implementation Plan
 
-Status: **ACTIVE**
+Status: **IMPLEMENTED — shipping gate pending on final docs head**
 
 **Goal:** Introduce an immutable internal offer snapshot derived from validated provider observations while keeping observation time distinct from provider-side freshness evidence.
 
@@ -28,39 +28,67 @@ Rejected alternatives:
 
 ---
 
-### Task 1: Freshness evidence semantics
+### Task 1: Freshness evidence semantics — COMPLETE
 
 **Files:**
-- Create: `apps/api/src/main/java/io/github/trueruslan/zakupgotov/provider/FreshnessBasis.java`
-- Create: `apps/api/src/main/java/io/github/trueruslan/zakupgotov/provider/FreshnessEvidence.java`
-- Test: `apps/api/src/test/java/io/github/trueruslan/zakupgotov/provider/FreshnessEvidenceTest.java`
+- `apps/api/src/main/java/io/github/trueruslan/zakupgotov/provider/FreshnessBasis.java`
+- `apps/api/src/main/java/io/github/trueruslan/zakupgotov/provider/FreshnessEvidence.java`
+- `apps/api/src/test/java/io/github/trueruslan/zakupgotov/provider/FreshnessEvidenceTest.java`
 
-- [ ] Write RED tests requiring observation-only and provider-timestamp freshness to be distinguishable.
-- [ ] Require non-null observation time and reject provider timestamps later than observation time.
-- [ ] Require absence of provider timestamp for `OBSERVATION_ONLY` and presence for `PROVIDER_UPDATED_AT` by construction.
-- [ ] Run Maven verify and record RED.
-- [ ] Implement minimal immutable freshness values.
-- [ ] Run Maven verify and record GREEN.
+- [x] Write RED tests requiring observation-only and provider-timestamp freshness to be distinguishable.
+- [x] Require non-null observation time and reject provider timestamps later than observation time.
+- [x] Require absence of provider timestamp for `OBSERVATION_ONLY` and presence for `PROVIDER_UPDATED_AT` by construction.
+- [x] Run Maven verify and record RED.
+- [x] Implement minimal immutable freshness values.
+- [x] Run Maven verify and record GREEN.
+
+RED head `a042e6032506646268517cfea11296566e0a7026` reached `testCompile` and failed only because `FreshnessEvidence` / `FreshnessBasis` did not exist.
+
+GREEN head `18a0528c0f2130ce89c88feb2a3bbad8f0ac39c7` added only the minimal freshness values; the original RED test was unchanged and full Maven `verify` passed.
+
+Delivered behavior:
+
+- observation-only freshness never invents provider update time;
+- provider-update freshness keeps `providerUpdatedAt` distinct from `observedAt`;
+- provider timestamp may equal but never exceed observation time;
+- null observation/provider timestamps fail closed;
+- no stale threshold or wall-clock heuristic is introduced.
 
 ---
 
-### Task 2: Immutable offer snapshot derived from validated observation
+### Task 2: Immutable offer snapshot derived from validated observation — IMPLEMENTED
 
 **Files:**
-- Create: `apps/api/src/main/java/io/github/trueruslan/zakupgotov/provider/OfferSnapshotId.java`
-- Create: `apps/api/src/main/java/io/github/trueruslan/zakupgotov/provider/OfferSnapshot.java`
-- Test: `apps/api/src/test/java/io/github/trueruslan/zakupgotov/provider/OfferSnapshotTest.java`
-- Modify: `docs/PROJECT_STATE.md`
-- Modify: `docs/ROADMAP.md`
-- Modify: `CHANGELOG.md`
+- `apps/api/src/main/java/io/github/trueruslan/zakupgotov/provider/OfferSnapshotId.java`
+- `apps/api/src/main/java/io/github/trueruslan/zakupgotov/provider/OfferSnapshot.java`
+- `apps/api/src/test/java/io/github/trueruslan/zakupgotov/provider/OfferSnapshotTest.java`
+- `docs/PROJECT_STATE.md`
+- `docs/ROADMAP.md`
+- `CHANGELOG.md`
 
-- [ ] Write RED tests requiring exact provenance/price/availability copy from `ObservedOffer`.
-- [ ] Require observation-only factory and explicit provider-updated factory.
-- [ ] Require `UNKNOWN` availability to survive unchanged.
-- [ ] Require snapshot identity to be independent from offer identity/data.
-- [ ] Require provider-update timestamp validation through freshness evidence.
-- [ ] Run Maven verify and record RED.
-- [ ] Implement minimal immutable snapshot with no direct arbitrary-value constructor; public creation goes through validated `ObservedOffer` factories.
-- [ ] Run Maven verify and record GREEN.
-- [ ] Synchronize project state, roadmap and changelog; next active slice becomes deterministic product matching.
+- [x] Write RED tests requiring exact provenance/price/availability copy from `ObservedOffer`.
+- [x] Require observation-only factory and explicit provider-updated factory.
+- [x] Require `UNKNOWN` availability to survive unchanged.
+- [x] Require snapshot identity to be independent from offer identity/data.
+- [x] Require provider-update timestamp validation through freshness evidence.
+- [x] Run Maven verify and record RED.
+- [x] Implement minimal immutable snapshot with no direct arbitrary-value constructor; public creation goes through validated `ObservedOffer` factories.
+- [x] Run Maven verify and record GREEN.
+- [x] Synchronize project state, roadmap and changelog; next active slice becomes deterministic product matching.
 - [ ] Run full exact-head repository CI/security gate, review and squash merge.
+
+RED head `fe7fa2c22d112163afce9feb3c282e387fb077a3` compiled the completed freshness model and failed at `testCompile` only because `OfferSnapshotId` / `OfferSnapshot` did not yet exist.
+
+GREEN head `f395797cc57f3a3f65abdb1a548f4a987121be01` added the minimal snapshot implementation; the original RED tests were unchanged and full Maven `verify` passed. The same functional head also passed the complete repository-wide gate: API, Contract, Web/E2E, CodeQL Java+JS/TS, Dependency Review, Retailer Bridge, Container Security API+Web, Release Bundle and Release Contract.
+
+Delivered behavior:
+
+- `OfferSnapshotId` is an independent UUID identity;
+- `OfferSnapshot` has a private constructor and public creation only from validated `ObservedOffer` factories;
+- retailer, source provider, acquisition mode, fulfillment context, SKU, price, currency, availability and source reference copy exactly from the validated observation;
+- observation time is represented by `FreshnessEvidence`, not a second ambiguous timestamp;
+- `AVAILABLE`, `UNAVAILABLE` and `UNKNOWN` survive unchanged;
+- optional provider update time is accepted only through explicit provider-timestamp freshness semantics;
+- persistence/API/matching/basket/live-access remain out of scope.
+
+Final exact-head repository verification after this documentation synchronization is the only remaining shipping gate before review and squash merge.

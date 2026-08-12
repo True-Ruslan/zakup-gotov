@@ -11,7 +11,7 @@ Visibility: Public
 Current phase: **M1 — Shopping Core**  
 M0 status: **technical discovery COMPLETE**  
 M0→M1 decision: **GO** — [`superpowers/specs/2026-08-12-m0-to-m1-go-decision.md`](superpowers/specs/2026-08-12-m0-to-m1-go-decision.md)  
-Current focus: **price / availability snapshot model with explicit provenance and freshness semantics**
+Current focus: **deterministic product-matching baseline over immutable offer snapshots**
 
 ## Product connectivity invariant
 
@@ -76,21 +76,32 @@ PR #74 established:
 
 ### Slice 4 — product location / fulfillment-context boundary — COMPLETE
 
-PR #75 establishes the privacy and modularity boundary required before snapshots and comparison:
+PR #75 established:
 
-- provider-neutral `ProductLocationId` is an opaque UUID identity;
-- `ProductLocation` contains only product location identity, normalized locality and optional `SensitiveAddress`;
-- `SensitiveAddress` exposes the raw value only through explicit `reveal()` and always renders as `[REDACTED]` by default;
-- `ProductLocation.toString()` never renders the precise address;
-- ArchUnit enforces that production `..location..` classes do not depend on `..provider..` or `..retailer..` packages;
-- `FulfillmentContextBinding` links an opaque `ProductLocationId` to a source-provider-scoped `LocationContext` without storing `ProductLocation` or precise address;
-- binding provenance distinguishes `MANUAL` and `RESOLVED` context selection without claiming that automatic resolution exists for every provider;
-- `FulfillmentContextSet` preserves stable binding order, rejects bindings for another product location and rejects duplicate source-provider contexts;
-- `ProviderPathOrchestrator` now consumes `FulfillmentContextSet`; the raw `Map<String, LocationContext>` boundary was removed;
-- orchestration has no `ProductLocation` or `SensitiveAddress` parameter, so provider routing cannot accidentally receive/log a precise user address;
-- all previous priority, fallback, capability and provenance-validation behavior remains unchanged.
+- opaque provider-neutral `ProductLocationId`;
+- `ProductLocation` with normalized locality and optional `SensitiveAddress`;
+- explicit `SensitiveAddress.reveal()` with `[REDACTED]` default string representation;
+- ArchUnit prohibition on production `location → provider/retailer` dependencies;
+- typed `FulfillmentContextBinding` / `FulfillmentContextSet` with `MANUAL` / `RESOLVED` selection provenance;
+- duplicate source-provider and cross-product-location binding rejection;
+- `ProviderPathOrchestrator` consumes only typed fulfillment contexts and never receives precise addresses;
+- existing priority, fallback, capability and provenance-validation behavior remains unchanged.
 
-The slice was delivered through three explicit RED→GREEN cycles. Ordinary CI still makes no live retailer requests.
+### Slice 5 — price / availability snapshots — COMPLETE
+
+PR #76 establishes the comparison-safe snapshot boundary:
+
+- `ObservedOffer` remains the normalized provider trust-boundary record rather than being overloaded with snapshot semantics;
+- `FreshnessEvidence` distinguishes Zakup Gotov observation time from optional trusted provider-side update time;
+- observation-only freshness never invents a provider timestamp;
+- provider-side update time may equal but never exceed observation time;
+- `OfferSnapshot` has independent UUID identity and can be created only from an already-valid `ObservedOffer` through explicit factories;
+- snapshot creation preserves retailer, source provider, acquisition mode, fulfillment context, SKU, price, currency, availability, observation time and source reference exactly;
+- `AVAILABLE`, `UNAVAILABLE` and `UNKNOWN` survive unchanged;
+- no provider-specific stale threshold is hard-coded in the snapshot model;
+- no persistence, REST API, matching, basket ranking or live retailer acquisition was introduced.
+
+The slice was delivered through two explicit RED→GREEN cycles and full Maven verification. The functional snapshot head also passed the complete repository CI/security gate before documentation synchronization.
 
 ## Accepted retailer paths
 
@@ -137,21 +148,21 @@ Evidence:
 6. retailer, source-provider, acquisition mode and fulfillment-context provenance remain distinct;
 7. `UNKNOWN` availability is preserved;
 8. observation time is not misrepresented as provider-side freshness;
-9. production activation respects recorded usage-rights state;
-10. universal retailer connectivity continues for every registry entry.
+9. snapshots can only derive from validated provider observations;
+10. production activation respects recorded usage-rights state;
+11. universal retailer connectivity continues for every registry entry.
 
 ## Immediate next work
 
-1. **Price / availability snapshots — NEXT**
-   - define immutable snapshot identity/value boundary;
-   - preserve retailer, source-provider, acquisition mode and fulfillment context;
-   - preserve explicit `AVAILABLE` / `UNAVAILABLE` / `UNKNOWN`;
-   - distinguish observation time from provider-side freshness/update time;
-   - reject invalid currency/price/timestamps/provenance fail-closed;
-   - remain fixture-first and independent from live retailer access.
-2. Deterministic product-matching baseline.
-3. Complete single-store basket comparison.
-4. Coverage/failure/freshness UX and critical browser E2E.
+1. **Deterministic product-matching baseline — NEXT**
+   - normalize requirement and candidate text deterministically;
+   - establish exact/normalized match before fuzzy or AI-assisted matching;
+   - preserve explicit `MATCHED`, `AMBIGUOUS` and `UNMATCHED` outcomes;
+   - keep confidence/reasons explainable and deterministic;
+   - avoid silently choosing a candidate when multiple equivalent candidates remain;
+   - operate entirely on fixtures/snapshots with no live retailer dependency.
+2. Complete single-store basket comparison.
+3. Coverage/failure/freshness UX and critical browser E2E.
 
 ## Parallel open work
 
