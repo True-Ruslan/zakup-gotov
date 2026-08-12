@@ -3,6 +3,7 @@ package io.github.trueruslan.zakupgotov.provider;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
+import io.github.trueruslan.zakupgotov.retailer.RetailerId;
 import java.math.BigDecimal;
 import java.time.Instant;
 import java.util.List;
@@ -23,7 +24,7 @@ class ProviderFeasibilityHarnessTest {
         var offers = ProviderFeasibilityHarness.offline().search(provider, LOCATION, QUERY);
 
         assertThat(offers).hasSize(1);
-        assertThat(offers.getFirst().providerId()).isEqualTo("provider-a");
+        assertThat(offers.getFirst().sourceProviderId()).isEqualTo("provider-a");
         assertThat(offers.getFirst().fulfillmentContextId()).isEqualTo("store-42");
     }
 
@@ -111,9 +112,11 @@ class ProviderFeasibilityHarnessTest {
         return new FakeFixtureProvider(providerId, ProviderAccessType.PUBLIC_UNOFFICIAL_API, capabilities);
     }
 
-    private static ObservedOffer offer(String providerId, String fulfillmentContextId) {
+    private static ObservedOffer offer(String sourceProviderId, String fulfillmentContextId) {
         return new ObservedOffer(
-                providerId,
+                RetailerId.PYATEROCHKA,
+                sourceProviderId,
+                AcquisitionMode.DIRECT_API,
                 fulfillmentContextId,
                 "sku-milk-1",
                 new BigDecimal("99.90"),

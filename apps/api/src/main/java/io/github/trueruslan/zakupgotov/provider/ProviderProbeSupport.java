@@ -24,8 +24,8 @@ final class ProviderProbeSupport {
 
         var offers = List.copyOf(provider.search(location, query));
         for (var offer : offers) {
-            if (!provider.providerId().equals(offer.providerId())) {
-                throw new IllegalStateException("offer providerId does not match provider");
+            if (!provider.providerId().equals(offer.sourceProviderId())) {
+                throw new IllegalStateException("offer sourceProviderId does not match provider");
             }
             if (!location.fulfillmentContextId().equals(offer.fulfillmentContextId())) {
                 throw new IllegalStateException("offer fulfillmentContextId does not match requested location context");
