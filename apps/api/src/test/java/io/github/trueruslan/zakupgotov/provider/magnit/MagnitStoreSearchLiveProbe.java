@@ -35,12 +35,20 @@ final class MagnitStoreSearchLiveProbe {
     static MagnitStoreSearchLiveProbe create() {
         return new MagnitStoreSearchLiveProbe(HttpClient.newBuilder()
                 .connectTimeout(CONNECT_TIMEOUT)
-                .followRedirects(HttpClient.Redirect.NORMAL)
+                .followRedirects(HttpClient.Redirect.NEVER)
                 .build());
     }
 
     boolean hasCookieHandler() {
         return httpClient.cookieHandler().isPresent();
+    }
+
+    boolean hasAuthenticator() {
+        return httpClient.authenticator().isPresent();
+    }
+
+    boolean followsRedirects() {
+        return httpClient.followRedirects() != HttpClient.Redirect.NEVER;
     }
 
     Map<String, String> requestHeaders() {
