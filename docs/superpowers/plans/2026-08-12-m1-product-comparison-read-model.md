@@ -1,6 +1,6 @@
 # M1 Product Comparison Read Model Implementation Plan
 
-Status: **IMPLEMENTED + REVIEW HARDENED — final repository shipping gate pending**
+Status: **SHIPPING MARKER — pre-marker gate + final Change Review PASS; marker-head gate pending**
 
 **Goal:** expose a stable, user-safe retailer comparison/readiness contract from the M1 domain core through REST/OpenAPI/shared client into a truthful responsive web status surface.
 
@@ -142,10 +142,32 @@ A read-only Change Review intentionally stopped shipping and found three boundar
 - [x] Implement runtime/product/API/web behavior with independent RED→GREEN checkpoints.
 - [x] Prove functional Web CI + responsive E2E on the hardened implementation.
 - [x] Synchronize `docs/PROJECT_STATE.md`, `docs/ROADMAP.md`, `CHANGELOG.md` and this plan with review-hardening evidence.
-- [ ] Run full exact-head repository CI/security gate on the docs-synchronized head.
-- [ ] Perform final read-only Change Review.
-- [ ] Record final shipping evidence and rerun marker-head branch protection.
+- [x] Run full exact-head repository CI/security gate on docs-synchronized head `0a3f4ecf452356ef02b77c44913ff4f2416ea492`.
+- [x] Perform final read-only Change Review on `0a3f4ecf452356ef02b77c44913ff4f2416ea492`: no P0/P1/P2 blockers; no unresolved review threads.
+- [x] Record pre-marker shipping evidence in this docs-only marker.
+- [ ] Re-run full branch-protection/repository gate on the marker head.
 - [ ] Mark PR ready and squash merge with expected-head SHA guard.
+
+### Pre-marker shipping evidence
+
+Candidate `0a3f4ecf452356ef02b77c44913ff4f2416ea492` passed all repository workflow groups:
+
+- API CI — PASS;
+- Contract CI — PASS;
+- Web CI — PASS;
+- Web E2E — PASS;
+- Retailer Bridge CI — PASS;
+- Dependency Review — PASS;
+- CodeQL Java — PASS;
+- CodeQL JavaScript/TypeScript — PASS;
+- Container Security API HIGH/CRITICAL scan — PASS;
+- Container Security Web HIGH/CRITICAL scan — PASS;
+- Release Bundle CI — PASS;
+- Release Contract CI — PASS.
+
+Final read-only Change Review was submitted to PR #79 on the exact candidate (review `4916738894`): **looks good; no P0/P1/P2 blockers**. The review covered comparison constructor/status-reason invariants against assembler output, freshness basis/timestamps, REST projection/leakage tests, OpenAPI boundary, bounded server loader, truthful freshness UI and responsive failure behavior. No review threads remained open.
+
+This marker changes documentation only. Its own exact head must independently pass the repository/branch-protection gate before merge.
 
 ## Important limitations
 
