@@ -9,10 +9,12 @@ import org.junit.jupiter.api.Test;
 class MagnitStoreSearchLiveProbeTest {
 
     @Test
-    void liveRequestBoundaryUsesNoSessionOrApplicationCredentials() {
+    void liveRequestBoundaryUsesNoSessionRedirectOrApplicationCredentials() {
         var probe = MagnitStoreSearchLiveProbe.create();
 
         assertThat(probe.hasCookieHandler()).isFalse();
+        assertThat(probe.hasAuthenticator()).isFalse();
+        assertThat(probe.followsRedirects()).isFalse();
         assertThat(probe.requestHeaders().keySet())
                 .doesNotContainAnyElementsOf(Set.of(
                         "Cookie",
