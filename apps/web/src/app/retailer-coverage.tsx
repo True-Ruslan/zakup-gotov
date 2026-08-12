@@ -84,7 +84,7 @@ export function RetailerCoverageSection({
         </div>
       ) : (
         <ul className="mt-6 grid gap-4 sm:grid-cols-2" aria-label="Статус магазинов">
-          {state.data.retailers.map((retailer) => {
+          {state.data.retailers.map((retailer: RetailerItem) => {
             const total = formatTotal(retailer);
             return (
               <li
@@ -124,7 +124,7 @@ export function RetailerCoverageSection({
 
                 {retailer.reasons.length > 0 ? (
                   <ul className="mt-4 space-y-1 text-sm leading-5 text-stone-600">
-                    {retailer.reasons.map((reason) => (
+                    {retailer.reasons.map((reason: Reason) => (
                       <li key={reason}>{reasonLabels[reason]}</li>
                     ))}
                   </ul>
