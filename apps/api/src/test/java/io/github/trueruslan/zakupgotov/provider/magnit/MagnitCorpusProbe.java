@@ -253,7 +253,7 @@ final class MagnitCorpusProbe {
                 regularPrice,
                 promo,
                 availability,
-                MagnitPackageQuantityExtractor.extract(html));
+                MagnitJsonLdPackageQuantityExtractor.extract(html, expectedSku));
     }
 
     static RawShapeEvidence inspectNearSkuRawShape(String html, String expectedSku) {
