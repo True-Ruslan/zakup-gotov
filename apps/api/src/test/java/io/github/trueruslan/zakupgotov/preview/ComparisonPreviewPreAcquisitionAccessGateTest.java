@@ -7,6 +7,7 @@ import static io.github.trueruslan.zakupgotov.comparison.RetailerProductionAcces
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
+import io.github.trueruslan.zakupgotov.provider.ProviderSearchOutcome;
 import io.github.trueruslan.zakupgotov.retailer.ProductionAccessStatus;
 import io.github.trueruslan.zakupgotov.retailer.Retailer;
 import io.github.trueruslan.zakupgotov.retailer.RetailerCoverageState;
@@ -17,6 +18,7 @@ import io.github.trueruslan.zakupgotov.shopping.QuantityUnit;
 import java.math.BigDecimal;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.atomic.AtomicReference;
@@ -60,6 +62,24 @@ class ComparisonPreviewPreAcquisitionAccessGateTest {
                 .doesNotContain(RetailerId.MAGNIT);
         assertThatThrownBy(() -> receivedScope.get().add(RetailerId.MAGNIT))
                 .isInstanceOf(UnsupportedOperationException.class);
+    }
+
+    @Test
+    void evidenceOutsideRequestedRetailerScopeFailsClosed() {
+        ComparisonRuntimeEvidenceSource source = (shoppingList, productLocation, requestedRetailers) ->
+                ComparisonRuntimeEvidence.of(List.of(new RetailerRuntimeEvidence(
+                        RetailerId.MAGNIT,
+                        new ProviderSearchOutcome(RetailerId.MAGNIT, Optional.empty(), List.of(), List.of()),
+                        List.of())));
+        var service = new ComparisonPreviewService(
+                registryWithProductionReady(Set.of(RetailerId.PYATEROCHKA)),
+                source);
+
+        assertThatThrownBy(() -> service.create(request()))
+                .isInstanceOf(IllegalStateException.class)
+                .hasMessageContaining("unrequested retailer")
+                .hasMessageContaining("magnit")
+                .hasMessageNotContaining("provider");
     }
 
     private static ComparisonPreviewRequest request() {
