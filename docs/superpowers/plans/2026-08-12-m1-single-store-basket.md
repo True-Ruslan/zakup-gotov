@@ -1,6 +1,6 @@
 # M1 Single-Store Basket Comparison Implementation Plan
 
-> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development or superpowers:executing-plans task-by-task.
+Status: **IMPLEMENTED — final repository shipping gate pending on docs-synchronized head**
 
 **Goal:** Build a deterministic single-store basket quote for one retailer + fulfillment context, using explicit package-quantity evidence and preserving complete/uncertain/incomplete semantics.
 
@@ -8,198 +8,101 @@
 
 **Design:** [`../specs/2026-08-12-m1-single-store-basket-design.md`](../specs/2026-08-12-m1-single-store-basket-design.md)
 
-**Tech Stack:** Java 25, JUnit 5, AssertJ, ArchUnit, Maven 3.9.16.
-
 ## Global constraints
 
-- TDD RED→GREEN for each behavioral slice.
-- Ordinary CI stays fully offline from live retailers.
-- No package-size parsing from `productName`.
-- No assumption that one matched SKU satisfies one requirement.
+- TDD RED→GREEN for each behavior.
+- Ordinary CI stays offline from live retailers.
+- No package-size parsing from `productName` and no one-SKU-equals-one-requirement assumption.
 - No semantic tie-breaking of ambiguous matches.
 - `UNKNOWN` availability remains uncertainty, not availability.
-- No partial basket total for an incomplete quote.
-- No delivery/minimum-order/loyalty assumptions.
-- No persistence/API/UI/multi-store ranking.
+- Incomplete quotes expose no aggregate total.
+- No delivery/minimum-order/loyalty assumptions, persistence/API/UI or multi-store ranking.
 
----
+## Task 1 — typed package-quantity evidence — COMPLETE
 
-## Task 1 — typed package-quantity evidence
+- [x] RED known/unknown lookup, canonical quantities, duplicate/null handling and immutability.
+- [x] Implement explicit known bindings keyed by `OfferSnapshotId`.
+- [x] Preserve deterministic null diagnostics before immutable copy.
+- [x] Full Maven `verify` GREEN.
 
-**Files:**
-- Create `apps/api/src/main/java/io/github/trueruslan/zakupgotov/basket/PackageQuantityBinding.java`
-- Create `apps/api/src/main/java/io/github/trueruslan/zakupgotov/basket/PackageQuantitySet.java`
-- Create `apps/api/src/test/java/io/github/trueruslan/zakupgotov/basket/PackageQuantitySetTest.java`
+Evidence:
 
-**Contracts:**
+- RED `2871c4863170d62cc20f1996989b67aa76d39474`: 14 compile errors, all from absent `PackageQuantityBinding` / `PackageQuantitySet`.
+- Initial GREEN attempt `1853863a7fc48c4eb229d553df1340ba80f13c2f` exposed one real boundary defect: `List.copyOf` threw an undiagnostic NPE before explicit null-element validation. 112/113 tests passed; the failing RED assertion was retained.
+- Fix `40932c9ea4923f89aae7da9d99b816fd0e907b47` validates elements before immutable copy; full Maven `verify` passed with the original RED test unchanged.
 
-```java
-public record PackageQuantityBinding(
-        OfferSnapshotId snapshotId,
-        Quantity packageQuantity) {}
-```
+Delivered:
+- known package evidence only;
+- absence means unknown;
+- duplicate snapshot evidence rejected;
+- kg/l canonicalization inherited from `Quantity`;
+- stable immutable bindings.
 
-```java
-public final class PackageQuantitySet {
-    public static PackageQuantitySet of(List<PackageQuantityBinding> bindings);
-    public Optional<Quantity> quantityFor(OfferSnapshotId snapshotId);
-    public List<PackageQuantityBinding> bindings();
-}
-```
+## Task 2 — whole-package selection math — COMPLETE
 
-- [ ] RED: write tests for known lookup, kg/l canonicalization through `Quantity`, absence→empty, duplicate snapshot rejection, null rejection and immutable/stable bindings.
-- [ ] Commit RED and run full Maven `verify`; expected failure only on absent basket evidence types.
-- [ ] GREEN: implement immutable list + indexed lookup using stable insertion order; duplicate IDs fail closed.
-- [ ] Run full Maven `verify` and commit GREEN with RED tests unchanged.
+- [x] RED exact package, ceiling selection, kg/g canonical selection, piece packs, totals and unit mismatch.
+- [x] Implement `PackageSelection` structural invariants.
+- [x] Implement package-local exact calculator using whole-package ceiling arithmetic.
+- [x] Full Maven `verify` GREEN.
 
----
+Evidence:
 
-## Task 2 — package selection and item resolution
+- RED `2c77ca4352dc70c6dee409d05d06d048d3492a37`: 8 compile errors, all from absent `PackageSelectionCalculator`/selection contract.
+- GREEN `3d14633337472fa9b109e4e879af5bf0ad6ff5e7`: full Maven `verify` passed.
 
-**Files:**
-- Create `BasketItemResolutionStatus.java`
-- Create `PackageSelection.java`
-- Create `BasketItemResolution.java`
-- Create `BasketTotal.java`
-- Create tests initially in `SingleStoreBasketPlannerTest.java`
+Delivered math:
+- `packageCount = ceil(required / package)` as positive `BigInteger`;
+- `providedQuantity = packageQuantity * packageCount`;
+- `lineTotal = snapshot.price * packageCount`;
+- canonical unit mismatch fails closed;
+- no fractional package or floating-point arithmetic.
 
-**Status values:**
+## Task 3 — single-store quote semantics — COMPLETE
 
-```java
-FULFILLED,
-AVAILABILITY_UNKNOWN,
-UNMATCHED,
-AMBIGUOUS,
-UNAVAILABLE,
-PACKAGE_QUANTITY_UNKNOWN,
-QUANTITY_UNIT_MISMATCH
-```
+- [x] Define complete multi-item quote/order/total RED.
+- [x] Define unknown availability → uncertain RED.
+- [x] Define unmatched/ambiguous/unavailable/package-unknown/unit-mismatch incomplete RED.
+- [x] Define mixed-currency, empty-list and immutability RED.
+- [x] Correct one test-harness assumption before accepting RED.
+- [x] Implement item resolution, structural result invariants and aggregate quote planner.
+- [x] Full Maven `verify` GREEN.
 
-**PackageSelection:**
+Evidence:
 
-```java
-public record PackageSelection(
-        OfferSnapshot snapshot,
-        Quantity packageQuantity,
-        BigInteger packageCount,
-        Quantity providedQuantity,
-        BigDecimal lineTotal) {}
-```
+- Initial RED `356878266da9e3f7cbc549e09dc3e373b9204e4b` correctly exposed absent basket types but also revealed one invalid test assumption (`ShoppingList.create` does not exist). That contaminated RED was not accepted.
+- Corrected test head `9c2bb39ecbb14323bce950e180ccfd4995bdfd8e` used the actual public `ShoppingList` constructor and produced a clean RED: 20 compile errors, all only from absent basket quote/result/planner types.
+- GREEN `6984776425df149e818da4708502137b21e6773b`: full Maven `verify` passed.
 
-Structural invariants:
-- package count > 0;
-- package/provided units equal;
-- provided amount = package amount * package count;
-- line total = snapshot price * package count;
-- all values nonnull/nonnegative as appropriate.
+Delivered semantics:
+- explicit item statuses `FULFILLED`, `AVAILABILITY_UNKNOWN`, `UNMATCHED`, `AMBIGUOUS`, `UNAVAILABLE`, `PACKAGE_QUANTITY_UNKNOWN`, `QUANTITY_UNIT_MISMATCH`;
+- explicit `COMPLETE`, `UNCERTAIN`, `INCOMPLETE` quote states;
+- `UNAVAILABLE` fails before package math;
+- `UNKNOWN` availability retains a concrete selection/price but produces `UNCERTAIN`;
+- incomplete quote has no total by construction;
+- selected currencies must agree;
+- shopping item order/results immutable;
+- selection snapshot must be the matcher-selected candidate.
 
-**BasketItemResolution:**
+## Task 4 — architecture, docs and shipping — IMPLEMENTED
 
-```java
-public record BasketItemResolution(
-        ShoppingItem item,
-        ProductMatchResult match,
-        BasketItemResolutionStatus status,
-        Optional<PackageSelection> selection) {}
-```
-
-Invariants:
-- `FULFILLED` and `AVAILABILITY_UNKNOWN`: matcher `MATCHED`, exactly one selection;
-- all failure states: no selection;
-- `UNMATCHED` ↔ matcher `UNMATCHED`;
-- `AMBIGUOUS` ↔ matcher `AMBIGUOUS`;
-- remaining failure states require matcher `MATCHED`.
-
-- [ ] RED: through planner-facing tests require 750g/500g=2, 1kg/400g=3, 7 pieces/6=2, exact size=1, correct provided quantity and line total.
-- [ ] RED: require explicit unavailable/package-unknown/unit-mismatch/unknown-availability item statuses.
-- [ ] Commit RED and confirm failure only on absent basket result/planner types.
-- [ ] GREEN: implement minimal value/result invariants and item-selection math.
-- [ ] Run full Maven `verify` and commit GREEN.
-
----
-
-## Task 3 — single-store basket planner/quote
-
-**Files:**
-- Create `BasketQuoteStatus.java`
-- Create `SingleStoreBasketQuote.java`
-- Create `SingleStoreBasketPlanner.java`
-- Complete `SingleStoreBasketPlannerTest.java`
-
-**Planner API:**
-
-```java
-public final class SingleStoreBasketPlanner {
-    public SingleStoreBasketQuote quote(
-            MatchScope scope,
-            ShoppingList shoppingList,
-            List<OfferSnapshot> candidates,
-            PackageQuantitySet packageQuantities) { ... }
-}
-```
-
-**Basket quote:**
-
-```java
-public record SingleStoreBasketQuote(
-        MatchScope scope,
-        ShoppingListId shoppingListId,
-        BasketQuoteStatus status,
-        List<BasketItemResolution> items,
-        Optional<BasketTotal> total) {}
-```
-
-Status rules:
-- `COMPLETE`: every item `FULFILLED`, total required;
-- `UNCERTAIN`: all items selected, at least one `AVAILABILITY_UNKNOWN`, total required;
-- `INCOMPLETE`: at least one failure-state item, total must be empty.
-
-Planner algorithm per item:
-1. matcher.match(scope, item.requirement(), candidates);
-2. UNMATCHED/AMBIGUOUS → corresponding resolution;
-3. selected candidate `UNAVAILABLE` → `UNAVAILABLE`;
-4. no package quantity → `PACKAGE_QUANTITY_UNKNOWN`;
-5. canonical unit mismatch → `QUANTITY_UNIT_MISMATCH`;
-6. calculate ceil package count, provided quantity, line total;
-7. `UNKNOWN` availability → `AVAILABILITY_UNKNOWN`; otherwise `FULFILLED`.
-
-Basket aggregation:
-- preserve shopping item order;
-- reject empty shopping list;
-- COMPLETE/UNCERTAIN sum all line totals;
-- selected currencies must be identical, otherwise fail closed;
-- INCOMPLETE total empty even if some lines are priced.
-
-- [ ] RED: multi-item complete basket + stable order + total.
-- [ ] RED: uncertain basket has total but never COMPLETE.
-- [ ] RED: unmatched/ambiguous/unavailable/package-unknown/unit-mismatch each make basket INCOMPLETE with no total.
-- [ ] RED: mixed selected currencies fail closed; empty shopping list rejected; returned item list immutable.
-- [ ] Commit RED and run Maven verify.
-- [ ] GREEN: implement minimal planner/quote aggregation.
-- [ ] Run full Maven verify and commit GREEN.
-
----
-
-## Task 4 — architecture, docs and shipping
-
-**Files:**
-- Create `apps/api/src/test/java/io/github/trueruslan/zakupgotov/basket/BasketBoundaryArchitectureTest.java`
-- Modify `docs/PROJECT_STATE.md`
-- Modify `docs/ROADMAP.md`
-- Modify root `CHANGELOG.md`
-- Modify this plan with actual evidence.
-
-Architecture rule:
-
-```java
-noClasses()
-    .that().resideInAnyPackage("..provider..", "..shopping..", "..matching..", "..retailer..")
-    .should().dependOnClassesThat().resideInAPackage("..basket..");
-```
-
-- [ ] Add architecture contract and run full Maven verify.
-- [ ] Synchronize durable docs; next M1 focus becomes failure/coverage/freshness product/API/UX boundary before critical browser E2E.
-- [ ] Run exact-head full repository gate: API, Contract, Web/E2E, CodeQL Java+JS/TS, Dependency Review, Retailer Bridge, Container Security API+Web, Release Bundle, Release Contract.
-- [ ] Perform read-only Change Review. Verify no inferred package data, no partial total presented as complete, no ambiguity tie-break, no `UNKNOWN`→available coercion, no reverse dependencies.
-- [ ] Record shipping evidence in this plan, rerun marker-head branch protection.
+- [x] Add upstream module-direction ArchUnit rule.
+- [x] Run full Maven `verify` with architecture rule.
+- [x] Synchronize `PROJECT_STATE.md`, `ROADMAP.md`, `CHANGELOG.md` and this plan.
+- [ ] Run full exact-head repository CI/security gate.
+- [ ] Perform read-only Change Review.
+- [ ] Record final shipping evidence and rerun marker-head branch protection.
 - [ ] Mark PR ready and squash merge with expected-head SHA guard.
+
+Architecture evidence:
+
+- `d056c6e2be84534bfd881cafc58abdee3d28ea4a` adds `BasketBoundaryArchitectureTest`; full Maven `verify` passed.
+
+## Important limitation
+
+The basket core consumes explicit trusted package-quantity evidence, but accepted retailer adapters do not yet expose a universal structured package-quantity field. This implementation does **not** claim a production end-to-end basket flow and deliberately does not parse package size from presentation text.
+
+## Next after merge
+
+M1 moves to **failure / coverage / freshness product/API/UX semantics** before critical browser E2E. Structured package-quantity extraction remains parallel evidence-driven integration work only where a retailer/source exposes trustworthy semantics.
+
+Final repository gate and Change Review on the docs-synchronized exact head are the remaining shipping requirements before squash merge.
