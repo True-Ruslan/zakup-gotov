@@ -28,6 +28,7 @@ All notable project changes are recorded here. Zakup Gotov is pre-release; entri
 - `GET /api/v1/retailers` REST/OpenAPI contract plus synchronized generated TypeScript client path/types.
 - M1 web retailer-status surface with product-safe Russian labels, responsive semantic retailer cards and explicit service-unavailable behavior when the API cannot be reached.
 - Comparison architecture rule preventing retailer/provider/shopping/matching/basket/location production packages from depending back on the product read model.
+- Explicit web freshness evidence copy distinguishing observation-only evidence from a trusted provider-side update timestamp without inventing a stale/fresh verdict.
 
 ### Changed
 
@@ -44,6 +45,7 @@ All notable project changes are recorded here. Zakup Gotov is pre-release; entri
 - Technical retailer connectivity no longer leaks directly into the product/API contract: public readiness uses stable coverage/access/comparison states and finite product-safe reason codes instead of provider IDs, acquisition modes or source references.
 - The home page now reports **M1 · Shopping Core** state and reads retailer readiness through the generated API client rather than presenting the retired M0 discovery placeholder.
 - The web route is dynamic, so builds do not require a live API; missing/unreachable API fails closed to an accessible error instead of hard-coded or fabricated retailer readiness.
+- Server-side retailer-readiness requests are bounded by a 3-second abort timeout so a hanging upstream cannot leave the product status route waiting indefinitely.
 - Active M1 focus moves to the critical shopping-list → location/context → comparison browser journey after the comparison-readiness slice ships.
 
 ### Fixed
@@ -59,6 +61,9 @@ All notable project changes are recorded here. Zakup Gotov is pre-release; entri
 - Mixed currencies across selected basket lines fail closed.
 - Incomplete basket states cannot carry a basket total by construction.
 - Product comparison evidence rejects cross-retailer or structurally impossible provider/basket combinations.
+- Public comparison views reject impossible status/coverage/access/total/freshness combinations instead of relying only on assembler correctness.
+- Comparison reason codes are constrained to the semantics of their status and coverage/access gate: uncertain availability, item-level incomplete causes, and one matching unavailable cause.
+- `RetailerFreshness` rejects basis/provider-timestamp contradictions and provider update timestamps after the observation time.
 - Incomplete/unavailable product comparison states cannot expose a misleading aggregate total or freshness summary.
 - Responsive Playwright coverage distinguishes the product service-unavailable alert from Next.js' internal route announcer while preserving accessible alert semantics.
 
