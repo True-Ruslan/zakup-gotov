@@ -4,29 +4,28 @@
 
 **Goal:** Prove and implement deterministic extraction of Magnit's exact labeled `Вес, кг` / `Объем, л` characteristics into canonical package quantity evidence without title parsing or production activation.
 
-## Task 1 — Define extraction contract in tests
+## Task 1 — Define extraction contract in tests — COMPLETE
 
-Files:
-- add `MagnitPackageQuantityExtractorTest`
-- add deterministic HTML fixtures under `apps/api/src/test/resources/provider/magnit/package/`
-
-Cases:
+Cases covered:
 - weight 0,45 → 450 g;
 - volume 1.5 → 1500 ml;
 - duplicate identical value → FOUND;
 - weight + volume → AMBIGUOUS_DIMENSIONS;
 - conflicting same-dimension values → CONFLICTING_VALUES;
-- invalid/zero value → INVALID_VALUE;
+- invalid/zero/negative value → INVALID_VALUE;
 - title-only `450г` → MISSING;
-- count-only `Количество в упаковке 10` → MISSING in v1.
+- count-only `Количество в упаковке 10` → MISSING in v1;
+- script/style contamination → MISSING;
+- supported labels outside the bounded characteristics section → MISSING.
 
-Run focused test and verify RED because extractor/result/status types do not exist.
+RED was verified on `0d15d18`: API test compilation failed exactly because extractor/result/status types did not yet exist.
 
-## Task 2 — Implement pure production extractor
+## Task 2 — Implement pure production extractor — COMPLETE
 
-Files:
-- add `provider/magnit/MagnitPackageQuantityExtractor.java`
-- add result/status value types as needed.
+Implemented:
+- `provider/magnit/MagnitPackageQuantityExtractor.java`;
+- `MagnitPackageQuantityExtraction`;
+- `MagnitPackageQuantityStatus`.
 
 Rules:
 - no HTTP, Spring bean or side effects;
@@ -38,32 +37,45 @@ Rules:
 - conflicting, multidimensional or invalid evidence fails closed;
 - no title/category/SKU/URL heuristics.
 
-Run focused test and verify GREEN.
+## Task 3 — Prove #81 provider/snapshot compatibility — COMPLETE
 
-## Task 3 — Integrate deterministic Magnit probe
+Review changed the original draft plan here. Instead of modifying the existing fixed-corpus measurement probe in the same PR, #82 keeps semantic acceptance and corpus measurement separate.
 
-Files:
-- modify `MagnitCorpusProbe.PageObservation` to carry the extraction result;
-- invoke extractor from `parseProductPage`;
-- update `MagnitCorpusProbeTest` with deterministic package-characteristic cases.
+Implemented bridge regression:
+- `FOUND` extraction populates `ObservedOffer.packageQuantity`;
+- `OfferSnapshot` preserves the same canonical quantity;
+- ambiguous weight+volume extraction remains empty downstream.
 
-Do not change HTTP request policy, product URL generation, price selection, availability semantics or live-probe enablement.
+Why the corpus probe is not modified in #82:
+- its current purpose is stable price/availability feasibility measurement;
+- changing its output before extractor semantics are accepted would mix measurement-harness evolution with semantic acceptance;
+- the immediate next evidence slice will instrument the existing explicit/manual corpus probe with this accepted extractor and measure real status distribution.
 
-Run Magnit probe tests and API architecture regressions.
+Existing Magnit HTTP policy, URL generation, price selection, availability semantics and live-probe enablement remain unchanged.
 
-## Task 4 — Durable evidence and shipping
+## Task 4 — Durable evidence and shipping — IN PROGRESS
 
-Files:
-- update `docs/PROJECT_STATE.md`
-- update `docs/ROADMAP.md`
-- update `CHANGELOG.md`
-- add a Magnit integration evidence note documenting official examples and limitations.
+Completed:
+- `docs/PROJECT_STATE.md` synchronized;
+- `docs/ROADMAP.md` synchronized;
+- root `CHANGELOG.md` synchronized;
+- `docs/integrations/magnit-structured-package-characteristics-2026-08-12.md` records official examples, semantics and #69/#70 limits;
+- spec review hardened section-boundary and extractor-vs-corpus scope.
 
-State explicitly:
-- technical structured-characteristic extraction proven;
-- no production polling enabled;
-- #69/#70 unchanged;
-- count-field support deferred;
-- ambiguous pages stay package-unknown.
+Remaining:
+1. exact-head API/Web/Contract/Retailer Bridge/CodeQL/Dependency/Container/Release gates;
+2. independent read-only review;
+3. docs-only shipping marker after reviewed candidate passes;
+4. ready-for-review + squash merge using exact head;
+5. push-triggered `main` verification.
 
-Open draft PR, require exact-head API/Web/Contract/Retailer Bridge/CodeQL/Dependency/Container/Release gates, run independent read-only review, then squash merge only if no P0/P1/P2 blockers remain. Verify push-triggered `main` CI after merge.
+## Immediate follow-up after #82
+
+Instrument the explicit/manual Magnit fixed-corpus probe to report:
+- `FOUND`;
+- `MISSING`;
+- `AMBIGUOUS_DIMENSIONS`;
+- `CONFLICTING_VALUES`;
+- `INVALID_VALUE`.
+
+That follow-up remains research evidence only and must not enable recurring production polling or bypass #69/#70.
