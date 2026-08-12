@@ -2,6 +2,7 @@ import type { components } from "@zakup-gotov/api-client";
 
 type Preview = components["schemas"]["ComparisonPreviewResponse"];
 type Retailer = components["schemas"]["ComparisonPreviewRetailer"];
+type PreviewItem = components["schemas"]["ComparisonPreviewItem"];
 type Reason = components["schemas"]["RetailerComparisonReason"];
 type ItemStatus = components["schemas"]["BasketItemResolutionStatus"];
 type Freshness = components["schemas"]["RetailerFreshness"];
@@ -72,7 +73,7 @@ export function ComparisonPreviewResults({ preview }: { preview: Preview }) {
       </div>
 
       <ul className="mt-6 grid gap-4 sm:grid-cols-2" aria-label="Сравнение магазинов">
-        {preview.retailers.map((retailer) => (
+        {preview.retailers.map((retailer: Retailer) => (
           <li key={retailer.id}>
             <article
               aria-label={retailer.displayName}
@@ -94,7 +95,7 @@ export function ComparisonPreviewResults({ preview }: { preview: Preview }) {
 
               {retailer.reasons.length > 0 ? (
                 <ul className="mt-4 space-y-1 text-sm leading-5 text-stone-600">
-                  {retailer.reasons.map((reason) => (
+                  {retailer.reasons.map((reason: Reason) => (
                     <li key={reason}>{reasonLabels[reason]}</li>
                   ))}
                 </ul>
@@ -102,7 +103,7 @@ export function ComparisonPreviewResults({ preview }: { preview: Preview }) {
 
               {retailer.items.length > 0 ? (
                 <ul className="mt-5 space-y-3 border-t border-stone-100 pt-4" aria-label={`Позиции ${retailer.displayName}`}>
-                  {retailer.items.map((item) => (
+                  {retailer.items.map((item: PreviewItem) => (
                     <li key={item.id} className="text-sm leading-5 text-stone-700">
                       <div className="flex flex-wrap items-baseline justify-between gap-2">
                         <span className="font-medium text-stone-900">
