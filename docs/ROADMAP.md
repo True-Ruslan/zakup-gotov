@@ -71,7 +71,7 @@ Goal: compare a manually entered grocery list across connected retailers while p
    - conservative freshness aggregation without invented stale thresholds;
    - `GET /api/v1/retailers` REST/OpenAPI/generated-client contract;
    - responsive M1 readiness surface with bounded server-side timeout and fail-closed unavailable behavior.
-9. **Critical product journey — IMPLEMENTED IN #80; FINAL SHIPPING GATE IN PROGRESS**
+9. **Critical product journey — COMPLETE / ACCEPTED (#80)**
    - `POST /api/v1/comparison-previews` accepts locality-only context and a manual shopping list;
    - request construction reuses canonical shopping quantities and product location;
    - comparison orchestration reuses provider snapshots, matching, basket and comparison/read-model semantics instead of duplicating them;
@@ -82,20 +82,11 @@ Goal: compare a manually entered grocery list across connected retailers while p
    - deterministic evidence and mock API exist only for test/acceptance composition;
    - OpenAPI/generated TypeScript client and the primary Next.js comparison form/results are synchronized;
    - request timeout is bounded and API failure renders one accessible unavailable state with no fabricated retailer results;
-   - desktop/mobile Playwright proves the full deterministic journey without hidden live retailer dependencies;
-   - architecture guards keep upstream production domains independent of `preview` and prevent production preview code from depending on fixture/test-support namespaces.
+   - desktop/mobile Playwright proves the deterministic browser journey without hidden live retailer dependencies;
+   - architecture guards keep upstream production domains independent of `preview` and prevent production preview code from depending on fixture/test-support namespaces;
+   - unknown JSON request fields fail closed, keeping runtime deserialization aligned with OpenAPI `additionalProperties: false`.
 
-### Current shipping gate for #80
-
-Before #80 can be called complete:
-
-- final exact-head API, Contract, Web + responsive E2E, Retailer Bridge, Dependency Review, CodeQL, Container Security, Release Bundle and Release Contract checks must all be green;
-- final read-only change review must have no unresolved P0/P1/P2 findings;
-- a docs-only shipping marker must record the evidence;
-- the branch-protection gate must be green again on that marker SHA;
-- squash merge must use the exact reviewed head and post-merge `main` must be verified.
-
-The Web E2E assertion defect discovered during hardening has already been corrected and the exact `683f29a` candidate passed all workflow groups before the final architecture/docs candidate was prepared.
+Acceptance evidence is recorded in the #80 shipping marker. The reviewed code candidate `16eff25` passed all repository workflow groups and the final read-only review reported no P0/P1/P2 findings before the docs-only marker.
 
 ### Important remaining basket-data limitation
 
@@ -114,7 +105,7 @@ The core can consume trusted package-quantity evidence, but accepted retailer ad
 - incomplete baskets cannot masquerade as complete winners;
 - production retailer activation remains separately gated by access, location/context and source-evidence constraints.
 
-### Next M1 engineering focus after #80 ships
+### Next M1 engineering focus
 
 1. **Trusted structured package-quantity extraction** where a specific accepted source proves the field semantics. Missing evidence stays unknown.
 2. **Browser bridge lifecycle hardening (#54)** for persistent sessions, same-document store changes and SPA navigation.
