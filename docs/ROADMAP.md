@@ -79,16 +79,21 @@ Goal: compare a manually entered grocery list across connected retailers while p
    - manual and resolved context-selection modes are explicit without claiming universal automatic resolution;
    - duplicate provider contexts and cross-location bindings fail closed;
    - provider orchestrator consumes typed context sets, not raw provider maps or exact addresses.
-5. **Price and availability snapshots — NEXT**
-   - immutable snapshot identity/value boundary;
-   - observation time distinct from provider-side freshness/update time;
-   - explicit availability including `UNKNOWN`;
-   - retailer/source-provider/acquisition-mode/fulfillment-context provenance;
-   - currency/price validation and fail-closed temporal/provenance validation;
-   - fixture-first snapshot tests with no live retailer dependency.
-6. **Deterministic product-matching baseline**
+5. **Price and availability snapshots — COMPLETE (PR #76)**
+   - immutable `OfferSnapshotId` / `OfferSnapshot` boundary derived only from validated `ObservedOffer`;
+   - exact preservation of retailer/source-provider/acquisition-mode/fulfillment-context/SKU/price/currency/availability/source-reference provenance;
+   - `FreshnessEvidence` separates observation time from optional trusted provider-side update time;
+   - provider update time may equal but never exceed observation time;
+   - observation-only snapshots do not invent provider freshness;
+   - explicit availability including `UNKNOWN` survives unchanged;
+   - no provider-specific stale threshold hard-coded;
+   - fixture-first tests with no live retailer dependency.
+6. **Deterministic product-matching baseline — NEXT**
    - exact/normalized matching first;
-   - explicit ambiguous/unmatched state;
+   - deterministic text normalization owned by the matching layer rather than shopping/provider models;
+   - explicit matched/ambiguous/unmatched states;
+   - explainable reasons/confidence;
+   - no silent winner when equivalent candidates remain;
    - AI matching optional later, never required for baseline correctness.
 7. **Complete single-store basket comparison**
    - package/quantity selection baseline;
