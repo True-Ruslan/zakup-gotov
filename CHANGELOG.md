@@ -6,49 +6,50 @@ All notable project changes are recorded here. Zakup Gotov is pre-release; entri
 
 ### Added
 
-- M0 provider feasibility harness with provider-scoped `LocationContext`, normalized `ObservedOffer`, fixture/live separation and explicit provenance validation.
-- Universal Retailer Connectivity design: every retailer/banner in the target registry remains mandatory coverage work until at least one reproducible accepted acquisition path exists.
-- Chromium Manifest V3 retailer bridge with minimal permissions, sanitized local storage, deterministic fixtures and persistent-Chromium E2E coverage.
-- Perekrestok browser adapter v2 and real first-party browser evidence establishing `AVAILABLE_BROWSER_BRIDGE` for reload-based page snapshots.
-- Pyaterochka browser adapter v1 and real first-party browser evidence establishing `AVAILABLE_BROWSER_BRIDGE` for reload-based page snapshots.
-- First-class `apps/retailer-bridge` pnpm workspace package with pinned bridge-owned TypeScript/Vitest/jsdom/Playwright tooling.
-- Magnit ordinary-public-page Phase A/Phase B probes, deterministic corpus/fixtures and final merged-main evidence establishing `AVAILABLE_PUBLIC_WEB` technical feasibility for explicit `shopCode` contexts.
+- Universal Retailer Connectivity design and evidence-driven acquisition-mode fallback policy.
+- Chromium MV3 retailer bridge with minimal permissions, sanitized local storage, deterministic fixtures and persistent-Chromium E2E.
+- Accepted first-party browser paths for Perekrestok v2 and Pyaterochka v1.
+- Magnit public-page Phase A/B probes and evidence establishing `AVAILABLE_PUBLIC_WEB` technical feasibility for explicit `shopCode` contexts.
 - M0 → M1 GO decision plus explicit Magnit location-resolution (#69) and production-usage-rights (#70) follow-ups.
-- M1 canonical retailer registry with independent technical coverage and production-access status.
-- M1 canonical quantity primitives and shopping-list aggregate with stable UUID identity/order and explicit mutation semantics.
-- Provenance-complete `ObservedOffer`, `AcquisitionMode`, deterministic provider-path orchestration and explicit expected path-failure handling.
+- M1 canonical retailer registry with separate technical coverage and production-access status.
+- M1 canonical quantities and shopping-list aggregate with stable UUID identity/order and explicit mutation semantics.
+- Provenance-complete `ObservedOffer`, deterministic provider-path orchestration and explicit expected path-failure handling.
 - Provider-neutral product location, redacted sensitive addresses and typed fulfillment-context bindings.
-- `FreshnessEvidence` / `FreshnessBasis` and immutable `OfferSnapshotId` / `OfferSnapshot` comparison records derived only from validated observations.
-- Required observed `productName` evidence in Java `ObservedOffer`, preserved through `OfferSnapshot` for semantic matching without synthesizing labels from provider queries or SKUs.
-- Matching-only deterministic text normalization using Unicode NFKC, `Locale.ROOT` case folding, `ё → е`, and punctuation/symbol separator normalization.
-- Scoped deterministic product matching with `MatchScope`, explicit `MATCHED` / `AMBIGUOUS` / `UNMATCHED` states, `EXACT` / `NORMALIZED` / `NONE` strengths and concrete match reasons.
-- Architecture verification preventing production provider/shopping/retailer packages from depending back on matching.
-- Matching design and implementation evidence in `docs/superpowers/specs/2026-08-12-m1-deterministic-matching-design.md` and `docs/superpowers/plans/2026-08-12-m1-deterministic-matching.md`.
+- Immutable offer snapshots and freshness evidence separating observation time from optional provider-side update time.
+- Required observed `productName` evidence preserved through snapshots.
+- Deterministic exact-before-normalized product matching with explicit matched/ambiguous/unmatched states, retailer/context scoping and no fuzzy/AI baseline.
+- Explicit basket-layer package-quantity evidence keyed by `OfferSnapshotId`; absent evidence remains unknown instead of being guessed.
+- Whole-package selection using canonical quantities and exact decimal arithmetic, including ceiling package count, provided quantity and line total.
+- Single-store basket quote model with explicit per-item outcomes and `COMPLETE`, `UNCERTAIN`, `INCOMPLETE` aggregate states.
+- Basket architecture rule preventing production provider/shopping/matching/retailer modules from depending back on basket.
+- Durable basket design/plan in `docs/superpowers/specs/2026-08-12-m1-single-store-basket-design.md` and `docs/superpowers/plans/2026-08-12-m1-single-store-basket.md`.
 
 ### Changed
 
-- Project phase advanced from **M0 — Product & Integration Discovery** to **M1 — Shopping Core** after satisfying the technical exit criteria.
-- Both mandatory X5 banners have accepted browser-assisted acquisition paths; Magnit provides the independent non-X5 public-web feasibility path.
-- M1 entry rules are fixture-first, coverage-explicit, provenance-aware, fulfillment-context-aware and fail-closed for freshness, availability and unresolved production usage rights.
-- Retailer onboarding remains transport-neutral; direct API failure changes the acquisition mode under investigation rather than removing the retailer from scope.
-- Technical retailer connectivity and production-access readiness remain separate decisions.
-- Kuper remains acquisition-provider/aggregator provenance rather than a retailer/banner identity.
-- Shopping requirement text remains user wording; matching-specific Unicode/case/punctuation normalization is isolated in the matching layer.
-- Provider routing uses typed fulfillment contexts and never receives precise product-location addresses.
-- `ObservedOffer` remains the provider trust-boundary record; `OfferSnapshot` owns immutable comparison snapshot semantics.
-- Observation time and optional provider-side update time remain distinct and cannot be silently conflated.
-- Product semantic matching is conservative: exact text outranks normalized text; multiple equivalent candidates remain ambiguous instead of being broken by price, availability, freshness, acquisition mode or SKU ordering.
-- Baseline matching deliberately excludes aliases/synonyms, stemming, token reordering, substring/fuzzy/edit-distance logic, transliteration, embeddings and LLM ranking.
-- `docs/PROJECT_STATE.md` and `docs/ROADMAP.md` now mark deterministic matching complete and move the active M1 focus to complete single-store basket comparison/package quantity selection.
+- Project phase advanced from M0 Product & Integration Discovery to **M1 Shopping Core** after satisfying technical exit criteria.
+- Retailer onboarding remains transport-neutral and universal; failed direct access changes the investigated acquisition mode rather than retailer scope.
+- Kuper remains provider/aggregator provenance rather than retailer identity.
+- Shopping text remains user wording; semantic normalization is isolated in matching.
+- `ObservedOffer` remains the provider trust boundary; `OfferSnapshot` remains the immutable comparison record.
+- Observation time and provider-side update time remain distinct.
+- Matching never breaks semantic ambiguity using price, availability, freshness, acquisition mode or SKU ordering.
+- Package size/quantity is now modeled as explicit basket evidence and is **not** inferred from `productName` or assumed to be one unit per SKU.
+- `UNKNOWN` availability now propagates into `AVAILABILITY_UNKNOWN` line state and an `UNCERTAIN` basket rather than a confirmed complete basket.
+- Incomplete single-store baskets expose no aggregate total, preventing partial-price comparisons from masquerading as complete basket prices.
+- Active M1 focus moves from basket-core construction to failure/coverage/freshness product/API/UX semantics before critical browser E2E.
 
 ### Fixed
 
-- Magnit Phase A/Phase B parsing preserves SKU-local/current-price evidence and fail-closed promo/availability semantics.
-- Provider offer validation rejects retailer, source-provider, acquisition-mode and fulfillment-context mismatches before comparison logic.
-- Precise user addresses are excluded from default string representations.
+- Provider offer validation rejects provenance/context mismatches before comparison logic.
+- Precise addresses are excluded from default string representations and provider routing.
 - Snapshot freshness rejects provider timestamps after observation time.
-- Semantic matching rejects candidates from another retailer or fulfillment context instead of silently filtering/mixing them.
-- Impossible match result combinations (for example `MATCHED` without exactly one candidate or `UNMATCHED` with non-`NONE` strength) fail closed at construction.
+- Semantic matching rejects cross-retailer/context candidate mixing.
+- Impossible matching result combinations fail closed at construction.
+- Package-quantity bindings validate null elements before immutable-copy construction, preserving deterministic diagnostic failures.
+- Duplicate package evidence for one snapshot fails closed.
+- Package selection rejects incompatible canonical units.
+- Mixed currencies across selected basket lines fail closed.
+- Incomplete basket states cannot carry a basket total by construction.
 
 ## [0.1.0-rc.2] — 2026-08-09
 
