@@ -3,12 +3,14 @@ package io.github.trueruslan.zakupgotov.provider;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
+import io.github.trueruslan.zakupgotov.location.ProductLocationId;
 import io.github.trueruslan.zakupgotov.retailer.RetailerId;
 import java.math.BigDecimal;
 import java.time.Instant;
+import java.util.ArrayList;
 import java.util.List;
-import java.util.Map;
 import java.util.Set;
+import java.util.UUID;
 import java.util.concurrent.atomic.AtomicBoolean;
 import org.junit.jupiter.api.Test;
 
@@ -16,6 +18,8 @@ class ProviderPathOrchestratorTest {
 
     private static final Instant OBSERVED_AT = Instant.parse("2026-08-12T06:30:00Z");
     private static final ProductQuery QUERY = new ProductQuery("молоко");
+    private static final ProductLocationId PRODUCT_LOCATION_ID = new ProductLocationId(
+            UUID.fromString("55555555-5555-5555-5555-555555555555"));
 
     @Test
     void selectsHighestPriorityEligiblePathForRequestedRetailer() {
@@ -89,7 +93,7 @@ class ProviderPathOrchestratorTest {
         var outcome = ProviderPathOrchestrator.offline().search(
                 RetailerId.PYATEROCHKA,
                 List.of(direct, aggregator),
-                Map.of("kuper", context(aggregator)),
+                contexts(aggregator),
                 QUERY);
 
         assertThat(outcome.attempts()).containsExactly(
@@ -200,12 +204,15 @@ class ProviderPathOrchestratorTest {
         return Set.of(ProviderCapability.PRODUCT_SEARCH, ProviderCapability.PRICE);
     }
 
-    private static Map<String, LocationContext> contexts(FakeFixtureProvider... providers) {
-        var builder = new java.util.LinkedHashMap<String, LocationContext>();
+    private static FulfillmentContextSet contexts(FakeFixtureProvider... providers) {
+        var bindings = new ArrayList<FulfillmentContextBinding>();
         for (var provider : providers) {
-            builder.put(provider.sourceProviderId(), context(provider));
+            bindings.add(new FulfillmentContextBinding(
+                    PRODUCT_LOCATION_ID,
+                    context(provider),
+                    FulfillmentContextSelectionMode.MANUAL));
         }
-        return Map.copyOf(builder);
+        return FulfillmentContextSet.of(PRODUCT_LOCATION_ID, bindings);
     }
 
     private static LocationContext context(FakeFixtureProvider provider) {
