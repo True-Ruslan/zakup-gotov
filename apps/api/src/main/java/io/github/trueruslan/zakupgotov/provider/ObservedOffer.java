@@ -1,9 +1,11 @@
 package io.github.trueruslan.zakupgotov.provider;
 
 import io.github.trueruslan.zakupgotov.retailer.RetailerId;
+import io.github.trueruslan.zakupgotov.shopping.Quantity;
 import java.math.BigDecimal;
 import java.time.Instant;
 import java.util.Currency;
+import java.util.Optional;
 
 public record ObservedOffer(
         RetailerId retailerId,
@@ -16,7 +18,8 @@ public record ObservedOffer(
         String currencyCode,
         AvailabilityStatus availability,
         Instant observedAt,
-        String sourceReference) {
+        String sourceReference,
+        Optional<Quantity> packageQuantity) {
 
     public ObservedOffer {
         retailerId = requireValue(retailerId, "retailerId");
@@ -33,6 +36,34 @@ public record ObservedOffer(
         availability = requireValue(availability, "availability");
         observedAt = requireValue(observedAt, "observedAt");
         sourceReference = requireText(sourceReference, "sourceReference");
+        packageQuantity = requireValue(packageQuantity, "packageQuantity");
+    }
+
+    public ObservedOffer(
+            RetailerId retailerId,
+            String sourceProviderId,
+            AcquisitionMode sourceMode,
+            String fulfillmentContextId,
+            String sku,
+            String productName,
+            BigDecimal price,
+            String currencyCode,
+            AvailabilityStatus availability,
+            Instant observedAt,
+            String sourceReference) {
+        this(
+                retailerId,
+                sourceProviderId,
+                sourceMode,
+                fulfillmentContextId,
+                sku,
+                productName,
+                price,
+                currencyCode,
+                availability,
+                observedAt,
+                sourceReference,
+                Optional.empty());
     }
 
     private static String requireText(String value, String field) {

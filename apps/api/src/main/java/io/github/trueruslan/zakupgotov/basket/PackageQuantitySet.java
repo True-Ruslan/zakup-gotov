@@ -1,7 +1,9 @@
 package io.github.trueruslan.zakupgotov.basket;
 
+import io.github.trueruslan.zakupgotov.provider.OfferSnapshot;
 import io.github.trueruslan.zakupgotov.provider.OfferSnapshotId;
 import io.github.trueruslan.zakupgotov.shopping.Quantity;
+import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -31,6 +33,17 @@ public final class PackageQuantitySet {
 
     public static PackageQuantitySet of(List<PackageQuantityBinding> bindings) {
         return new PackageQuantitySet(bindings);
+    }
+
+    public static PackageQuantitySet fromSnapshots(List<OfferSnapshot> snapshots) {
+        var input = Objects.requireNonNull(snapshots, "snapshots must not be null");
+        var bindings = new ArrayList<PackageQuantityBinding>();
+        for (var snapshot : input) {
+            Objects.requireNonNull(snapshot, "snapshot must not be null");
+            snapshot.packageQuantity().ifPresent(quantity ->
+                    bindings.add(new PackageQuantityBinding(snapshot.id(), quantity)));
+        }
+        return of(bindings);
     }
 
     public List<PackageQuantityBinding> bindings() {

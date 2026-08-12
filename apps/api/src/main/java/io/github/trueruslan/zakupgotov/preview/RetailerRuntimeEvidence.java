@@ -21,6 +21,18 @@ public record RetailerRuntimeEvidence(
     public RetailerRuntimeEvidence(
             RetailerId retailerId,
             ProviderSearchOutcome providerOutcome,
+            List<OfferSnapshot> snapshots) {
+        this(
+                retailerId,
+                inferFulfillmentContext(providerOutcome, snapshots),
+                providerOutcome,
+                snapshots,
+                PackageQuantitySet.fromSnapshots(snapshots));
+    }
+
+    public RetailerRuntimeEvidence(
+            RetailerId retailerId,
+            ProviderSearchOutcome providerOutcome,
             List<OfferSnapshot> snapshots,
             PackageQuantitySet packageQuantities) {
         this(retailerId, inferFulfillmentContext(providerOutcome, snapshots), providerOutcome, snapshots, packageQuantities);
@@ -76,6 +88,25 @@ public record RetailerRuntimeEvidence(
                                 + binding.snapshotId().value());
             }
         }
+
+        var snapshotPackageQuantities = PackageQuantitySet.fromSnapshots(snapshots);
+        if (!packageQuantities.bindings().equals(snapshotPackageQuantities.bindings())) {
+            throw new IllegalArgumentException("package quantity evidence must match structured snapshot evidence");
+        }
+        packageQuantities = snapshotPackageQuantities;
+    }
+
+    public static RetailerRuntimeEvidence withFulfillmentContext(
+            RetailerId retailerId,
+            String fulfillmentContextId,
+            ProviderSearchOutcome providerOutcome,
+            List<OfferSnapshot> snapshots) {
+        return new RetailerRuntimeEvidence(
+                retailerId,
+                Optional.of(requireContext(fulfillmentContextId)),
+                providerOutcome,
+                snapshots,
+                PackageQuantitySet.fromSnapshots(snapshots));
     }
 
     public static RetailerRuntimeEvidence withFulfillmentContext(
