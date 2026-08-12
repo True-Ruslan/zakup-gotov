@@ -88,6 +88,7 @@ class ObservedOfferTest {
                 AcquisitionMode.DIRECT_API,
                 fulfillmentContextId,
                 sku,
+                "Молоко 3,2%",
                 price,
                 currencyCode,
                 availability,

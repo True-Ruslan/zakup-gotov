@@ -11,6 +11,7 @@ public record ObservedOffer(
         AcquisitionMode sourceMode,
         String fulfillmentContextId,
         String sku,
+        String productName,
         BigDecimal price,
         String currencyCode,
         AvailabilityStatus availability,
@@ -23,6 +24,7 @@ public record ObservedOffer(
         sourceMode = requireValue(sourceMode, "sourceMode");
         fulfillmentContextId = requireText(fulfillmentContextId, "fulfillmentContextId");
         sku = requireText(sku, "sku");
+        productName = requireText(productName, "productName").strip();
         price = requireValue(price, "price");
         if (price.signum() < 0) {
             throw new IllegalArgumentException("price must not be negative");

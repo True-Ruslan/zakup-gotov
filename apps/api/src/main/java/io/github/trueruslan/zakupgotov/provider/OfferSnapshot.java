@@ -13,6 +13,7 @@ public final class OfferSnapshot {
     private final AcquisitionMode sourceMode;
     private final String fulfillmentContextId;
     private final String sku;
+    private final String productName;
     private final BigDecimal price;
     private final String currencyCode;
     private final AvailabilityStatus availability;
@@ -35,6 +36,7 @@ public final class OfferSnapshot {
         this.sourceMode = observation.sourceMode();
         this.fulfillmentContextId = observation.fulfillmentContextId();
         this.sku = observation.sku();
+        this.productName = observation.productName();
         this.price = observation.price();
         this.currencyCode = observation.currencyCode();
         this.availability = observation.availability();
@@ -84,6 +86,10 @@ public final class OfferSnapshot {
 
     public String sku() {
         return sku;
+    }
+
+    public String productName() {
+        return productName;
     }
 
     public BigDecimal price() {
