@@ -11,7 +11,7 @@ Visibility: Public
 Current phase: **M1 — Shopping Core**  
 M0 status: **technical discovery COMPLETE**  
 M0→M1 decision: **GO** — [`superpowers/specs/2026-08-12-m0-to-m1-go-decision.md`](superpowers/specs/2026-08-12-m0-to-m1-go-decision.md)  
-Current focus: **trusted structured package evidence plus remaining retailer connectivity/production-access hardening after the accepted #80 critical journey**
+Current focus: **ship #81 structured package-evidence plumbing; then prove the first source-specific structured package field without heuristic parsing or broader browser permissions**
 
 ## Product connectivity invariant
 
@@ -76,18 +76,36 @@ M0 completion is **technical feasibility**, not blanket production-data-access a
    - architecture guards preventing upstream production domains from depending back on `preview` and preventing production preview code from depending on fixture/test-support namespaces;
    - fail-closed JSON deserialization for unknown request fields, matching OpenAPI `additionalProperties: false` and preventing unsupported provider/store-shaped input from silently weakening the public contract.
 
-Acceptance evidence before the docs-only shipping marker:
-- exact candidate `16eff25` passed API CI, Contract CI, Web CI + responsive Web E2E, Retailer Bridge CI, Dependency Review, CodeQL Java + JS/TS, Container Security CI, Release Bundle CI and Release Contract CI;
-- final read-only change review reported **no P0/P1/P2 findings**;
-- the earlier Web E2E ambiguity was an assertion-scoping defect and was corrected without weakening product behavior.
+   Acceptance evidence before the docs-only shipping marker:
+   - exact candidate `16eff25` passed API CI, Contract CI, Web CI + responsive Web E2E, Retailer Bridge CI, Dependency Review, CodeQL Java + JS/TS, Container Security CI, Release Bundle CI and Release Contract CI;
+   - final read-only change review reported **no P0/P1/P2 findings**;
+   - the earlier Web E2E ambiguity was an assertion-scoping defect and was corrected without weakening product behavior.
 
-Design: [`superpowers/specs/2026-08-12-m1-stateless-comparison-preview-design.md`](superpowers/specs/2026-08-12-m1-stateless-comparison-preview-design.md)  
-Implementation plan: [`superpowers/plans/2026-08-12-m1-stateless-comparison-preview.md`](superpowers/plans/2026-08-12-m1-stateless-comparison-preview.md)
+   Design: [`superpowers/specs/2026-08-12-m1-stateless-comparison-preview-design.md`](superpowers/specs/2026-08-12-m1-stateless-comparison-preview-design.md)  
+   Implementation plan: [`superpowers/plans/2026-08-12-m1-stateless-comparison-preview.md`](superpowers/plans/2026-08-12-m1-stateless-comparison-preview.md)
+
+10. **Structured package-evidence plumbing — IMPLEMENTED / SHIPPING (#81)**  
+    #81 adds a provider-neutral internal path for package quantities that are already proven by a source as structured evidence:
+    - `ObservedOffer` can carry optional canonical `Quantity packageQuantity` evidence;
+    - the legacy observation constructor remains source-compatible and produces `Optional.empty()`, so every existing retailer path keeps its previous package-unknown semantics;
+    - `OfferSnapshot` preserves the optional package quantity unchanged through both freshness factories;
+    - `PackageQuantitySet.fromSnapshots(...)` projects only explicitly present package evidence into the existing basket bindings;
+    - product presentation text remains non-authoritative: regression tests prove names such as `Молоко 3,2%, 970мл` and `Вода 1,5л` do not create package evidence;
+    - preview/runtime evidence derives package bindings from snapshots, eliminating a second independent source of truth;
+    - compatibility paths that still accept an explicit `PackageQuantitySet` fail closed unless it exactly matches structured snapshot evidence;
+    - deterministic acceptance fixtures now attach package evidence at the provider-observation boundary before snapshotting rather than injecting basket bindings later;
+    - no public API/UI shape, browser permission, network path, production-access state or retailer polling behavior changes in this slice.
+
+    **Important:** #81 does **not** claim that any accepted production retailer adapter already exposes a trustworthy structured package field. The plumbing is ready for such evidence; source-specific extraction remains separate work.
+
+    Design: [`superpowers/specs/2026-08-12-m1-structured-package-evidence-design.md`](superpowers/specs/2026-08-12-m1-structured-package-evidence-design.md)  
+    Implementation plan: [`superpowers/plans/2026-08-12-m1-structured-package-evidence.md`](superpowers/plans/2026-08-12-m1-structured-package-evidence.md)
 
 ## Important M1 limitations
 
 - Production comparison evidence remains deliberately **no-op/fail-closed** in #80. The critical journey proves the product/API/core integration, not live production retailer acquisition.
-- Accepted retailer adapters still do **not** expose a universal structured package-quantity field. Missing package evidence remains `PACKAGE_QUANTITY_UNKNOWN`; presentation text must not be parsed heuristically.
+- The core/provider/snapshot/runtime path can now carry trusted structured package quantity evidence end-to-end internally, but accepted retailer adapters still do **not** prove a supported structured package field. Missing evidence remains `PACKAGE_QUANTITY_UNKNOWN`; presentation text must not be parsed heuristically.
+- Perekrestok and Pyaterochka accepted browser paths remain package-unknown until a separate evidence-backed extractor proves stable field semantics. Do not widen browser permissions or inspect arbitrary response bodies merely to obtain package size.
 - Magnit location/address → public `shopCode` resolution is still unresolved (#69).
 - Magnit recurring production acquisition usage rights remain unresolved (#70); default recurring polling must remain disabled until authoritative acceptance.
 - Browser-bridge persistent-session/store-change lifecycle hardening remains open (#54).
@@ -99,11 +117,11 @@ Implementation plan: [`superpowers/plans/2026-08-12-m1-stateless-comparison-prev
 
 ### Pyaterochka
 
-Status: **`AVAILABLE_BROWSER_BRIDGE`**, adapter `pyaterochka-browser` v1. Real first-party gate: 12 normalized observations, one fulfillment context, zero normalized validation failures. Anonymous direct server access remains unsuitable (`store-403`).
+Status: **`AVAILABLE_BROWSER_BRIDGE`**, adapter `pyaterochka-browser` v1. Real first-party gate: 12 normalized observations, one fulfillment context, zero normalized validation failures. Anonymous direct server access remains unsuitable (`store-403`). No accepted structured package-quantity field is proven yet.
 
 ### Perekrestok
 
-Status: **`AVAILABLE_BROWSER_BRIDGE`**, adapter v2. Repeated first-party evidence: 90 normalized observations, one fulfillment context and zero acceptance-validation failures. #54 remains lifecycle hardening for same-document store changes / SPA navigation.
+Status: **`AVAILABLE_BROWSER_BRIDGE`**, adapter v2. Repeated first-party evidence: 90 normalized observations, one fulfillment context and zero acceptance-validation failures. #54 remains lifecycle hardening for same-document store changes / SPA navigation. Current accepted evidence does not prove a dedicated structured package-quantity field.
 
 ### Magnit
 
@@ -123,23 +141,25 @@ Constraints:
 6. `UNKNOWN` availability is never coerced to available/unavailable.
 7. Observation time is never misrepresented as provider freshness; freshness basis must remain structurally valid.
 8. Matching ambiguity never becomes a hidden winner and no fuzzy/AI tie-break is introduced implicitly.
-9. Package quantity is explicit evidence; missing evidence is not guessed from names.
-10. Incomplete baskets never expose a misleading complete-basket total.
-11. Production activation respects usage-rights state.
-12. Ordinary CI and #80 browser acceptance make no live retailer requests.
-13. Production preview evidence fails closed rather than falling back to deterministic fixtures.
-14. Public comparison requests remain stateless and persistence-free in M1.
-15. Unknown public JSON request fields fail closed rather than being ignored.
-16. Universal retailer connectivity remains mandatory for every registry entry.
+9. Package quantity is explicit structured evidence; missing evidence is never guessed from names, URLs or other presentation text.
+10. Package evidence attached to runtime basket calculation must derive from and agree with immutable snapshot evidence.
+11. Incomplete baskets never expose a misleading complete-basket total.
+12. Production activation respects usage-rights state.
+13. Ordinary CI and browser acceptance make no live retailer requests.
+14. Production preview evidence fails closed rather than falling back to deterministic fixtures.
+15. Public comparison requests remain stateless and persistence-free in M1.
+16. Unknown public JSON request fields fail closed rather than being ignored.
+17. Universal retailer connectivity remains mandatory for every registry entry.
 
 ## Immediate next work
 
-1. **Trusted structured package-quantity extraction** where a supported retailer/source proves the field semantics. Do not parse presentation names heuristically.
-2. Continue **#54** browser-bridge lifecycle hardening and **#69** Magnit location → `shopCode` resolution.
-3. Resolve **#70** Magnit production usage rights before recurring polling and continue **#36** Kuper supported-access investigation.
-4. Continue mandatory Chizhik, Ozon Fresh, Samokat, Lenta, VkusVill and additional retailer onboarding.
-5. Prove a successful real `v0.1.0-rc.3` release event.
-6. Move to **M2 Recipes** only after remaining M1 evidence/production constraints are explicitly accepted rather than hidden.
+1. **Finish shipping #81** with exact-head CI/security verification and independent review.
+2. **Prove the first source-specific structured package field** and only then add a retailer/source extractor. Document field semantics, provenance, absence behavior and production-access constraints; do not parse product names or widen browser permissions without separate evidence.
+3. Continue **#54** browser-bridge lifecycle hardening and **#69** Magnit location → `shopCode` resolution.
+4. Resolve **#70** Magnit production usage rights before recurring polling and continue **#36** Kuper supported-access investigation.
+5. Continue mandatory Chizhik, Ozon Fresh, Samokat, Lenta, VkusVill and additional retailer onboarding.
+6. Prove a successful real `v0.1.0-rc.3` release event.
+7. Move to **M2 Recipes** only after remaining M1 evidence/production constraints are explicitly accepted rather than hidden.
 
 ## Platform baseline
 
