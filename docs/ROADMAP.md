@@ -30,6 +30,7 @@ Goal: compare a manually entered grocery list across connected retailers while p
 - observation time is not provider-update time;
 - package quantity is explicit structured evidence, never inferred from product names, slugs, category or presentation text;
 - source-specific extraction fails closed on ambiguity/conflict;
+- transport success never implies metadata availability;
 - corpus quality metrics classify only transport-successful, identity-valid pages;
 - production activation respects usage-rights state;
 - ordinary M1 tests make no live retailer requests.
@@ -45,45 +46,31 @@ Goal: compare a manually entered grocery list across connected retailers while p
 7. **Complete single-store basket comparison — COMPLETE (#78)**
 8. **Failure / coverage / freshness product + API + UX boundary — COMPLETE (#79)**
 9. **Critical product journey — COMPLETE / ACCEPTED (#80)**
-   - stateless manual-list comparison API and responsive web journey;
-   - all eight retailers remain visible with explicit comparison states;
-   - product-safe item gaps;
-   - production runtime evidence strict no-op/fail-closed;
-   - desktop/mobile deterministic Playwright without hidden live retailer access.
 10. **Structured package-evidence plumbing — COMPLETE / ACCEPTED (#81)**
-   - optional canonical `ObservedOffer.packageQuantity`;
-   - immutable snapshot preservation;
-   - snapshot-derived `PackageQuantitySet`;
-   - runtime rejects a parallel package set that disagrees with snapshots;
-   - title/presentation parsing explicitly prohibited and regression-tested.
-11. **Magnit exact characteristic package extraction — COMPLETE / ACCEPTED (#82)**
-   - pure exact-field extractor for `Вес, кг` / `Объем, л` inside `Характеристики`;
-   - canonical kg→g / l→ml;
-   - fail-closed ambiguity/conflict/invalid states;
-   - title/slug/description/script/style/out-of-section data cannot create evidence;
-   - count semantics deferred;
-   - no HTTP/Spring activation;
-   - merged as `3753a9296562354939e86876a8096c15b2957e35`, then all eight push-triggered `main` workflows passed with zero failures.
-12. **Magnit fixed-corpus package-evidence instrumentation — IMPLEMENTED / SHIPPING (#83)**
-   - existing explicit/manual 20-product × 2-shop corpus remains unchanged in request count and transport policy;
-   - identity-valid pages carry #82 package extraction alongside existing price/promo/availability evidence;
-   - package status metrics include only HTTP 2xx + expected-SKU observations;
-   - transport/error and wrong-identity pages are excluded rather than counted as `MISSING`;
-   - structural summary reports `FOUND`, `MISSING`, `AMBIGUOUS_DIMENSIONS`, `CONFLICTING_VALUES`, `INVALID_VALUE`;
-   - status counts must equal `packageEvidencePages` exactly;
-   - evidence line exposes only aggregate counters;
-   - existing guarded live property remains `-Dzakup.live.magnit.corpus=true`;
-   - no pre-evidence minimum `FOUND` threshold is invented;
-   - ordinary CI remains live-retailer-free.
+11. **Magnit exact characteristic package semantics — COMPLETE / ACCEPTED (#82)**
+12. **Magnit fixed-corpus package-evidence instrumentation — COMPLETE / ACCEPTED (#83)**
+   - explicit/manual 20-product × 2-shop corpus;
+   - package metrics only for HTTP 2xx + expected-SKU observations;
+   - five fail-closed extraction states with structural count invariant;
+   - no recurring polling or production activation;
+   - merged as `bee69a7bf84f1c2b98f20f76fe244d4bf3ade4a6`, then all eight push-triggered `main` workflows passed.
+13. **Magnit live package corpus — RESEARCH EVIDENCE COMPLETE / CURRENT NO-GO for raw PUBLIC_WEB package extraction**
+   - one explicit finite run: 20 products × 2 shop contexts = 40 requests;
+   - 40/40 HTTP 2xx;
+   - 40/40 usable observations;
+   - stable identity 20/20 across contexts;
+   - 40 package-evidence-eligible pages;
+   - `FOUND = 0`, `MISSING = 40`, all other package states = 0;
+   - zero failed corpus requirements;
+   - therefore the current Java `HttpClient` server-side PUBLIC_WEB HTML surface is not an accepted package-quantity path despite remaining valid for SKU/current-price feasibility.
 
-   Design: [`superpowers/specs/2026-08-12-magnit-package-evidence-corpus-design.md`](superpowers/specs/2026-08-12-magnit-package-evidence-corpus-design.md).  
-   Plan: [`superpowers/plans/2026-08-12-magnit-package-evidence-corpus.md`](superpowers/plans/2026-08-12-magnit-package-evidence-corpus.md).
+   Evidence: [`integrations/magnit-package-evidence-corpus-live-2026-08-12.md`](integrations/magnit-package-evidence-corpus-live-2026-08-12.md).
 
 ### Important remaining basket-data limitation
 
-Magnit now has accepted weight/volume semantics and an instrumented fixed-corpus measurement path, but the first live package-status distribution is still pending. Products with both weight and volume remain unknown under the current single-`Quantity` model; count is deferred; other retailers still lack an accepted structured field.
+#81 can carry trusted package evidence and #82 defines exact Magnit weight/volume semantics, but the current raw Magnit PUBLIC_WEB surface yielded **0/40** supported fields in a clean live corpus. Do not wire that path into basket package evidence and never replace missing metadata with product-name parsing.
 
-Never replace this with product-name parsing.
+The unresolved question is provenance: official rendered pages can expose labeled characteristics, but current raw server HTML does not expose them to the accepted extractor. Determine whether they live in embedded/bootstrap structured data, a separate public page request, or only browser-rendered DOM.
 
 ### M1 exit criteria
 
@@ -97,19 +84,18 @@ Never replace this with product-name parsing.
 - package evidence remains structured source evidence through provider → snapshot → basket;
 - source-specific ambiguity/conflict never becomes a guessed quantity;
 - evidence-quality measurements separate transport/identity failure from missing metadata;
+- acquisition mode used for package evidence is explicitly proven rather than inferred from a different successful data field;
 - incomplete baskets cannot masquerade as complete winners;
 - production activation remains separately gated by access, location/context and source semantics.
 
 ### Next M1 engineering focus
 
-1. **Ship #83** after exact-head CI/security and independent review.
-2. Run the existing guarded **explicit/manual Magnit fixed corpus** once and record the first accepted package-status distribution. This remains research evidence and does not enable recurring polling.
-3. Use the measured distribution to decide whether exact weight/volume support is sufficient and whether `Количество в упаковке` / multiple package dimensions require a domain extension.
-4. **Magnit location → `shopCode` (#69)** and **production usage-rights decision (#70)** remain mandatory before production activation.
-5. **Browser bridge lifecycle hardening (#54)** for persistent sessions/store changes/SPA navigation.
-6. **Kuper supported aggregator investigation (#36)**.
-7. Continue Chizhik, Ozon Fresh, Samokat, Lenta, VkusVill and additional mandatory retailer onboarding.
-8. Prove a successful real `v0.1.0-rc.3` release event.
+1. **Magnit package-characteristics provenance investigation — NEXT.** Compare raw HTML markers, embedded/bootstrap machine data, separate public page requests and hydrated browser DOM with finite sanitized diagnostics.
+2. If a stable raw/bootstrap/public-request structured field exists, build a narrow extractor/replay corpus before any production wiring.
+3. If characteristics exist only after browser execution, treat Magnit browser acquisition as a separate design/evidence decision; do not silently redefine the accepted PUBLIC_WEB path.
+4. Keep **#69 location → `shopCode`** and **#70 production usage-rights** as mandatory blockers before recurring Magnit activation.
+5. Continue **#54 browser bridge lifecycle hardening**, **#36 Kuper supported aggregator investigation**, and mandatory Chizhik/Ozon Fresh/Samokat/Lenta/VkusVill onboarding.
+6. Prove a successful real `v0.1.0-rc.3` release event.
 
 ## M2 — Recipes
 
