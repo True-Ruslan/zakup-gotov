@@ -11,7 +11,7 @@ Visibility: Public
 Current phase: **M1 — Shopping Core**  
 M0 status: **technical discovery COMPLETE**  
 M0→M1 decision: **GO** — [`superpowers/specs/2026-08-12-m0-to-m1-go-decision.md`](superpowers/specs/2026-08-12-m0-to-m1-go-decision.md)  
-Current focus: **ship the product comparison/readiness boundary; then implement the critical shopping-list → location/context → comparison browser journey**
+Current focus: **ship the hardened product comparison/readiness boundary; then implement the critical shopping-list → location/context → comparison browser journey**
 
 ## Product connectivity invariant
 
@@ -79,9 +79,9 @@ The deterministic one-retailer/one-context basket core is merged to `main`:
 Design: [`superpowers/specs/2026-08-12-m1-single-store-basket-design.md`](superpowers/specs/2026-08-12-m1-single-store-basket-design.md).  
 Implementation evidence: [`superpowers/plans/2026-08-12-m1-single-store-basket.md`](superpowers/plans/2026-08-12-m1-single-store-basket.md).
 
-### Slice 8 — failure / coverage / freshness product boundary — IMPLEMENTED (#79; shipping gate pending)
+### Slice 8 — failure / coverage / freshness product boundary — IMPLEMENTED + REVIEW HARDENED (#79; shipping gate pending)
 
-PR #79 now provides the first stable product-facing comparison/readiness contract:
+PR #79 provides the first stable product-facing comparison/readiness contract:
 
 - all eight canonical retailers remain visible in registry order even when integration/access/data is unavailable;
 - technical coverage and production-access readiness map independently;
@@ -90,11 +90,16 @@ PR #79 now provides the first stable product-facing comparison/readiness contrac
 - coverage/access restrictions take precedence over runtime quote evidence;
 - source failure maps to `SOURCE_UNAVAILABLE` without leaking provider error details;
 - complete/uncertain/incomplete basket invariants survive the product boundary without hidden ranking or certainty upgrades;
+- public records themselves reject impossible status/coverage/access/total/freshness combinations rather than trusting assembler-only correctness;
+- status/reason vocabulary is fail-closed: `UNCERTAIN` is availability uncertainty, `INCOMPLETE` accepts only item-level causes, and `UNAVAILABLE` has one cause matching coverage/access precedence or runtime-data absence;
 - aggregate freshness is conservative: oldest selected observation; provider timestamp only when every selected line has trusted provider-side evidence;
+- `RetailerFreshness` structurally rejects provider timestamps that contradict its basis or occur after observation time;
 - no universal `fresh/stale` threshold is invented;
 - `GET /api/v1/retailers` exposes the canonical readiness contract;
 - OpenAPI and generated TypeScript client include the retailer endpoint;
-- the Next.js home surface is now M1-aware and uses the typed server loader;
+- the Next.js home surface is M1-aware and uses the typed server loader;
+- the UI distinguishes observation-only evidence from a trusted provider-side update timestamp without inventing an age verdict;
+- readiness fetches are bounded by a 3-second abort timeout; hanging upstream requests fail closed to the existing unavailable state;
 - CI without an API displays an accessible service-unavailable state and never fabricates retailer cards/prices;
 - responsive desktop/mobile Playwright verifies the failure state, focus visibility and no horizontal overflow;
 - upstream retailer/provider/shopping/matching/basket/location packages cannot depend back on `comparison`.
@@ -140,14 +145,17 @@ M1 must not enable default recurring Magnit production polling until #70 reaches
 6. Retailer, source provider, acquisition mode and fulfillment context remain distinct internally.
 7. `UNKNOWN` availability is never coerced to available/unavailable.
 8. Observation time is never misrepresented as provider freshness.
-9. No stale/fresh policy is invented without source-specific evidence.
-10. Snapshots derive only from validated provider observations.
-11. Matching ambiguity never becomes a hidden winner.
-12. Package quantity is explicit evidence; missing evidence is not guessed.
-13. Incomplete baskets never expose a misleading complete-basket total.
-14. Product/API responses never expose internal provider transport details as user-facing semantics.
-15. Production activation respects usage-rights state.
-16. Universal retailer connectivity remains mandatory for every registry entry.
+9. Freshness basis and provider-side timestamp presence must agree structurally.
+10. No stale/fresh policy is invented without source-specific evidence.
+11. Snapshots derive only from validated provider observations.
+12. Matching ambiguity never becomes a hidden winner.
+13. Package quantity is explicit evidence; missing evidence is not guessed.
+14. Incomplete baskets never expose a misleading complete-basket total.
+15. Product comparison statuses and reason codes cannot form impossible combinations.
+16. Product/API responses never expose internal provider transport details as user-facing semantics.
+17. Server-side readiness loading is time-bounded and fails closed on upstream hangs.
+18. Production activation respects usage-rights state.
+19. Universal retailer connectivity remains mandatory for every registry entry.
 
 ## Immediate next work
 
