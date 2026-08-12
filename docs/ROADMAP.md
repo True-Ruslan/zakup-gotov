@@ -36,7 +36,7 @@ Goal: compare a manually entered grocery list across connected retailers while p
 - `UNKNOWN` availability remains first-class;
 - observation time is not provider-update time;
 - freshness evidence basis remains explicit and structurally valid;
-- package quantity is explicit evidence, never inferred from product names;
+- package quantity is explicit structured evidence, never inferred from product names or presentation text;
 - production activation respects usage-rights state;
 - ordinary M1 tests make no live retailer requests.
 
@@ -86,11 +86,25 @@ Goal: compare a manually entered grocery list across connected retailers while p
    - architecture guards keep upstream production domains independent of `preview` and prevent production preview code from depending on fixture/test-support namespaces;
    - unknown JSON request fields fail closed, keeping runtime deserialization aligned with OpenAPI `additionalProperties: false`.
 
-Acceptance evidence is recorded in the #80 shipping marker. The reviewed code candidate `16eff25` passed all repository workflow groups and the final read-only review reported no P0/P1/P2 findings before the docs-only marker.
+   Acceptance evidence is recorded in the #80 shipping marker. The reviewed code candidate `16eff25` passed all repository workflow groups and the final read-only review reported no P0/P1/P2 findings before the docs-only marker.
+
+10. **Structured package-evidence plumbing — IMPLEMENTED / SHIPPING (#81)**
+   - `ObservedOffer` carries optional canonical package quantity only when a source has already established structured semantics;
+   - the existing constructor defaults to empty evidence so current retailer integrations retain identical package-unknown behavior;
+   - `OfferSnapshot` preserves the optional package quantity through immutable observation snapshots;
+   - `PackageQuantitySet.fromSnapshots(...)` projects only explicit snapshot evidence into basket bindings;
+   - presentation-text regression tests prove labels such as `970мл` or `1,5л` are not parsed into package quantities;
+   - runtime comparison evidence derives package bindings from snapshots rather than maintaining a second independent source of truth;
+   - compatibility constructors that accept explicit package bindings reject any mismatch with structured snapshot evidence;
+   - deterministic acceptance fixtures now attach package quantity at the provider observation boundary before snapshotting;
+   - no public contract, browser permission, live request, production-access status or retailer polling behavior changes.
+
+   Design: [`superpowers/specs/2026-08-12-m1-structured-package-evidence-design.md`](superpowers/specs/2026-08-12-m1-structured-package-evidence-design.md).  
+   Implementation plan: [`superpowers/plans/2026-08-12-m1-structured-package-evidence.md`](superpowers/plans/2026-08-12-m1-structured-package-evidence.md).
 
 ### Important remaining basket-data limitation
 
-The core can consume trusted package-quantity evidence, but accepted retailer adapters do not yet expose a universal structured package-quantity field. Add provider/source extraction only where supported evidence proves semantics. Do not parse presentation text heuristically.
+The core/provider/snapshot/runtime path can now carry trusted package-quantity evidence internally from source observation to basket planning, but accepted retailer adapters still do **not** prove a supported structured package field. A retailer/source extractor may populate `packageQuantity` only after its field semantics are documented and verified. Missing evidence stays unknown. Do not parse presentation text heuristically or broaden browser permissions merely to obtain package size.
 
 ### M1 exit criteria
 
@@ -102,18 +116,20 @@ The core can consume trusted package-quantity evidence, but accepted retailer ad
 - product location/privacy boundary preserved;
 - provider provenance, fulfillment context and freshness survive into comparison internally without leaking implementation identifiers publicly;
 - freshness evidence basis is visible without invented stale/fresh policy;
+- package quantity, when present, remains structured source evidence through provider → snapshot → basket rather than a presentation-text guess;
 - incomplete baskets cannot masquerade as complete winners;
 - production retailer activation remains separately gated by access, location/context and source-evidence constraints.
 
 ### Next M1 engineering focus
 
-1. **Trusted structured package-quantity extraction** where a specific accepted source proves the field semantics. Missing evidence stays unknown.
-2. **Browser bridge lifecycle hardening (#54)** for persistent sessions, same-document store changes and SPA navigation.
-3. **Magnit location → `shopCode` resolution (#69)** without leaking precise address into default product telemetry or contracts.
-4. **Magnit production usage-rights decision (#70)** before recurring production polling.
-5. **Kuper supported aggregator investigation (#36)**.
-6. Continue mandatory Chizhik, Ozon Fresh, Samokat, Lenta, VkusVill and additional retailer onboarding.
-7. Prove a successful real `v0.1.0-rc.3` release event.
+1. **Ship #81 structured package-evidence plumbing** after exact-head CI/security and independent review.
+2. **Prove the first source-specific structured package field and extractor.** Treat each retailer/source independently; document field semantics, provenance, absence behavior and production-access constraints. Do not parse product names or widen browser permissions without separate evidence.
+3. **Browser bridge lifecycle hardening (#54)** for persistent sessions, same-document store changes and SPA navigation.
+4. **Magnit location → `shopCode` resolution (#69)** without leaking precise address into default product telemetry or contracts.
+5. **Magnit production usage-rights decision (#70)** before recurring production polling.
+6. **Kuper supported aggregator investigation (#36)**.
+7. Continue mandatory Chizhik, Ozon Fresh, Samokat, Lenta, VkusVill and additional retailer onboarding.
+8. Prove a successful real `v0.1.0-rc.3` release event.
 
 ## M2 — Recipes
 
