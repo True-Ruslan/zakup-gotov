@@ -100,6 +100,39 @@ class ComparisonPreviewControllerTest extends PostgresIntegrationSupport {
     }
 
     @Test
+    void unknownFieldsAreRejectedInsteadOfSilentlyWeakeningThePublicContract() throws Exception {
+        var body = """
+                {
+                  "locality": "Москва",
+                  "sourceProviderId": "must-not-be-accepted",
+                  "items": [
+                    {
+                      "id": "c281d71c-2b27-46ef-a7af-3d624a7447cf",
+                      "requirement": "Молоко",
+                      "quantity": {
+                        "amount": 1,
+                        "unit": "LITER"
+                      }
+                    }
+                  ]
+                }
+                """;
+
+        mockMvc.perform(post("/api/v1/comparison-previews")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(body))
+                .andExpect(status().isBadRequest())
+                .andExpect(content().contentTypeCompatibleWith(MediaType.APPLICATION_PROBLEM_JSON))
+                .andExpect(jsonPath("$.code").value("INVALID_COMPARISON_PREVIEW"))
+                .andExpect(jsonPath("$.errors", hasSize(1)))
+                .andExpect(jsonPath("$.errors[0].field").value("$request"))
+                .andExpect(jsonPath("$.errors[0].message").value("malformed JSON request"))
+                .andExpect(jsonPath("$..sourceProviderId").doesNotExist())
+                .andExpect(jsonPath("$..exception").doesNotExist())
+                .andExpect(jsonPath("$..trace").doesNotExist());
+    }
+
+    @Test
     void malformedJsonReturnsRequestScopedProblemWithoutInternalDetails() throws Exception {
         mockMvc.perform(post("/api/v1/comparison-previews")
                         .contentType(MediaType.APPLICATION_JSON)
