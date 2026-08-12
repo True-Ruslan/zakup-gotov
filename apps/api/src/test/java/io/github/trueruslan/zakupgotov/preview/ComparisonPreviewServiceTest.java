@@ -31,6 +31,7 @@ import io.github.trueruslan.zakupgotov.retailer.RetailerRegistryEntry;
 import io.github.trueruslan.zakupgotov.shopping.Quantity;
 import io.github.trueruslan.zakupgotov.shopping.QuantityUnit;
 import java.math.BigDecimal;
+import java.math.BigInteger;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -83,7 +84,8 @@ class ComparisonPreviewServiceTest {
                 .containsExactly(BasketItemResolutionStatus.FULFILLED, BasketItemResolutionStatus.FULFILLED);
         assertThat(pyaterochka.items().getFirst().selection()).isPresent();
         assertThat(pyaterochka.items().getFirst().selection().orElseThrow().productName()).isEqualTo("Молоко");
-        assertThat(pyaterochka.items().getFirst().selection().orElseThrow().packageCount()).isEqualTo(2);
+        assertThat(pyaterochka.items().getFirst().selection().orElseThrow().packageCount())
+                .isEqualTo(BigInteger.valueOf(2));
 
         var perekrestok = preview.require("perekrestok");
         assertThat(perekrestok.comparisonStatus()).isEqualTo(UNCERTAIN);
@@ -194,12 +196,11 @@ class ComparisonPreviewServiceTest {
         var context = "ctx-" + retailerId.canonicalId();
         var milk = offer(retailerId, context, "milk", "Молоко", "90.00", AvailabilityStatus.AVAILABLE);
         var eggs = offer(retailerId, context, "eggs", "Яйца", "110.00", AvailabilityStatus.AVAILABLE);
-        var evidence = successfulEvidence(
+        return successfulEvidence(
                 retailerId,
                 context,
                 List.of(milk, eggs),
-                List.of(null, new Quantity(new BigDecimal("10"), QuantityUnit.PIECE)));
-        return evidence;
+                Arrays.asList(null, new Quantity(new BigDecimal("10"), QuantityUnit.PIECE)));
     }
 
     private static RetailerRuntimeEvidence unmatchedEvidence(RetailerId retailerId) {
