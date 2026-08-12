@@ -11,7 +11,7 @@ Visibility: Public
 Current phase: **M1 — Shopping Core**  
 M0 status: **technical discovery COMPLETE**  
 M0→M1 decision: **GO** — [`superpowers/specs/2026-08-12-m0-to-m1-go-decision.md`](superpowers/specs/2026-08-12-m0-to-m1-go-decision.md)  
-Current focus: **ship #82 Magnit structured characteristic extraction; then measure it over the explicit/manual Magnit corpus without bypassing #69/#70**
+Current focus: **ship #83 Magnit fixed-corpus package-evidence instrumentation; then obtain an explicit/manual distribution without bypassing #69/#70**
 
 ## Product connectivity invariant
 
@@ -58,50 +58,54 @@ M0 completion is **technical feasibility**, not blanket production-data-access a
    Explicit package evidence, whole-package arithmetic, per-item resolution states, `COMPLETE` / `UNCERTAIN` / `INCOMPLETE` basket states, no total for incomplete baskets and fail-closed mixed-currency behavior.
 
 8. **Failure / coverage / freshness product boundary — COMPLETE (#79)**  
-   All eight canonical retailers remain visible; technical coverage, production access, comparison status, product-safe reasons and freshness are separated. `GET /api/v1/retailers`, OpenAPI/generated client and responsive web readiness behavior are shipped. Provider IDs, acquisition modes, source references and precise addresses remain internal.
+   All eight canonical retailers remain visible; technical coverage, production access, comparison status, product-safe reasons and freshness are separated. Provider IDs, acquisition modes, source references and precise addresses remain internal.
 
 9. **Stateless critical comparison journey — COMPLETE / ACCEPTED (#80)**  
-   `POST /api/v1/comparison-previews`, locality-only public context, repeatable manual-list input, provider/snapshot/matching/basket/read-model orchestration, all eight retailer outcomes, product-safe item gaps, OpenAPI/generated client, responsive UI and desktop/mobile Playwright are merged. Production comparison evidence remains strict no-op/fail-closed and ordinary CI makes no live retailer calls.
+   `POST /api/v1/comparison-previews`, locality-only public context, manual-list input, full deterministic comparison orchestration, generated client, responsive UI and desktop/mobile Playwright are merged. Production comparison evidence remains strict no-op/fail-closed.
 
 10. **Structured package-evidence plumbing — COMPLETE / ACCEPTED (#81)**  
-    Merged to `main` as `d8a9e5f0f67defeeac410e0a006eab57dc2bb637`.
-    - `ObservedOffer` carries optional canonical structured `packageQuantity` evidence;
-    - the legacy constructor remains source-compatible and defaults to empty evidence;
-    - `OfferSnapshot` preserves the evidence;
-    - `PackageQuantitySet.fromSnapshots(...)` projects only explicit snapshot evidence;
-    - runtime comparison evidence derives package bindings from snapshots and rejects disagreement with any compatibility binding set;
-    - deterministic fixtures now attach package quantity at the provider boundary before snapshotting;
-    - regression tests prove names such as `Молоко 3,2%, 970мл` and `Вода 1,5л` do not create package evidence.
+    Merged as `d8a9e5f0f67defeeac410e0a006eab57dc2bb637`. `ObservedOffer` can carry optional canonical package quantity, snapshots preserve it, basket/runtime bindings derive from snapshots, and presentation text is explicitly non-authoritative. Full PR gate and post-merge `main` gate passed.
 
-    Exact reviewed candidate and docs-only shipping marker both passed the full PR workflow gate; independent review reported no P0/P1/P2 findings. After squash merge, all eight push-triggered `main` workflows completed successfully.
+11. **Magnit structured package characteristics — COMPLETE / ACCEPTED (#82)**  
+    Merged as `3753a9296562354939e86876a8096c15b2957e35`.
+    - pure `MagnitPackageQuantityExtractor`, no HTTP/Spring activation;
+    - exact `Характеристики` fields `Вес, кг` and `Объем, л` only;
+    - canonical kg→g and l→ml conversion;
+    - duplicate equivalent values deduplicated;
+    - weight + volume → `AMBIGUOUS_DIMENSIONS`;
+    - conflicting same-dimension values → `CONFLICTING_VALUES`;
+    - malformed/zero/negative values → `INVALID_VALUE`;
+    - title/slug/description/script/style/out-of-section numbers cannot create package evidence;
+    - `Количество в упаковке` deferred from v1;
+    - `FOUND` output is proven compatible with #81 provider/snapshot evidence while ambiguous output remains unknown.
 
-    Design: [`superpowers/specs/2026-08-12-m1-structured-package-evidence-design.md`](superpowers/specs/2026-08-12-m1-structured-package-evidence-design.md)  
-    Shipping evidence: [`superpowers/plans/2026-08-12-m1-structured-package-evidence-shipping.md`](superpowers/plans/2026-08-12-m1-structured-package-evidence-shipping.md)
-
-11. **Magnit structured package characteristics — IMPLEMENTED / SHIPPING (#82)**  
-    #82 is the first source-specific consumer of #81's package-evidence boundary.
-    - official Magnit public product pages were verified to expose exact `Характеристики` fields `Вес, кг` and `Объем, л` independently of product titles;
-    - pure `MagnitPackageQuantityExtractor` performs no HTTP and has no Spring wiring;
-    - it inspects only the `Характеристики` section and exact supported labels;
-    - `Вес, кг` canonicalizes through `Quantity` to grams; `Объем, л` to milliliters;
-    - duplicate equivalent values are deduplicated;
-    - weight + volume fails closed as `AMBIGUOUS_DIMENSIONS`;
-    - conflicting same-dimension values fail closed as `CONFLICTING_VALUES`;
-    - malformed/zero/negative supported values fail closed as `INVALID_VALUE`;
-    - title/slug/description/script/style numbers cannot create package evidence;
-    - `Количество в упаковке` is deliberately deferred from v1 because its current source surface and multi-dimensional semantics need separate proof;
-    - a provider bridge regression proves `FOUND` evidence can populate `ObservedOffer.packageQuantity` and survive into `OfferSnapshot`, while ambiguous extraction remains package-unknown.
-
-    **#82 does not activate Magnit production acquisition.** #69 location→`shopCode` and #70 recurring production usage-rights remain unchanged blockers. Ordinary CI remains live-retailer-free.
+    Exact reviewed candidate and docs-only shipping marker passed the complete PR workflow gate; read-only review reported no P0/P1/P2 findings. After squash merge, all eight push-triggered `main` workflows completed successfully with zero failures.
 
     Design: [`superpowers/specs/2026-08-12-magnit-structured-package-characteristics-design.md`](superpowers/specs/2026-08-12-magnit-structured-package-characteristics-design.md)  
-    Evidence: [`integrations/magnit-structured-package-characteristics-2026-08-12.md`](integrations/magnit-structured-package-characteristics-2026-08-12.md)
+    Evidence: [`integrations/magnit-structured-package-characteristics-2026-08-12.md`](integrations/magnit-structured-package-characteristics-2026-08-12.md)  
+    Shipping: [`superpowers/plans/2026-08-12-magnit-structured-package-characteristics-shipping.md`](superpowers/plans/2026-08-12-magnit-structured-package-characteristics-shipping.md)
+
+12. **Magnit fixed-corpus package-evidence instrumentation — IMPLEMENTED / SHIPPING (#83)**  
+    #83 instruments the pre-existing explicit/manual 20-product × 2-shop Magnit research corpus without changing transport behavior:
+    - identity-valid pages carry the accepted #82 extraction alongside existing price/promo/availability evidence;
+    - package statistics include only HTTP 2xx responses with expected-SKU identity evidence;
+    - non-2xx/error pages and wrong-identity pages are excluded rather than being mislabeled `MISSING`;
+    - a structural `PackageEvidenceSummary` reports `FOUND`, `MISSING`, `AMBIGUOUS_DIMENSIONS`, `CONFLICTING_VALUES`, `INVALID_VALUE`;
+    - status counts must sum exactly to `packageEvidencePages`;
+    - the aggregate evidence line adds only counters, never HTML/page fragments or sensitive product/provider data;
+    - the guarded live test keeps the same `-Dzakup.live.magnit.corpus=true` opt-in and the same 40-request fixed corpus;
+    - no minimum `FOUND` threshold is invented before the first measurement exists;
+    - ordinary CI remains live-retailer-free.
+
+    Design: [`superpowers/specs/2026-08-12-magnit-package-evidence-corpus-design.md`](superpowers/specs/2026-08-12-magnit-package-evidence-corpus-design.md)  
+    Plan: [`superpowers/plans/2026-08-12-magnit-package-evidence-corpus.md`](superpowers/plans/2026-08-12-magnit-package-evidence-corpus.md)
 
 ## Important M1 limitations
 
 - Production comparison evidence remains deliberately **no-op/fail-closed**. The critical journey proves product/API/core integration, not live production retailer acquisition.
 - Perekrestok and Pyaterochka accepted browser paths still do not prove a dedicated structured package field. Do not parse product names or widen browser permissions merely to obtain package size.
-- Magnit now has a technically proven fail-closed extractor for exact labeled weight/volume characteristics, but this is **not production activation**.
+- Magnit has a technically proven exact-field extractor and a fixed-corpus measurement harness, but this is **not production activation**.
+- The first package-status distribution has not yet been accepted as evidence until the guarded live corpus is explicitly run.
 - Magnit location/address → public `shopCode` resolution remains unresolved (#69).
 - Magnit recurring production acquisition usage rights remain unresolved (#70); recurring polling remains disabled until authoritative acceptance.
 - `Количество в упаковке` support is deferred pending separate source/domain evidence.
@@ -110,25 +114,16 @@ M0 completion is **technical feasibility**, not blanket production-data-access a
 - Chizhik, Ozon Fresh, Samokat, Lenta, VkusVill and additional mandatory retailer paths still require onboarding/hardening.
 - A successful real `v0.1.0-rc.3` GitHub Release proof remains outstanding.
 
-## Accepted retailer paths
+## Magnit status
 
-### Pyaterochka
+Technical path: **`AVAILABLE_PUBLIC_WEB` for explicit-store-context feasibility**. Existing Phase B proved stable usable observations in explicit `shopCode` contexts; availability remains `UNKNOWN` where stock semantics are not proven.
 
-Status: **`AVAILABLE_BROWSER_BRIDGE`**, adapter `pyaterochka-browser` v1. Real first-party gate: 12 normalized observations, one fulfillment context, zero normalized validation failures. Anonymous direct server access remains unsuitable (`store-403`). No accepted structured package-quantity field is proven yet.
-
-### Perekrestok
-
-Status: **`AVAILABLE_BROWSER_BRIDGE`**, adapter v2. Repeated first-party evidence: 90 normalized observations, one fulfillment context and zero acceptance-validation failures. #54 remains lifecycle hardening for same-document store changes / SPA navigation. Current accepted evidence does not prove a dedicated structured package-quantity field.
-
-### Magnit
-
-Status: **`AVAILABLE_PUBLIC_WEB` for explicit-store-context technical feasibility**. Phase B proved stable usable observations in explicit `shopCode` contexts. Availability remains `UNKNOWN` where stock semantics are not proven.
-
-Structured package evidence status:
-- exact characteristic `Вес, кг` — supported by #82 extractor when unambiguous;
-- exact characteristic `Объем, л` — supported by #82 extractor when unambiguous;
-- simultaneous weight + volume — package-unknown / fail closed;
-- `Количество в упаковке` — deferred.
+Structured package evidence:
+- `Вес, кг` — supported when unambiguous;
+- `Объем, л` — supported when unambiguous;
+- simultaneous weight + volume — fail closed / unknown;
+- `Количество в упаковке` — deferred;
+- corpus instrumentation — implemented in #83, live distribution pending explicit run.
 
 Constraints:
 - **#69** — automatic location/address → public `shopCode` resolution not proven;
@@ -146,19 +141,20 @@ Constraints:
 8. Matching ambiguity never becomes a hidden winner and no fuzzy/AI tie-break is introduced implicitly.
 9. Package quantity is explicit structured evidence; missing evidence is never guessed from names, URLs, category or other presentation text.
 10. Package evidence attached to runtime basket calculation derives from immutable snapshot evidence.
-11. Source-specific extraction must fail closed on conflicting or multi-dimensional fields unless a separate domain rule is explicitly proven.
-12. Incomplete baskets never expose a misleading complete-basket total.
-13. Production activation respects usage-rights state.
-14. Ordinary CI and browser acceptance make no live retailer requests.
-15. Production preview evidence fails closed rather than falling back to deterministic fixtures.
-16. Unknown public JSON request fields fail closed rather than being ignored.
-17. Universal retailer connectivity remains mandatory for every registry entry.
+11. Source-specific extraction fails closed on conflicting or multi-dimensional fields unless a separate domain rule is explicitly proven.
+12. Corpus package metrics classify only transport-successful, identity-valid product pages.
+13. Incomplete baskets never expose a misleading complete-basket total.
+14. Production activation respects usage-rights state.
+15. Ordinary CI and browser acceptance make no live retailer requests.
+16. Production preview evidence fails closed rather than falling back to deterministic fixtures.
+17. Unknown public JSON request fields fail closed rather than being ignored.
+18. Universal retailer connectivity remains mandatory for every registry entry.
 
 ## Immediate next work
 
-1. **Finish shipping #82** with exact-head CI/security verification and independent review.
-2. After #82 acceptance, run an **explicit/manual Magnit fixed-corpus package-characteristic evidence pass** to measure `FOUND` / `MISSING` / `AMBIGUOUS_DIMENSIONS` / `CONFLICTING_VALUES` / `INVALID_VALUE` distribution. This is research evidence, not production polling.
-3. Use that corpus evidence to decide whether v1 weight/volume extraction is sufficient and whether `Количество в упаковке` needs a multi-dimensional domain extension.
+1. **Finish shipping #83** with exact-head CI/security and independent review.
+2. Run the existing guarded **explicit/manual Magnit fixed corpus** once and record the first accepted package-status distribution. This remains research evidence, not recurring production polling.
+3. Use the measured distribution to decide whether weight/volume support is sufficient and whether `Количество в упаковке` / multiple package dimensions need a domain extension.
 4. Continue **#69** Magnit location → `shopCode`, **#70** usage-rights resolution and **#54** browser-bridge lifecycle hardening.
 5. Continue **#36** Kuper supported-access investigation and mandatory Chizhik/Ozon Fresh/Samokat/Lenta/VkusVill onboarding.
 6. Prove a successful real `v0.1.0-rc.3` release event.
