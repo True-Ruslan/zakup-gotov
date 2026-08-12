@@ -11,13 +11,15 @@ const targets = [
 
 const labels = new Set(['Характеристики', 'Вес, кг', 'Объем, л']);
 
-function safe(value) {
-  return String(value).replaceAll(/\s+/g, '_').replaceAll('|', '/');
+function workflowEscape(value) {
+  return String(value)
+    .replaceAll('%', '%25')
+    .replaceAll('\r', '%0D')
+    .replaceAll('\n', '%0A');
 }
 
-function log(id, phase, fields) {
-  const parts = Object.entries(fields).map(([key, value]) => `${key}=${safe(value)}`);
-  console.log(`MAGNIT_BOOTSTRAP id=${id} phase=${phase} ${parts.join(' ')}`);
+function notice(title, message) {
+  console.log(`::notice title=${workflowEscape(title)}::${workflowEscape(message)}`);
 }
 
 function scriptBodies(raw) {
@@ -35,21 +37,38 @@ function scriptBodies(raw) {
   return scripts;
 }
 
-function scalarSummary(object) {
-  return Object.entries(object)
-    .filter(([, value]) => value === null || ['string', 'number', 'boolean'].includes(typeof value))
-    .map(([key, value]) => {
-      if (typeof value === 'string' && value.length > 80 && !labels.has(value)) return `${key}=string-len:${value.length}`;
-      return `${key}=${safe(value)}`;
-    })
-    .slice(0, 16)
-    .join(',') || 'none';
+function compactScalar(value) {
+  if (value === null) return 'null';
+  if (typeof value === 'number' || typeof value === 'boolean') return String(value);
+  if (typeof value === 'string') {
+    const trimmed = value.trim();
+    if (/^-?\d+(?:[.,]\d+)?$/.test(trimmed)) return trimmed.replace(',', '.');
+    if (labels.has(trimmed)) return trimmed;
+    if (trimmed.length <= 48 && /^[\p{L}\p{N} _.,:%+\-/]+$/u.test(trimmed)) return trimmed;
+    return `string(${trimmed.length})`;
+  }
+  if (Array.isArray(value)) return `array(${value.length})`;
+  if (typeof value === 'object') return `object(${Object.keys(value).slice(0, 10).join(',')})`;
+  return typeof value;
 }
 
-function inspectJson(id, scriptIndex, root) {
+function scalarSiblings(object) {
+  return Object.entries(object)
+    .filter(([, value]) => value === null || ['string', 'number', 'boolean'].includes(typeof value))
+    .map(([key, value]) => `${key}=${compactScalar(value)}`)
+    .slice(0, 20)
+    .join(';');
+}
+
+function inspectJson(targetId, scriptIndex, root) {
   const seen = new Set();
-  let labelHits = 0;
-  let keyHits = 0;
+  let emitted = 0;
+
+  function emit(kind, path, details) {
+    if (emitted >= 24) return;
+    emitted++;
+    notice(`${targetId}:${kind}`, `script=${scriptIndex};path=${path};${details}`);
+  }
 
   function walk(value, path) {
     if (value === null || value === undefined) return;
@@ -62,10 +81,9 @@ function inspectJson(id, scriptIndex, root) {
       for (let i = 0; i < value.length; i++) {
         const child = value[i];
         if (typeof child === 'string' && labels.has(child)) {
-          labelHits++;
-          const before = i > 0 && ['string', 'number'].includes(typeof value[i - 1]) ? safe(value[i - 1]) : 'none';
-          const after = i + 1 < value.length && ['string', 'number'].includes(typeof value[i + 1]) ? safe(value[i + 1]) : 'none';
-          log(id, 'json-label-array', { script: scriptIndex, path: `${path}[${i}]`, label: child, before, after });
+          const before = i > 0 ? compactScalar(value[i - 1]) : 'none';
+          const after = i + 1 < value.length ? compactScalar(value[i + 1]) : 'none';
+          emit('label-array', `${path}[${i}]`, `label=${child};before=${before};after=${after}`);
         }
         walk(child, `${path}[${i}]`);
       }
@@ -76,35 +94,18 @@ function inspectJson(id, scriptIndex, root) {
 
     for (const [key, child] of Object.entries(value)) {
       const childPath = `${path}.${key}`;
-      const lower = key.toLowerCase();
-      if (/^(characteristics|specifications|attributes|weight|mass|volume|capacity)$/i.test(lower)) {
-        keyHits++;
-        log(id, 'json-key', {
-          script: scriptIndex,
-          path: childPath,
-          key,
-          type: Array.isArray(child) ? 'array' : typeof child,
-          value: child === null || ['string', 'number', 'boolean'].includes(typeof child) ? child : 'structured',
-          parentScalars: scalarSummary(value),
-        });
+      if (/^(characteristics|specifications|attributes|weight|mass|volume|capacity)$/i.test(key)) {
+        emit('semantic-key', childPath, `key=${key};value=${compactScalar(child)};siblings=${scalarSiblings(value)}`);
       }
-      if (typeof child === 'string' && labels.has(child)) {
-        labelHits++;
-        log(id, 'json-label-object', {
-          script: scriptIndex,
-          path: childPath,
-          key,
-          label: child,
-          parentScalars: scalarSummary(value),
-          parentKeys: Object.keys(value).slice(0, 20).join(','),
-        });
+      if (typeof child === 'string' && labels.has(child.trim())) {
+        emit('exact-label', childPath, `key=${key};label=${child.trim()};siblings=${scalarSiblings(value)};keys=${Object.keys(value).slice(0, 24).join(',')}`);
       }
       walk(child, childPath);
     }
   }
 
   walk(root, '$');
-  log(id, 'json-summary', { script: scriptIndex, labelHits, keyHits });
+  notice(`${targetId}:summary`, `script=${scriptIndex};annotations=${emitted}`);
 }
 
 for (const target of targets) {
@@ -117,13 +118,13 @@ for (const target of targets) {
   });
   const raw = await response.text();
   const scripts = scriptBodies(raw);
-  log(target.id, 'raw', { status: response.status, bytes: Buffer.byteLength(raw), jsonScripts: scripts.length });
+  notice(`${target.id}:raw`, `status=${response.status};bytes=${Buffer.byteLength(raw)};jsonScripts=${scripts.length}`);
 
   for (const script of scripts) {
     try {
       inspectJson(target.id, script.index, JSON.parse(script.body));
     } catch {
-      log(target.id, 'json-parse-failed', { script: script.index, chars: script.body.length });
+      notice(`${target.id}:json-parse-failed`, `script=${script.index};chars=${script.body.length}`);
     }
   }
 }
