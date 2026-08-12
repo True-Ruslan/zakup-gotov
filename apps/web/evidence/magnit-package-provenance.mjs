@@ -50,6 +50,104 @@ function log(id, phase, fields) {
   console.log(`MAGNIT_PROVENANCE id=${id} phase=${phase} ${parts.join(' ')}`);
 }
 
+function scriptContainers(raw) {
+  const scripts = [];
+  const pattern = /<script\b([^>]*)>([\s\S]*?)<\/script>/gi;
+  let match;
+  let index = 0;
+  while ((match = pattern.exec(raw)) !== null) {
+    const attrs = match[1];
+    const body = match[2];
+    const type = attrs.match(/\btype=["']([^"']+)["']/i)?.[1] ?? 'default';
+    const id = attrs.match(/\bid=["']([^"']+)["']/i)?.[1] ?? 'none';
+    const dataAttrs = [...attrs.matchAll(/\b(data-[\w-]+)(?:=|\s|$)/gi)].map((item) => item[1]).join(',') || 'none';
+    const shape = markerShape(body);
+    if (
+      shape.characteristics ||
+      shape.weight ||
+      shape.volume ||
+      shape.escapedCharacteristics ||
+      shape.escapedWeight ||
+      shape.escapedVolume ||
+      shape.characteristicsKey ||
+      shape.weightKey ||
+      shape.volumeKey
+    ) {
+      let jsonParsed = false;
+      let rootType = 'none';
+      let jsonWeightPaths = [];
+      let jsonVolumePaths = [];
+      let jsonLabelPaths = [];
+      try {
+        const parsed = JSON.parse(body);
+        jsonParsed = true;
+        rootType = Array.isArray(parsed) ? 'array' : typeof parsed;
+        const hits = collectJsonHits(parsed);
+        jsonWeightPaths = hits.weight.slice(0, 8);
+        jsonVolumePaths = hits.volume.slice(0, 8);
+        jsonLabelPaths = hits.labels.slice(0, 8);
+      } catch {
+        // Not every script containing markers is standalone JSON.
+      }
+      scripts.push({
+        index,
+        type,
+        id,
+        dataAttrs,
+        chars: body.length,
+        jsonParsed,
+        rootType,
+        weightPaths: jsonWeightPaths.join('|') || 'none',
+        volumePaths: jsonVolumePaths.join('|') || 'none',
+        labelPaths: jsonLabelPaths.join('|') || 'none',
+        ...shape,
+      });
+    }
+    index++;
+  }
+  return scripts;
+}
+
+function collectJsonHits(root) {
+  const hits = { weight: [], volume: [], labels: [] };
+  const seen = new Set();
+  function walk(value, path) {
+    if (value === null || value === undefined || seen.has(value)) return;
+    if (typeof value === 'object') seen.add(value);
+
+    if (Array.isArray(value)) {
+      for (let i = 0; i < value.length; i++) walk(value[i], `${path}[${i}]`);
+      return;
+    }
+    if (typeof value !== 'object') return;
+
+    for (const [key, child] of Object.entries(value)) {
+      const childPath = path ? `${path}.${key}` : key;
+      const lowerKey = key.toLowerCase();
+      if (/(^|_)(weight|mass)(_|$)/i.test(lowerKey)) hits.weight.push(`${childPath}:${scalarShape(child)}`);
+      if (/(^|_)(volume|capacity)(_|$)/i.test(lowerKey)) hits.volume.push(`${childPath}:${scalarShape(child)}`);
+      if (typeof child === 'string' && (child === markers.weight || child === markers.volume || child === markers.characteristics)) {
+        hits.labels.push(`${childPath}:${child.replaceAll(' ', '_')}`);
+      }
+      walk(child, childPath);
+    }
+  }
+  walk(root, '$');
+  return hits;
+}
+
+function scalarShape(value) {
+  if (value === null) return 'null';
+  if (typeof value === 'string') {
+    if (/^-?\d+(?:[.,]\d+)?$/.test(value.trim())) return `number-string:${value.trim().replace(',', '.')}`;
+    return `string-len:${value.length}`;
+  }
+  if (typeof value === 'number' || typeof value === 'boolean') return `${typeof value}:${value}`;
+  if (Array.isArray(value)) return `array-len:${value.length}`;
+  if (typeof value === 'object') return `object-keys:${Object.keys(value).slice(0, 8).join(',')}`;
+  return typeof value;
+}
+
 for (const target of targets) {
   const response = await fetch(target.url, {
     headers: {
@@ -64,6 +162,9 @@ for (const target of targets) {
     bytes: Buffer.byteLength(raw, 'utf8'),
     ...markerShape(raw),
   });
+  for (const container of scriptContainers(raw)) {
+    log(target.id, 'raw-script-marker', container);
+  }
 }
 
 const browser = await chromium.launch({ headless: true });
@@ -86,15 +187,9 @@ for (const target of targets) {
       const body = await response.text();
       const shape = markerShape(body);
       if (
-        shape.characteristics ||
-        shape.weight ||
-        shape.volume ||
-        shape.escapedCharacteristics ||
-        shape.escapedWeight ||
-        shape.escapedVolume ||
-        shape.characteristicsKey ||
-        shape.weightKey ||
-        shape.volumeKey
+        shape.characteristics || shape.weight || shape.volume ||
+        shape.escapedCharacteristics || shape.escapedWeight || shape.escapedVolume ||
+        shape.characteristicsKey || shape.weightKey || shape.volumeKey
       ) {
         candidateResponses.push({
           status: response.status(),
@@ -124,10 +219,7 @@ for (const target of targets) {
     htmlVolume: html.includes(markers.volume),
   });
 
-  for (const candidate of candidateResponses) {
-    log(target.id, 'response-marker', candidate);
-  }
-
+  for (const candidate of candidateResponses) log(target.id, 'response-marker', candidate);
   await page.close();
 }
 
