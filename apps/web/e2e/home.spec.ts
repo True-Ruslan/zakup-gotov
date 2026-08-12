@@ -1,15 +1,15 @@
 import { expect, test, type Page } from "@playwright/test";
 
 async function fillComparisonForm(page: Page) {
-  await page.getByLabel("Населённый пункт").fill("Москва");
-  await page.getByLabel("Товар").fill("Молоко");
-  await page.getByLabel("Количество").fill("2");
-  await page.getByLabel("Единица").selectOption("LITER");
+  await page.getByRole("textbox", { name: "Населённый пункт", exact: true }).fill("Москва");
+  await page.getByRole("textbox", { name: "Товар", exact: true }).fill("Молоко");
+  await page.getByRole("spinbutton", { name: "Количество", exact: true }).fill("2");
+  await page.getByRole("combobox", { name: "Единица", exact: true }).selectOption("LITER");
 
   await page.getByRole("button", { name: "Добавить товар" }).click();
-  await page.getByLabel("Товар").nth(1).fill("Яйца");
-  await page.getByLabel("Количество").nth(1).fill("10");
-  await page.getByLabel("Единица").nth(1).selectOption("PIECE");
+  await page.getByRole("textbox", { name: "Товар", exact: true }).nth(1).fill("Яйца");
+  await page.getByRole("spinbutton", { name: "Количество", exact: true }).nth(1).fill("10");
+  await page.getByRole("combobox", { name: "Единица", exact: true }).nth(1).selectOption("PIECE");
 }
 
 test("runs the deterministic comparison preview journey without horizontal overflow", async ({ page }) => {
@@ -62,9 +62,9 @@ test("runs the deterministic comparison preview journey without horizontal overf
 test("shows one accessible error and no fabricated results when the API is unavailable", async ({ page }) => {
   await page.goto("/");
 
-  await page.getByLabel("Населённый пункт").fill("Недоступно");
-  await page.getByLabel("Товар").fill("Молоко");
-  await page.getByLabel("Количество").fill("1");
+  await page.getByRole("textbox", { name: "Населённый пункт", exact: true }).fill("Недоступно");
+  await page.getByRole("textbox", { name: "Товар", exact: true }).fill("Молоко");
+  await page.getByRole("spinbutton", { name: "Количество", exact: true }).fill("1");
   await page.getByRole("button", { name: "Сравнить корзину" }).click();
 
   const serviceAlert = page.getByRole("alert").filter({
@@ -78,7 +78,7 @@ test("shows one accessible error and no fabricated results when the API is unava
 test("comparison form has a visible keyboard focus path", async ({ page }) => {
   await page.goto("/");
 
-  const locality = page.getByLabel("Населённый пункт");
+  const locality = page.getByRole("textbox", { name: "Населённый пункт", exact: true });
   await page.keyboard.press("Tab");
   await expect(locality).toBeFocused();
 
