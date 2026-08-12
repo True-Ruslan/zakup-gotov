@@ -145,7 +145,7 @@ class SingleStoreBasketPlannerTest {
 
     @Test
     void rejectsEmptyListAndMissingInputs() {
-        var empty = ShoppingList.create(new ShoppingListId(UUID.fromString("99999999-9999-9999-9999-999999999999")));
+        var empty = new ShoppingList(new ShoppingListId(UUID.fromString("99999999-9999-9999-9999-999999999999")));
         var packages = PackageQuantitySet.of(List.of());
 
         assertThatThrownBy(() -> planner.quote(SCOPE, empty, List.of(), packages))
@@ -177,7 +177,7 @@ class SingleStoreBasketPlannerTest {
     }
 
     private static ShoppingList list(ShoppingItem... items) {
-        var list = ShoppingList.create(new ShoppingListId(
+        var list = new ShoppingList(new ShoppingListId(
                 UUID.nameUUIDFromBytes(String.join("-", java.util.Arrays.stream(items)
                         .map(item -> item.id().value().toString())
                         .toList()).getBytes(StandardCharsets.UTF_8))));
