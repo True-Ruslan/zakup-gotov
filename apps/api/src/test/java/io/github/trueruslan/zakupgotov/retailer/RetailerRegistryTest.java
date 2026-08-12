@@ -25,7 +25,7 @@ class RetailerRegistryTest {
     }
 
     @Test
-    void preservesAcceptedM0ConnectivityWithoutClaimingProductionClearance() {
+    void preservesAcceptedTechnicalConnectivityWithoutClaimingProductionClearance() {
         assertCoverage(
                 RetailerId.PYATEROCHKA,
                 RetailerCoverageState.AVAILABLE_BROWSER_BRIDGE,
@@ -37,7 +37,7 @@ class RetailerRegistryTest {
         assertCoverage(
                 RetailerId.MAGNIT,
                 RetailerCoverageState.AVAILABLE_PUBLIC_WEB,
-                ProductionAccessStatus.UNRESOLVED);
+                ProductionAccessStatus.BLOCKED);
     }
 
     @Test
@@ -62,11 +62,11 @@ class RetailerRegistryTest {
     }
 
     @Test
-    void distinguishesTechnicalConnectivityFromProductionAccess() {
+    void keepsMagnitTechnicallyConnectedButNotProductionReady() {
         var magnit = registry.require(RetailerId.MAGNIT);
 
         assertThat(magnit.coverageState().isTechnicallyAvailable()).isTrue();
-        assertThat(magnit.productionAccessStatus()).isEqualTo(ProductionAccessStatus.UNRESOLVED);
+        assertThat(magnit.productionAccessStatus()).isEqualTo(ProductionAccessStatus.BLOCKED);
         assertThat(magnit.isProductionReady()).isFalse();
     }
 
