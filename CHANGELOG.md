@@ -18,6 +18,7 @@ All notable project changes are recorded here. Zakup Gotov is pre-release; entri
 - `AVAILABLE_PUBLIC_WEB` technical feasibility decision for Magnit explicit store contexts.
 - M0 → M1 GO decision recording completion of technical discovery and approval to begin M1 Shopping Core.
 - Explicit Magnit follow-up issues for safe location → `shopCode` resolution (#69) and production catalog usage-rights verification (#70).
+- M1 canonical retailer registry covering Pyaterochka, Perekrestok, Chizhik, Magnit, Lenta, VkusVill, Ozon Fresh and Samokat with explicit technical coverage and independent production-access status.
 
 ### Changed
 
@@ -26,6 +27,8 @@ All notable project changes are recorded here. Zakup Gotov is pre-release; entri
 - Magnit supplies the accepted independent non-X5 path and proves public web as a second acquisition mode alongside the browser bridge.
 - M1 entry rules are fixture-first, coverage-explicit, provenance-aware, fulfillment-context-aware and fail-closed for freshness, availability and unresolved production usage rights.
 - Retailer onboarding remains transport-neutral; direct API failure changes the acquisition mode under investigation rather than removing the retailer from scope.
+- Technical retailer connectivity and production-access readiness are modeled as separate decisions so an accepted feasibility path cannot silently enable production acquisition.
+- Kuper remains acquisition-provider/aggregator provenance rather than a retailer/banner identity in the canonical retailer registry.
 - `docs/README.md`, `docs/PROJECT_STATE.md`, `docs/ROADMAP.md`, the feasibility matrix and Magnit evidence documents were synchronized around the M0 completion decision.
 
 ### Fixed
