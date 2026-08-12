@@ -39,12 +39,12 @@ test("runs the deterministic comparison preview journey without horizontal overf
     await expect(page.getByRole("heading", { level: 3, name })).toBeVisible();
   }
 
-  await expect(page.getByText("Корзина рассчитана")).toBeVisible();
-  await expect(page.getByText("Есть неопределённость")).toBeVisible();
-  await expect(page.getByText("Корзина неполная")).toBeVisible();
-  await expect(page.getByText("Сравнение пока недоступно")).toBeVisible();
-  await expect(page.getByText("Неизвестен размер упаковки")).toBeVisible();
-  await expect(page.getByText("Товар не найден")).toBeVisible();
+  await expect(page.getByText("Корзина рассчитана")).toHaveCount(1);
+  await expect(page.getByText("Есть неопределённость")).toHaveCount(1);
+  await expect(page.getByText("Корзина неполная")).toHaveCount(4);
+  await expect(page.getByText("Сравнение пока недоступно")).toHaveCount(2);
+  await expect(page.getByText("Неизвестен размер упаковки")).toHaveCount(1);
+  await expect(page.getByText("Товар не найден")).toHaveCount(1);
 
   const body = await page.locator("body").innerText();
   expect(body).not.toContain("sourceProviderId");

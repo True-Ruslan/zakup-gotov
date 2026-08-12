@@ -1,5 +1,8 @@
 import { defineConfig } from "@playwright/test";
 
+const webBaseUrl = "http://127.0.0.1:3000";
+const mockApiBaseUrl = "http://127.0.0.1:4010";
+
 export default defineConfig({
   testDir: "./e2e",
   fullyParallel: true,
@@ -7,7 +10,7 @@ export default defineConfig({
   retries: 0,
   reporter: "line",
   use: {
-    baseURL: "http://127.0.0.1:3000",
+    baseURL: webBaseUrl,
     trace: "retain-on-failure",
   },
   projects: [
@@ -28,10 +31,22 @@ export default defineConfig({
       },
     },
   ],
-  webServer: {
-    command: "pnpm start",
-    url: "http://127.0.0.1:3000",
-    reuseExistingServer: false,
-    timeout: 120_000,
-  },
+  webServer: [
+    {
+      command: "node e2e/mock-api.mjs",
+      url: `${mockApiBaseUrl}/health`,
+      reuseExistingServer: false,
+      timeout: 120_000,
+    },
+    {
+      command: "pnpm start",
+      url: webBaseUrl,
+      reuseExistingServer: false,
+      timeout: 120_000,
+      env: {
+        API_BASE_URL: mockApiBaseUrl,
+        NEXT_TELEMETRY_DISABLED: "1",
+      },
+    },
+  ],
 });
