@@ -1,6 +1,6 @@
 # M1 Product Comparison Read Model Implementation Plan
 
-Status: **IMPLEMENTED — final repository shipping gate pending on docs-synchronized head**
+Status: **IMPLEMENTED + REVIEW HARDENED — final repository shipping gate pending**
 
 **Goal:** expose a stable, user-safe retailer comparison/readiness contract from the M1 domain core through REST/OpenAPI/shared client into a truthful responsive web status surface.
 
@@ -110,13 +110,40 @@ Evidence:
 - That run exposed a test-locator ambiguity: Next.js route announcer also uses `role=alert`; production service alert itself was present with the correct text.
 - GREEN `c101ad1e10e85abad71358f6cdd6013191f5b44d` filters the service alert by its exact product message; Web CI, production build and responsive Playwright **4/4 PASS** on desktop/mobile.
 
+## Review hardening — COMPLETE
+
+A read-only Change Review intentionally stopped shipping and found three boundary weaknesses before merge: public records allowed impossible state combinations, reason codes were not structurally tied to comparison status/gates, and the web neither distinguished freshness evidence basis nor bounded a hanging API request.
+
+### Public read-model structural invariants
+
+- RED `02d1cbaf03bd7c835bd3c21701e006cc312daaf5`: full Maven suite reached **144 tests, 8 expected failures, 0 errors, 4 skipped**; every failure was a new impossible-state assertion.
+- Initial GREEN candidate `4fda22f8c152d72ecee4b687a6c272c99962172d` exposed one compile-only compact-record/lambda capture defect; semantics were not weakened.
+- GREEN `54b088cdfd5b756dedc9b290d45a27bc30ee1d9f`: full Maven `verify` PASS after compile-safe freshness validation.
+- `RetailerComparisonView` now rejects impossible status/coverage/access/total/freshness combinations.
+- `RetailerFreshness` now enforces `OBSERVATION_ONLY` without provider timestamp, `PROVIDER_TIMESTAMP` with a provider timestamp, and `providerUpdatedAt <= observedAt`.
+
+### Status ↔ reason vocabulary
+
+- RED `7fceff9613ae289bd31b6271dafebf0f3a6e6fe6`: **148 tests, 4 expected failures, 0 errors, 4 skipped**; all failures were only new semantic reason-compatibility assertions.
+- GREEN `b2c18f5302aa2302bb7d08bb3c4dc5a4d233fef2`: full Maven `verify` PASS.
+- `UNCERTAIN` now requires exactly `AVAILABILITY_UNKNOWN`.
+- `INCOMPLETE` accepts only item-level incomplete reasons.
+- `UNAVAILABLE` requires one cause matching coverage/access precedence, with only `DATA_NOT_AVAILABLE` / `SOURCE_UNAVAILABLE` permitted once both gates are ready.
+
+### Freshness UX + bounded upstream failure
+
+- RED `e7502f63f451b3edad2e0523f13265a4567dc5a2`: lint/typecheck PASS; **8 web unit tests, 2 expected behavioral failures** — missing freshness-basis presentation and no abort after five seconds of fake time.
+- GREEN `38c5342bf0c061e4fc0bb028067124455f7277a6`: Web lint/typecheck/unit/build PASS and responsive Playwright PASS.
+- UI now distinguishes observation-only freshness from provider-side update evidence without inventing fresh/stale labels.
+- Server readiness fetch uses a 3-second `AbortController` timeout and always clears the timer; hanging upstream resolves fail-closed to the existing unavailable product state.
+
 ## Task 6 — durable docs and shipping — IN PROGRESS
 
 - [x] Implement runtime/product/API/web behavior with independent RED→GREEN checkpoints.
-- [x] Prove functional Web CI + responsive E2E on `c101ad1e10e85abad71358f6cdd6013191f5b44d`.
-- [ ] Synchronize `docs/PROJECT_STATE.md`, `docs/ROADMAP.md`, `CHANGELOG.md` and this plan.
+- [x] Prove functional Web CI + responsive E2E on the hardened implementation.
+- [x] Synchronize `docs/PROJECT_STATE.md`, `docs/ROADMAP.md`, `CHANGELOG.md` and this plan with review-hardening evidence.
 - [ ] Run full exact-head repository CI/security gate on the docs-synchronized head.
-- [ ] Perform read-only Change Review.
+- [ ] Perform final read-only Change Review.
 - [ ] Record final shipping evidence and rerun marker-head branch protection.
 - [ ] Mark PR ready and squash merge with expected-head SHA guard.
 
