@@ -41,7 +41,7 @@ public final class ComparisonPreviewService {
         var runtimeEvidence = requestedRetailers.isEmpty()
                 ? ComparisonRuntimeEvidence.empty()
                 : Objects.requireNonNull(
-                        evidenceSource.load(input.shoppingList(), input.productLocation()),
+                        evidenceSource.load(input.shoppingList(), input.productLocation(), requestedRetailers),
                         "runtime evidence must not be null");
 
         var comparisonEvidence = new EnumMap<RetailerId, RetailerComparisonEvidence>(RetailerId.class);
