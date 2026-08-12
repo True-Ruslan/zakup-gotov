@@ -14,14 +14,7 @@ Durable design: [`superpowers/specs/2026-08-10-universal-retailer-connectivity-d
 
 Decision: **GO to M1** — [`superpowers/specs/2026-08-12-m0-to-m1-go-decision.md`](superpowers/specs/2026-08-12-m0-to-m1-go-decision.md).
 
-Exit evidence remains:
-- Perekrestok `AVAILABLE_BROWSER_BRIDGE` v2;
-- Pyaterochka `AVAILABLE_BROWSER_BRIDGE` v1;
-- Magnit `AVAILABLE_PUBLIC_WEB` for explicit `shopCode` contexts;
-- browser bridge + public web acquisition modes proven;
-- deterministic sanitized verification and retailer-neutral architecture proven.
-
-M0 completion is technical feasibility, not production access clearance. #69, #70 and #54 remain explicit constraints/hardening work.
+Exit evidence remains Perekrestok/Pyaterochka browser bridge, Magnit public web for explicit `shopCode`, two acquisition modes, deterministic sanitized verification and retailer-neutral architecture. M0 completion is technical feasibility, not production-access clearance; #54, #69 and #70 remain explicit constraints.
 
 ## M1 — Shopping Core — CURRENT
 
@@ -35,8 +28,8 @@ Goal: compare a manually entered grocery list across connected retailers while p
 - retailer/source-provider/acquisition-mode/fulfillment context remain distinct;
 - `UNKNOWN` availability remains first-class;
 - observation time is not provider-update time;
-- freshness evidence basis remains explicit and structurally valid;
-- package quantity is explicit structured evidence, never inferred from product names or presentation text;
+- package quantity is explicit structured evidence, never inferred from product names, slugs, category or presentation text;
+- source-specific extraction fails closed on ambiguity/conflict;
 - production activation respects usage-rights state;
 - ordinary M1 tests make no live retailer requests.
 
@@ -48,87 +41,65 @@ Goal: compare a manually entered grocery list across connected retailers while p
 4. **Location / fulfillment-context boundary — COMPLETE (#75)**
 5. **Price and availability snapshots — COMPLETE (#76)**
 6. **Deterministic product matching — COMPLETE (#77)**
-   - observed product labels preserved through snapshots;
-   - matching-only deterministic normalization;
-   - retailer/context-scoped exact-before-normalized matching;
-   - explicit matched/ambiguous/unmatched states;
-   - no semantic tie-break by price/availability/freshness/SKU and no fuzzy/AI baseline.
 7. **Complete single-store basket comparison — COMPLETE (#78)**
-   - explicit package-quantity evidence keyed by snapshot identity;
-   - no package-size parsing from product names;
-   - canonical unit-safe whole-package selection;
-   - explicit item outcomes and `COMPLETE`, `UNCERTAIN`, `INCOMPLETE` basket states;
-   - unknown availability cannot become a confirmed complete basket;
-   - incomplete baskets expose no aggregate total;
-   - mixed selected currencies fail closed.
 8. **Failure / coverage / freshness product + API + UX boundary — COMPLETE (#79)**
-   - product-facing retailer comparison/readiness model;
-   - all eight canonical retailers remain visible in stable registry order;
-   - technical coverage and production-access readiness map independently;
-   - explicit `READY`, `UNCERTAIN`, `INCOMPLETE`, `UNAVAILABLE` states and finite product-safe reasons;
-   - public records reject impossible status/coverage/access/total/freshness combinations;
-   - provider-path failures translate without provider ID/acquisition/source leakage;
-   - conservative freshness aggregation without invented stale thresholds;
-   - `GET /api/v1/retailers` REST/OpenAPI/generated-client contract;
-   - responsive M1 readiness surface with bounded server-side timeout and fail-closed unavailable behavior.
 9. **Critical product journey — COMPLETE / ACCEPTED (#80)**
-   - `POST /api/v1/comparison-previews` accepts locality-only context and a manual shopping list;
-   - request construction reuses canonical shopping quantities and product location;
-   - comparison orchestration reuses provider snapshots, matching, basket and comparison/read-model semantics instead of duplicating them;
-   - all eight canonical retailers remain visible with `READY`, `UNCERTAIN`, `INCOMPLETE` or `UNAVAILABLE` state;
-   - item-level unmatched/ambiguous/package-unknown/unit-mismatch outcomes are product-safe and preserve the same basket evidence;
-   - no SKU, provider ID, acquisition mode, source reference or fulfillment-context ID crosses the public API/web boundary;
-   - production evidence is strict no-op/fail-closed in this slice, so production never falls back to deterministic fixture prices;
-   - deterministic evidence and mock API exist only for test/acceptance composition;
-   - OpenAPI/generated TypeScript client and the primary Next.js comparison form/results are synchronized;
-   - request timeout is bounded and API failure renders one accessible unavailable state with no fabricated retailer results;
-   - desktop/mobile Playwright proves the deterministic browser journey without hidden live retailer dependencies;
-   - architecture guards keep upstream production domains independent of `preview` and prevent production preview code from depending on fixture/test-support namespaces;
-   - unknown JSON request fields fail closed, keeping runtime deserialization aligned with OpenAPI `additionalProperties: false`.
+   - stateless manual-list comparison API and responsive web journey;
+   - all eight retailers remain visible with explicit comparison states;
+   - item-level gaps remain product-safe;
+   - production runtime evidence is strict no-op/fail-closed;
+   - desktop/mobile deterministic Playwright without hidden live retailer access.
+10. **Structured package-evidence plumbing — COMPLETE / ACCEPTED (#81)**
+   - optional canonical `ObservedOffer.packageQuantity`;
+   - immutable snapshot preservation;
+   - snapshot-derived `PackageQuantitySet`;
+   - runtime rejects a parallel package set that disagrees with snapshots;
+   - title/presentation parsing explicitly prohibited and regression-tested;
+   - merged as `d8a9e5f0f67defeeac410e0a006eab57dc2bb637`, then all eight push-triggered main workflows passed.
+11. **Magnit exact characteristic package extraction — IMPLEMENTED / SHIPPING (#82)**
+   - pure source-specific extractor for exact `Характеристики` fields `Вес, кг` and `Объем, л`;
+   - kg/l canonicalization reuses `Quantity`;
+   - identical duplicates deduplicate;
+   - weight + volume → `AMBIGUOUS_DIMENSIONS` and no package quantity;
+   - conflicting same-dimension values → `CONFLICTING_VALUES`;
+   - malformed/zero/negative supported values → `INVALID_VALUE`;
+   - title/slug/description/script/style numbers do not create evidence;
+   - `Количество в упаковке` is deferred from v1;
+   - a provider/snapshot regression proves `FOUND` output can enter the #81 evidence path and ambiguous output remains unknown;
+   - no HTTP exists in the production extractor and no production Magnit polling/access state is changed.
 
-   Acceptance evidence is recorded in the #80 shipping marker. The reviewed code candidate `16eff25` passed all repository workflow groups and the final read-only review reported no P0/P1/P2 findings before the docs-only marker.
-
-10. **Structured package-evidence plumbing — IMPLEMENTED / SHIPPING (#81)**
-   - `ObservedOffer` carries optional canonical package quantity only when a source has already established structured semantics;
-   - the existing constructor defaults to empty evidence so current retailer integrations retain identical package-unknown behavior;
-   - `OfferSnapshot` preserves the optional package quantity through immutable observation snapshots;
-   - `PackageQuantitySet.fromSnapshots(...)` projects only explicit snapshot evidence into basket bindings;
-   - presentation-text regression tests prove labels such as `970мл` or `1,5л` are not parsed into package quantities;
-   - runtime comparison evidence derives package bindings from snapshots rather than maintaining a second independent source of truth;
-   - compatibility constructors that accept explicit package bindings reject any mismatch with structured snapshot evidence;
-   - deterministic acceptance fixtures now attach package quantity at the provider observation boundary before snapshotting;
-   - no public contract, browser permission, live request, production-access status or retailer polling behavior changes.
-
-   Design: [`superpowers/specs/2026-08-12-m1-structured-package-evidence-design.md`](superpowers/specs/2026-08-12-m1-structured-package-evidence-design.md).  
-   Implementation plan: [`superpowers/plans/2026-08-12-m1-structured-package-evidence.md`](superpowers/plans/2026-08-12-m1-structured-package-evidence.md).
+   Design: [`superpowers/specs/2026-08-12-magnit-structured-package-characteristics-design.md`](superpowers/specs/2026-08-12-magnit-structured-package-characteristics-design.md).  
+   Evidence: [`integrations/magnit-structured-package-characteristics-2026-08-12.md`](integrations/magnit-structured-package-characteristics-2026-08-12.md).
 
 ### Important remaining basket-data limitation
 
-The core/provider/snapshot/runtime path can now carry trusted package-quantity evidence internally from source observation to basket planning, but accepted retailer adapters still do **not** prove a supported structured package field. A retailer/source extractor may populate `packageQuantity` only after its field semantics are documented and verified. Missing evidence stays unknown. Do not parse presentation text heuristically or broaden browser permissions merely to obtain package size.
+Provider/snapshot/basket plumbing can carry trusted package evidence, and Magnit now has a narrowly supported weight/volume characteristic extractor. This does **not** mean every Magnit SKU yields a usable quantity: products with both weight and volume remain unknown under the current single-`Quantity` model, count is deferred, and other retailers still lack an accepted structured field.
+
+Never replace this with product-name parsing.
 
 ### M1 exit criteria
 
-- critical journey covered by automated integration and browser E2E tests;
+- critical journey covered by automated integration/browser E2E;
 - incomplete/ambiguous/uncertain outcomes transparent;
-- one-store quote totals deterministic and explainable;
+- deterministic explainable one-store quote totals;
 - unavailable retailer coverage explicit;
-- no test/user path requires hidden live retailer access;
+- no hidden live retailer dependency in ordinary tests/product journey;
 - product location/privacy boundary preserved;
-- provider provenance, fulfillment context and freshness survive into comparison internally without leaking implementation identifiers publicly;
-- freshness evidence basis is visible without invented stale/fresh policy;
-- package quantity, when present, remains structured source evidence through provider → snapshot → basket rather than a presentation-text guess;
+- provenance/context/freshness survive internally without leaking implementation IDs;
+- package evidence remains structured source evidence through provider → snapshot → basket;
+- source-specific ambiguity/conflict never becomes a guessed quantity;
 - incomplete baskets cannot masquerade as complete winners;
-- production retailer activation remains separately gated by access, location/context and source-evidence constraints.
+- production activation remains separately gated by access, location/context and source semantics.
 
 ### Next M1 engineering focus
 
-1. **Ship #81 structured package-evidence plumbing** after exact-head CI/security and independent review.
-2. **Prove the first source-specific structured package field and extractor.** Treat each retailer/source independently; document field semantics, provenance, absence behavior and production-access constraints. Do not parse product names or widen browser permissions without separate evidence.
-3. **Browser bridge lifecycle hardening (#54)** for persistent sessions, same-document store changes and SPA navigation.
-4. **Magnit location → `shopCode` resolution (#69)** without leaking precise address into default product telemetry or contracts.
-5. **Magnit production usage-rights decision (#70)** before recurring production polling.
+1. **Ship #82** after exact-head CI/security and independent review.
+2. **Run an explicit/manual Magnit fixed-corpus package-evidence pass** after #82 acceptance. Extend the existing research probe to report `FOUND`, `MISSING`, `AMBIGUOUS_DIMENSIONS`, `CONFLICTING_VALUES` and `INVALID_VALUE` counts without enabling recurring polling.
+3. Use corpus evidence to decide whether weight/volume support is sufficient and whether `Количество в упаковке` requires multi-dimensional package modeling.
+4. **Magnit location → `shopCode` (#69)** and **production usage-rights decision (#70)** remain mandatory before production activation.
+5. **Browser bridge lifecycle hardening (#54)** for persistent sessions/store changes/SPA navigation.
 6. **Kuper supported aggregator investigation (#36)**.
-7. Continue mandatory Chizhik, Ozon Fresh, Samokat, Lenta, VkusVill and additional retailer onboarding.
+7. Continue Chizhik, Ozon Fresh, Samokat, Lenta, VkusVill and additional mandatory retailer onboarding.
 8. Prove a successful real `v0.1.0-rc.3` release event.
 
 ## M2 — Recipes
@@ -137,7 +108,7 @@ Goal: make recipes a first-class source of shopping requirements.
 
 Scope: built-in/user recipes, servings, normalized ingredient quantities, instructions, recipe → shopping-requirement conversion, editing/duplication and import experiments after the core model is stable.
 
-Do not start M2 merely because the fixture-driven M1 critical journey is merged. M1 evidence limitations and production activation constraints must remain explicit and accepted rather than hidden.
+Do not start M2 merely because fixture-driven M1 UI is complete. M1 evidence and production constraints must remain explicit and accepted rather than hidden.
 
 ## M3 — Weekly Planning
 
