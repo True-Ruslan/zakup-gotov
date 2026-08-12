@@ -1,5 +1,5 @@
-import { render, screen } from "@testing-library/react";
-import { describe, expect, it } from "vitest";
+import { cleanup, render, screen } from "@testing-library/react";
+import { afterEach, describe, expect, it } from "vitest";
 
 import { RetailerCoverageSection } from "./retailer-coverage";
 import type { RetailerReadinessState } from "./retailer-readiness";
@@ -28,15 +28,17 @@ const readyState: RetailerReadinessState = {
   },
 };
 
+afterEach(() => cleanup());
+
 describe("retailer coverage section", () => {
   it("renders every retailer and product-safe readiness language", () => {
     render(<RetailerCoverageSection state={readyState} />);
 
     expect(screen.getByRole("heading", { level: 2, name: "Покрытие магазинов" })).toBeDefined();
-    expect(screen.getAllByRole("listitem")).toHaveLength(2);
+    expect(screen.getByRole("list", { name: "Статус магазинов" }).children).toHaveLength(2);
     expect(screen.getByRole("heading", { level: 3, name: "Пятёрочка" })).toBeDefined();
     expect(screen.getByText("Источник подключён")).toBeDefined();
-    expect(screen.getByText("Доступ к данным проверяется")).toBeDefined();
+    expect(screen.getAllByText("Доступ к данным проверяется")).toHaveLength(2);
     expect(screen.getByRole("heading", { level: 3, name: "Чижик" })).toBeDefined();
     expect(screen.getByText("Интеграция в работе")).toBeDefined();
     expect(screen.queryByText(/fixture-provider|DIRECT_API|sourceReference/i)).toBeNull();
