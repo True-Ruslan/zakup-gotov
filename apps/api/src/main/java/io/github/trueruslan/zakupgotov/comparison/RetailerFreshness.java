@@ -29,7 +29,7 @@ public record RetailerFreshness(
             }
         }
 
-        if (providerUpdatedAt.filter(timestamp -> timestamp.isAfter(observedAt)).isPresent()) {
+        if (providerUpdatedAt.isPresent() && providerUpdatedAt.orElseThrow().isAfter(observedAt)) {
             throw new IllegalArgumentException("providerUpdatedAt must not be after observedAt");
         }
     }
