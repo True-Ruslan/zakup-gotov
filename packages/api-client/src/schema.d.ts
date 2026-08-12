@@ -38,6 +38,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/comparison-previews": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Create a transient locality-based basket comparison preview */
+        post: operations["createComparisonPreview"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -60,6 +77,84 @@ export interface components {
             reasons: components["schemas"]["RetailerComparisonReason"][];
             total?: components["schemas"]["BasketTotal"];
             freshness?: components["schemas"]["RetailerFreshness"];
+        };
+        ComparisonPreviewRequest: {
+            locality: string;
+            items: components["schemas"]["ComparisonPreviewRequestItem"][];
+        };
+        ComparisonPreviewRequestItem: {
+            /** Format: uuid */
+            id: string;
+            requirement: string;
+            quantity: components["schemas"]["ComparisonPreviewQuantityInput"];
+        };
+        ComparisonPreviewQuantityInput: {
+            amount: number;
+            unit: components["schemas"]["QuantityInputUnit"];
+        };
+        /** @enum {string} */
+        QuantityInputUnit: "PIECE" | "GRAM" | "KILOGRAM" | "MILLILITER" | "LITER";
+        CanonicalQuantity: {
+            amount: number;
+            unit: components["schemas"]["CanonicalQuantityUnit"];
+        };
+        /** @enum {string} */
+        CanonicalQuantityUnit: "PIECE" | "GRAM" | "MILLILITER";
+        ComparisonPreviewResponse: {
+            locality: string;
+            items: components["schemas"]["ComparisonPreviewRequestedItem"][];
+            retailers: components["schemas"]["ComparisonPreviewRetailer"][];
+        };
+        ComparisonPreviewRequestedItem: {
+            /** Format: uuid */
+            id: string;
+            requirement: string;
+            quantity: components["schemas"]["CanonicalQuantity"];
+        };
+        ComparisonPreviewRetailer: {
+            id: components["schemas"]["RetailerId"];
+            displayName: string;
+            coverage: components["schemas"]["RetailerCoverageStatus"];
+            productionAccess: components["schemas"]["RetailerProductionAccessStatus"];
+            comparisonStatus: components["schemas"]["RetailerComparisonStatus"];
+            reasons: components["schemas"]["RetailerComparisonReason"][];
+            total?: components["schemas"]["BasketTotal"];
+            freshness?: components["schemas"]["RetailerFreshness"];
+            items: components["schemas"]["ComparisonPreviewItem"][];
+        };
+        ComparisonPreviewItem: {
+            /** Format: uuid */
+            id: string;
+            requirement: string;
+            requestedQuantity: components["schemas"]["CanonicalQuantity"];
+            status: components["schemas"]["BasketItemResolutionStatus"];
+            candidateProductNames: string[];
+            selection?: components["schemas"]["ComparisonPreviewSelection"];
+        };
+        ComparisonPreviewSelection: {
+            productName: string;
+            packageQuantity: components["schemas"]["CanonicalQuantity"];
+            packageCount: number;
+            coveredQuantity: components["schemas"]["CanonicalQuantity"];
+            lineTotal: number;
+            currencyCode: string;
+        };
+        /** @enum {string} */
+        BasketItemResolutionStatus: "FULFILLED" | "AVAILABILITY_UNKNOWN" | "UNMATCHED" | "AMBIGUOUS" | "UNAVAILABLE" | "PACKAGE_QUANTITY_UNKNOWN" | "QUANTITY_UNIT_MISMATCH";
+        InvalidComparisonPreviewProblem: {
+            /** @constant */
+            type: "https://zakup-gotov.dev/problems/invalid-comparison-preview";
+            /** @constant */
+            title: "Invalid comparison preview request";
+            /** @constant */
+            status: 400;
+            /** @constant */
+            code: "INVALID_COMPARISON_PREVIEW";
+            errors: components["schemas"]["ComparisonPreviewValidationError"][];
+        };
+        ComparisonPreviewValidationError: {
+            field: string;
+            message: string;
         };
         /** @enum {string} */
         RetailerId: "pyaterochka" | "perekrestok" | "chizhik" | "magnit" | "lenta" | "vkusvill" | "ozon-fresh" | "samokat";
@@ -129,6 +224,39 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["RetailerReadinessResponse"];
+                };
+            };
+        };
+    };
+    createComparisonPreview: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ComparisonPreviewRequest"];
+            };
+        };
+        responses: {
+            /** @description Product-safe comparison preview for all canonical retailers */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ComparisonPreviewResponse"];
+                };
+            };
+            /** @description Invalid comparison preview request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["InvalidComparisonPreviewProblem"];
                 };
             };
         };
