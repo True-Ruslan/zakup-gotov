@@ -46,10 +46,11 @@ public final class RetailerRegistry {
     private final Map<RetailerId, RetailerRegistryEntry> entriesById;
 
     private RetailerRegistry(List<RetailerRegistryEntry> entries) {
-        this.entries = List.copyOf(entries);
+        this.entries = List.copyOf(Objects.requireNonNull(entries, "entries must not be null"));
 
         var byId = new EnumMap<RetailerId, RetailerRegistryEntry>(RetailerId.class);
         for (var entry : this.entries) {
+            Objects.requireNonNull(entry, "retailer registry entry must not be null");
             var previous = byId.put(entry.retailer().id(), entry);
             if (previous != null) {
                 throw new IllegalArgumentException("duplicate retailer id: " + entry.retailer().canonicalId());
@@ -57,13 +58,17 @@ public final class RetailerRegistry {
         }
 
         if (!byId.keySet().equals(EnumSet.allOf(RetailerId.class))) {
-            throw new IllegalStateException("initial retailer registry must cover every canonical retailer id");
+            throw new IllegalStateException("retailer registry must cover every canonical retailer id");
         }
         this.entriesById = Map.copyOf(byId);
     }
 
     public static RetailerRegistry initial() {
         return INITIAL;
+    }
+
+    public static RetailerRegistry of(List<RetailerRegistryEntry> entries) {
+        return new RetailerRegistry(entries);
     }
 
     public List<RetailerRegistryEntry> entries() {
