@@ -11,6 +11,8 @@ import java.util.regex.Pattern;
 public final class MagnitPackageQuantityExtractor {
 
     private static final String CHARACTERISTICS = "Характеристики";
+    private static final String WEIGHT_LABEL = "Вес, кг";
+    private static final String VOLUME_LABEL = "Объем, л";
     private static final List<String> SECTION_END_MARKERS = List.of(
             "Условия хранения",
             "Документы",
@@ -18,8 +20,8 @@ public final class MagnitPackageQuantityExtractor {
             "Дополнительная информация");
     private static final Pattern SCRIPT_OR_STYLE = Pattern.compile(
             "(?is)<(?:script|style)\\b[^>]*>.*?</(?:script|style)>");
-    private static final Pattern WEIGHT = characteristicPattern("Вес, кг");
-    private static final Pattern VOLUME = characteristicPattern("Объем, л");
+    private static final Pattern WEIGHT = characteristicPattern(WEIGHT_LABEL);
+    private static final Pattern VOLUME = characteristicPattern(VOLUME_LABEL);
 
     private MagnitPackageQuantityExtractor() {}
 
@@ -29,8 +31,8 @@ public final class MagnitPackageQuantityExtractor {
             return MagnitPackageQuantityExtraction.empty(MagnitPackageQuantityStatus.MISSING);
         }
 
-        var weight = parseDimension(section, WEIGHT, QuantityUnit.KILOGRAM);
-        var volume = parseDimension(section, VOLUME, QuantityUnit.LITER);
+        var weight = parseDimension(section, WEIGHT_LABEL, WEIGHT, QuantityUnit.KILOGRAM);
+        var volume = parseDimension(section, VOLUME_LABEL, VOLUME, QuantityUnit.LITER);
 
         if (weight.invalid() || volume.invalid()) {
             return MagnitPackageQuantityExtraction.empty(MagnitPackageQuantityStatus.INVALID_VALUE);
@@ -50,7 +52,11 @@ public final class MagnitPackageQuantityExtractor {
         return MagnitPackageQuantityExtraction.empty(MagnitPackageQuantityStatus.MISSING);
     }
 
-    private static DimensionEvidence parseDimension(String section, Pattern pattern, QuantityUnit unit) {
+    private static DimensionEvidence parseDimension(
+            String section,
+            String label,
+            Pattern pattern,
+            QuantityUnit unit) {
         var matcher = pattern.matcher(section);
         var present = false;
         var invalid = false;
@@ -70,7 +76,7 @@ public final class MagnitPackageQuantityExtractor {
             }
         }
 
-        if (!present && containsLabel(section, pattern == WEIGHT ? "Вес, кг" : "Объем, л")) {
+        if (!present && containsLabel(section, label)) {
             invalid = true;
             present = true;
         }
