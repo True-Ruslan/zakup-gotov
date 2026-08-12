@@ -12,62 +12,43 @@ All notable project changes are recorded here. Zakup Gotov is pre-release; entri
 - Perekrestok browser adapter v2 and real first-party browser evidence establishing `AVAILABLE_BROWSER_BRIDGE` for reload-based page snapshots.
 - Pyaterochka browser adapter v1 and real first-party browser evidence establishing `AVAILABLE_BROWSER_BRIDGE` for reload-based page snapshots.
 - First-class `apps/retailer-bridge` pnpm workspace package with pinned bridge-owned TypeScript/Vitest/jsdom/Playwright tooling.
-- Magnit ordinary-public-page Phase A and Phase B probes using plain JDK `HttpClient`, explicit public `shopCode` contexts, fixed timeouts and no login, private credentials, browser automation, CAPTCHA handling, proxy rotation or anti-bot bypass.
-- Magnit fixed 20-item corpus, sanitized deterministic fixtures, fail-closed SKU/current-price/availability semantics and price-bound promo evidence.
-- Final merged-main Magnit Phase B live proof: 20/20 HTTP and usable observations in both explicit store contexts, stable identity 20/20, zero failed requirements and preserved `UNKNOWN` availability where stock semantics are absent.
-- `AVAILABLE_PUBLIC_WEB` technical feasibility decision for Magnit explicit store contexts.
-- M0 → M1 GO decision recording completion of technical discovery and approval to begin M1 Shopping Core.
-- Explicit Magnit follow-up issues for safe location → `shopCode` resolution (#69) and production catalog usage-rights verification (#70).
-- M1 canonical retailer registry covering Pyaterochka, Perekrestok, Chizhik, Magnit, Lenta, VkusVill, Ozon Fresh and Samokat with explicit technical coverage and independent production-access status.
-- M1 canonical quantity primitives: positive decimal quantities, `kg → g`, `l → ml`, piece quantities and stable normalized `BigDecimal` equality.
-- M1 shopping-list aggregate with UUID list/item identity, stable insertion order, immutable item views, whitespace-only requirement normalization and explicit add/replace/remove semantics.
-- Provenance-complete M1 `ObservedOffer` contract with separate `retailerId`, `sourceProviderId`, `sourceMode`, fulfillment context and existing SKU/price/availability/time/source-reference evidence.
-- `AcquisitionMode` with explicit `DIRECT_API`, `AGGREGATOR`, `PUBLIC_WEB` and `BROWSER_BRIDGE` values independent from technical `ProviderAccessType`.
-- Deterministic fixture-only provider/path orchestrator with explicit selected-path and per-attempt outcome records.
-- Explicit expected provider-path failure type (`ProviderPathUnavailableException`) used as the only fallback trigger.
-- Provider-neutral `ProductLocationId` and `ProductLocation` M1 boundary for locality/address input without provider/store identifiers.
-- `SensitiveAddress` value object that requires explicit `reveal()` for raw use and renders `[REDACTED]` from default string/log representation.
-- ArchUnit privacy/modularity rule preventing production `location` classes from depending on provider or retailer packages.
-- Typed `FulfillmentContextBinding` / `FulfillmentContextSet` with `MANUAL` and `RESOLVED` selection provenance, stable order and duplicate/cross-location rejection.
-- Location-boundary implementation plan at `docs/superpowers/plans/2026-08-12-m1-location-boundary.md`.
-- `FreshnessEvidence` / `FreshnessBasis` M1 values that keep Zakup Gotov observation time distinct from optional trusted provider-side update time.
-- Immutable `OfferSnapshotId` / `OfferSnapshot` comparison record created only from an already-valid `ObservedOffer`, preserving all provider provenance, price, availability, observation and source-reference evidence.
-- Snapshot implementation plan at `docs/superpowers/plans/2026-08-12-m1-offer-snapshots.md`.
+- Magnit ordinary-public-page Phase A/Phase B probes, deterministic corpus/fixtures and final merged-main evidence establishing `AVAILABLE_PUBLIC_WEB` technical feasibility for explicit `shopCode` contexts.
+- M0 → M1 GO decision plus explicit Magnit location-resolution (#69) and production-usage-rights (#70) follow-ups.
+- M1 canonical retailer registry with independent technical coverage and production-access status.
+- M1 canonical quantity primitives and shopping-list aggregate with stable UUID identity/order and explicit mutation semantics.
+- Provenance-complete `ObservedOffer`, `AcquisitionMode`, deterministic provider-path orchestration and explicit expected path-failure handling.
+- Provider-neutral product location, redacted sensitive addresses and typed fulfillment-context bindings.
+- `FreshnessEvidence` / `FreshnessBasis` and immutable `OfferSnapshotId` / `OfferSnapshot` comparison records derived only from validated observations.
+- Required observed `productName` evidence in Java `ObservedOffer`, preserved through `OfferSnapshot` for semantic matching without synthesizing labels from provider queries or SKUs.
+- Matching-only deterministic text normalization using Unicode NFKC, `Locale.ROOT` case folding, `ё → е`, and punctuation/symbol separator normalization.
+- Scoped deterministic product matching with `MatchScope`, explicit `MATCHED` / `AMBIGUOUS` / `UNMATCHED` states, `EXACT` / `NORMALIZED` / `NONE` strengths and concrete match reasons.
+- Architecture verification preventing production provider/shopping/retailer packages from depending back on matching.
+- Matching design and implementation evidence in `docs/superpowers/specs/2026-08-12-m1-deterministic-matching-design.md` and `docs/superpowers/plans/2026-08-12-m1-deterministic-matching.md`.
 
 ### Changed
 
 - Project phase advanced from **M0 — Product & Integration Discovery** to **M1 — Shopping Core** after satisfying the technical exit criteria.
-- Both mandatory X5 banners now have accepted browser-assisted acquisition paths.
-- Magnit supplies the accepted independent non-X5 path and proves public web as a second acquisition mode alongside the browser bridge.
+- Both mandatory X5 banners have accepted browser-assisted acquisition paths; Magnit provides the independent non-X5 public-web feasibility path.
 - M1 entry rules are fixture-first, coverage-explicit, provenance-aware, fulfillment-context-aware and fail-closed for freshness, availability and unresolved production usage rights.
 - Retailer onboarding remains transport-neutral; direct API failure changes the acquisition mode under investigation rather than removing the retailer from scope.
-- Technical retailer connectivity and production-access readiness are modeled as separate decisions so an accepted feasibility path cannot silently enable production acquisition.
-- Kuper remains acquisition-provider/aggregator provenance rather than a retailer/banner identity in the canonical retailer registry.
-- Shopping requirements canonicalize measurement dimensions before matching while deliberately leaving package/container selection to later matching/basket optimization.
-- Requirement text normalization is intentionally limited to whitespace in the shopping domain; synonyms, aliases, categories and semantic canonicalization remain matching responsibilities.
-- Automatic duplicate-item merging is not performed by the M1 shopping-list aggregate; recipe/weekly-plan consolidation remains later scope.
-- `RetailerProvider` now declares retailer identity, source-provider identity and acquisition mode separately; provider-specific location context is keyed by source-provider identity rather than an ambiguous generic provider ID.
-- M1 provider-path priority is deterministic: `DIRECT_API → AGGREGATOR → PUBLIC_WEB → BROWSER_BRIDGE`, with stable source-provider ID tie-breaking within a mode.
-- Provider path selection is capability/context-aware; missing capabilities and missing source-provider contexts are explicit outcomes and do not invoke the provider.
-- A successful empty provider search remains a success and does not silently combine/fallback to a lower-priority source.
-- Only explicit expected path unavailability triggers fallback; unexpected runtime defects propagate fail-fast.
-- Provider routing now accepts a typed `FulfillmentContextSet` instead of a raw `Map<String, LocationContext>` and therefore never receives precise `ProductLocation`/`SensitiveAddress` values.
-- Provider-specific `shopCode`, X5 store IDs and similar identifiers stay inside source-provider-scoped `LocationContext` values bound to an opaque product location identity.
-- Manual provider context selection and already-resolved context selection are represented explicitly without claiming universal automatic address resolution.
-- `ObservedOffer` remains the provider trust-boundary record; immutable comparison snapshot semantics live in a separate `OfferSnapshot` type rather than overloading adapter-normalization data.
-- Observation time and provider-side update time are now explicit distinct concepts; observation-only data never claims provider freshness and provider timestamps later than observation fail closed.
-- `docs/PROJECT_STATE.md` and `docs/ROADMAP.md` now mark price/availability snapshots complete and move the active M1 focus to deterministic product matching.
+- Technical retailer connectivity and production-access readiness remain separate decisions.
+- Kuper remains acquisition-provider/aggregator provenance rather than a retailer/banner identity.
+- Shopping requirement text remains user wording; matching-specific Unicode/case/punctuation normalization is isolated in the matching layer.
+- Provider routing uses typed fulfillment contexts and never receives precise product-location addresses.
+- `ObservedOffer` remains the provider trust-boundary record; `OfferSnapshot` owns immutable comparison snapshot semantics.
+- Observation time and optional provider-side update time remain distinct and cannot be silently conflated.
+- Product semantic matching is conservative: exact text outranks normalized text; multiple equivalent candidates remain ambiguous instead of being broken by price, availability, freshness, acquisition mode or SKU ordering.
+- Baseline matching deliberately excludes aliases/synonyms, stemming, token reordering, substring/fuzzy/edit-distance logic, transliteration, embeddings and LLM ranking.
+- `docs/PROJECT_STATE.md` and `docs/ROADMAP.md` now mark deterministic matching complete and move the active M1 focus to complete single-store basket comparison/package quantity selection.
 
 ### Fixed
 
-- Magnit Phase A price parsing now prefers SKU-local evidence instead of allowing a geometrically closer unrelated footer price to win.
-- Magnit Phase B current-price parsing can fall back to already-proven SKU-bound embedded public-page state when rendered product scope contains no price.
-- The stale Magnit `eggs` corpus candidate was replaced with the current public product candidate after diagnostics isolated it as the sole failed requirement.
-- Magnit promo status is now independent from regular-price presence: a proven price-bound promo marker may set `promo=true`, while regular/old price remains empty unless a second supported price is actually present.
-- Documentation index links were corrected to reference only documents that exist in the repository.
-- Provider offer validation now rejects retailer, source-provider, acquisition-mode and fulfillment-context mismatches before observations can reach comparison logic.
-- Precise user addresses are excluded from default `toString()` output for both `SensitiveAddress` and `ProductLocation`.
-- Snapshot freshness validation rejects provider update timestamps after the Zakup Gotov observation time instead of silently coercing or reinterpreting them.
+- Magnit Phase A/Phase B parsing preserves SKU-local/current-price evidence and fail-closed promo/availability semantics.
+- Provider offer validation rejects retailer, source-provider, acquisition-mode and fulfillment-context mismatches before comparison logic.
+- Precise user addresses are excluded from default string representations.
+- Snapshot freshness rejects provider timestamps after observation time.
+- Semantic matching rejects candidates from another retailer or fulfillment context instead of silently filtering/mixing them.
+- Impossible match result combinations (for example `MATCHED` without exactly one candidate or `UNMATCHED` with non-`NONE` strength) fail closed at construction.
 
 ## [0.1.0-rc.2] — 2026-08-09
 

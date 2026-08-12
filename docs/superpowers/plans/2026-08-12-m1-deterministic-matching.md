@@ -1,405 +1,98 @@
 # M1 Deterministic Product Matching Implementation Plan
 
-> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
+Status: **IMPLEMENTED — final repository shipping gate pending on docs-synchronized head**
 
 **Goal:** Preserve human product labels through the validated provider/snapshot pipeline and add a conservative deterministic exact/normalized matcher for one retailer + fulfillment context.
 
-**Architecture:** `ObservedOffer` remains the fail-closed provider trust boundary and gains required `productName`; `OfferSnapshot` preserves that validated value. A new `matching` package owns all matching normalization and decision logic, consuming `ShoppingRequirement` + scoped `OfferSnapshot` candidates while never influencing provider ingestion. Exact text outranks matching-only normalized text; ambiguity is preserved rather than broken by price, availability, freshness, provider priority or SKU ordering.
+**Architecture:** `ObservedOffer` remains the fail-closed provider trust boundary and requires observed `productName`; `OfferSnapshot` preserves that validated value. The `matching` package owns matching normalization and decision logic. Exact text outranks narrowly normalized text; ambiguity is preserved rather than broken by price, availability, freshness, provider priority or SKU ordering.
 
-**Tech Stack:** Java 25, JUnit 5, AssertJ, ArchUnit/Spring Modulith verification, Maven 3.9.16.
+**Design:** [`../specs/2026-08-12-m1-deterministic-matching-design.md`](../specs/2026-08-12-m1-deterministic-matching-design.md)
 
-## Global Constraints
+## Global constraints
 
-- TDD is mandatory: RED test commit before each behavior implementation, then minimal GREEN with the RED tests unchanged.
-- Ordinary CI must make no live retailer requests.
-- `productName` must be nonblank and originate from observed provider evidence; no query/SKU-derived synthetic label.
-- Browser bridge already supplies `productName`; this slice does not broaden browser permissions or acquisition behavior.
-- Matching-specific Unicode/case/punctuation normalization belongs only to the `matching` package.
+- TDD is mandatory.
+- Ordinary CI makes no live retailer requests.
+- Product labels originate from observed provider evidence; no query/SKU-derived synthetic label.
+- Matching normalization stays inside `matching`.
 - Match operations are scoped to exactly one retailer and one fulfillment context.
 - No fuzzy/edit-distance, substring, stemming, token reordering, synonyms, transliteration, embeddings or LLM matching.
-- Price, availability, freshness, acquisition mode and SKU ordering must not resolve semantic ambiguity.
-- No persistence, REST API, UI, catalog canonical identity or basket optimization in this slice.
-
----
-
-### Task 1: Preserve validated product labels through provider observations and snapshots
-
-**Files:**
-- Modify: `apps/api/src/main/java/io/github/trueruslan/zakupgotov/provider/ObservedOffer.java`
-- Modify: `apps/api/src/main/java/io/github/trueruslan/zakupgotov/provider/OfferSnapshot.java`
-- Modify: existing provider tests/fixture fakes that construct `ObservedOffer`
-- Test: `apps/api/src/test/java/io/github/trueruslan/zakupgotov/provider/ObservedOfferTest.java`
-- Test: `apps/api/src/test/java/io/github/trueruslan/zakupgotov/provider/OfferSnapshotTest.java`
+- Price, availability, freshness, acquisition mode and SKU ordering never resolve semantic ambiguity.
+- No persistence, REST API, UI, canonical catalog identity or basket optimization in this slice.
 
-**Interfaces:**
-- Produces: `ObservedOffer.productName(): String`
-- Produces: `OfferSnapshot.productName(): String`
-- `ObservedOffer` constructor adds `String productName` immediately after `sku`.
-- `OfferSnapshot` public factories keep the same signatures; the private constructor copies `observation.productName()`.
+## Task 1 — preserve product labels — COMPLETE
 
-- [ ] **Step 1: Write RED provider-label tests**
+- [x] Write RED product-label preservation test.
+- [x] Confirm clean `testCompile` RED.
+- [x] Require nonblank `ObservedOffer.productName` with boundary `strip()` only.
+- [x] Preserve product name into both `OfferSnapshot` factories.
+- [x] Migrate all Java fixture constructors without adding a compatibility escape hatch.
+- [x] Run full Maven `verify` GREEN.
 
-Add assertions requiring:
+Evidence:
 
-```java
-var offer = new ObservedOffer(
-        RetailerId.PYATEROCHKA,
-        "pyaterochka-browser",
-        AcquisitionMode.BROWSER_BRIDGE,
-        "store-42",
-        "sku-1",
-        "  Молоко Простоквашино 3,2%  ",
-        new BigDecimal("99.90"),
-        "RUB",
-        AvailabilityStatus.UNKNOWN,
-        Instant.parse("2026-08-12T08:30:00Z"),
-        "https://5ka.ru/product/sku-1");
+- RED head `664163cbd1f4fcd2e830680b9a6688a26e014d7f` produced exactly six compile errors from the absent product-name constructor/accessor contract; unrelated tests remained intact.
+- GREEN head `8eba156d4b49e7f063c2c6fd808b3b8820329c28` introduced the strict label contract and migrated existing fixtures; full Maven `verify` passed.
+- Browser bridge already exposed `productName`, so no new browser permission/acquisition behavior was required.
 
-assertThat(offer.productName()).isEqualTo("Молоко Простоквашино 3,2%");
-```
+## Task 2 — deterministic matching-only text normalization — COMPLETE
 
-and:
+- [x] Write RED normalization tests.
+- [x] Confirm RED only on absent `MatchTextNormalizer`.
+- [x] Implement package-local NFKC/case/`ё→е`/separator normalizer.
+- [x] Prove synonyms, stemming and token reordering are not introduced.
+- [x] Run full Maven `verify` GREEN.
 
-```java
-assertThatThrownBy(() -> new ObservedOffer(
-        RetailerId.PYATEROCHKA,
-        "pyaterochka-browser",
-        AcquisitionMode.BROWSER_BRIDGE,
-        "store-42",
-        "sku-1",
-        "   ",
-        new BigDecimal("99.90"),
-        "RUB",
-        AvailabilityStatus.UNKNOWN,
-        Instant.parse("2026-08-12T08:30:00Z"),
-        "https://5ka.ru/product/sku-1"))
-    .isInstanceOf(IllegalArgumentException.class)
-    .hasMessageContaining("productName");
-```
+Evidence:
 
-In `OfferSnapshotTest`, construct an observation with a product name and require both `observationOnly(...)` and `withProviderUpdatedAt(...)` snapshots to expose that exact validated name.
+- RED head `8212e03e4d1640795b13e1d198e819447b52eaa8` produced 12 compile errors, all from the absent normalizer.
+- GREEN head `346cb4d2c3ae3a2e5734bffcf24dbc97ac50013f` implemented only the approved deterministic normalization; full Maven `verify` passed.
 
-- [ ] **Step 2: Commit RED and run Maven verify**
+## Task 3 — scoped exact/normalized matcher — COMPLETE
 
-Run: `cd apps/api && ./mvnw --batch-mode --no-transfer-progress verify`
+- [x] Write RED matcher/result-model tests.
+- [x] Confirm RED only on absent matching types.
+- [x] Implement `MatchScope` retailer + fulfillment-context boundary.
+- [x] Implement explicit status/strength/reason result invariants.
+- [x] Implement exact-before-normalized matching.
+- [x] Preserve input order and immutable candidate evidence.
+- [x] Reject cross-retailer/context candidates fail-closed.
+- [x] Keep semantic ambiguity independent from price/availability/freshness/source mode/SKU.
+- [x] Run full Maven `verify` GREEN.
 
-Expected: `testCompile` failure because production `ObservedOffer` / `OfferSnapshot` do not yet expose the new product-name constructor/accessor contract. No unrelated test failures should be accepted as RED evidence.
+Evidence:
 
-Commit message: `test(provider): require product labels in offer snapshots`
+- RED head `dc96540025d495979ad4e160c35a08fa5bc83600` produced 31 compile errors, all for the absent matcher/result/scope contract; the completed normalizer compiled.
+- GREEN head `cb74528f44822f744cce91a04429d17a7ac56d75` added the deterministic matcher and structural result invariants; full Maven `verify` passed.
 
-- [ ] **Step 3: Implement minimal product-label preservation**
+## Task 4 — architecture boundary and durable docs — IMPLEMENTED
 
-In `ObservedOffer`:
+- [x] Add ArchUnit rule: production provider/shopping/retailer must not depend on matching.
+- [x] Run full Maven `verify` with architecture rule.
+- [x] Synchronize `PROJECT_STATE.md`, `ROADMAP.md`, `CHANGELOG.md` and this plan.
+- [ ] Run full exact-head repository CI/security gate.
+- [ ] Perform read-only Change Review.
+- [ ] Record final shipping evidence in this plan and re-run marker-head gate.
+- [ ] Mark PR ready and squash merge with expected-head SHA guard.
 
-```java
-public record ObservedOffer(
-        RetailerId retailerId,
-        String sourceProviderId,
-        AcquisitionMode sourceMode,
-        String fulfillmentContextId,
-        String sku,
-        String productName,
-        BigDecimal price,
-        String currencyCode,
-        AvailabilityStatus availability,
-        Instant observedAt,
-        String sourceReference) {
+Architecture evidence:
 
-    public ObservedOffer {
-        // existing validation unchanged
-        productName = requireText(productName, "productName");
-    }
-}
-```
+- Head `a7a7a1ce153c4c429a0ec331346040d3ecd5f2e4` added `MatchingBoundaryArchitectureTest`; full Maven `verify` passed.
 
-Do not lowercase or remove punctuation here.
+## Delivered behavior
 
-In `OfferSnapshot`, add a final `String productName`, private-constructor parameter/accessor, and copy `observation.productName()` from both public factories.
+- `ObservedOffer` requires a truthful nonblank observed product name and has no label-less compatibility constructor.
+- `OfferSnapshot` preserves the validated product label exactly.
+- Matching normalization is package-local and deterministic: NFKC, lowercase via `Locale.ROOT`, `ё → е`, non-letter/digit separators collapsed to spaces.
+- Baseline semantics do not include aliases/synonyms, stemming, token reordering, substring/fuzzy/edit-distance matching, transliteration, embeddings or LLMs.
+- `MatchScope` isolates one retailer + fulfillment context and rejects foreign candidates.
+- Exact text always outranks normalized text.
+- One candidate produces `MATCHED`; multiple equivalent candidates produce `AMBIGUOUS`; no candidates produce `UNMATCHED`.
+- Result cardinality/strength/reason combinations are validated at construction.
+- Price, availability, freshness, acquisition mode and SKU ordering never silently choose among semantically equivalent candidates.
+- Upstream provider/shopping/retailer production modules cannot depend on matching.
 
-- [ ] **Step 4: Migrate existing provider fixtures/tests**
+## Next after merge
 
-For every existing Java `ObservedOffer` constructor, add a truthful deterministic fixture label. Use labels that describe the existing fixture/SKU; never use the search query as implicit production behavior. Test fakes may use explicit values such as `"Молоко 3,2%"`, `"Хлеб ржаной"`, or the product title already present in the fixture.
+M1 moves to **complete single-store basket comparison**, beginning with deterministic package/quantity selection and explicit complete/incomplete basket semantics. Delivery fees/minimum-order rules remain out until supported evidence exists.
 
-Keep all existing provenance/trust assertions unchanged.
-
-- [ ] **Step 5: Run full Maven verify and commit GREEN**
-
-Run: `cd apps/api && ./mvnw --batch-mode --no-transfer-progress verify`
-
-Expected: PASS.
-
-Commit message: `feat(provider): preserve product labels in offer snapshots`
-
----
-
-### Task 2: Add deterministic matching-only text normalization
-
-**Files:**
-- Create: `apps/api/src/main/java/io/github/trueruslan/zakupgotov/matching/MatchTextNormalizer.java`
-- Create: `apps/api/src/test/java/io/github/trueruslan/zakupgotov/matching/MatchTextNormalizerTest.java`
-
-**Interfaces:**
-- Produces: `static String MatchTextNormalizer.normalize(String raw)`
-- The method is matching-layer behavior and must not be reused by `shopping` or `provider` production code in this slice.
-
-- [ ] **Step 1: Write RED normalization tests**
-
-Required examples:
-
-```java
-assertThat(MatchTextNormalizer.normalize("  МОЛОКО\t3,2%  "))
-        .isEqualTo("молоко 3 2");
-
-assertThat(MatchTextNormalizer.normalize("Ёжик ёлка"))
-        .isEqualTo("ежик елка");
-
-assertThat(MatchTextNormalizer.normalize("Молоко－ультра"))
-        .isEqualTo("молоко ультра");
-
-assertThat(MatchTextNormalizer.normalize("ＡＢＣ Молоко"))
-        .isEqualTo("abc молоко");
-```
-
-Also require null rejection and blank-after-normalization rejection.
-
-Add a regression proving the normalizer does not create synonym/stemming equivalence by asserting, for example, that normalized `"томаты"` is not equal to normalized `"помидоры"` and normalized `"молоко"` is not equal to normalized `"молочный"`.
-
-- [ ] **Step 2: Commit RED and run Maven verify**
-
-Expected: `testCompile` fails only because `MatchTextNormalizer` does not exist.
-
-Commit message: `test(matching): define deterministic text normalization`
-
-- [ ] **Step 3: Implement minimal normalizer**
-
-Algorithm:
-
-```java
-Objects.requireNonNull(raw, "raw must not be null");
-var normalized = Normalizer.normalize(raw, Normalizer.Form.NFKC)
-        .toLowerCase(Locale.ROOT)
-        .replace('ё', 'е');
-
-var builder = new StringBuilder(normalized.length());
-var previousWasSeparator = true;
-for (int offset = 0; offset < normalized.length(); ) {
-    int codePoint = normalized.codePointAt(offset);
-    offset += Character.charCount(codePoint);
-
-    if (Character.isLetterOrDigit(codePoint)) {
-        builder.appendCodePoint(codePoint);
-        previousWasSeparator = false;
-    } else if (!previousWasSeparator) {
-        builder.append(' ');
-        previousWasSeparator = true;
-    }
-}
-var result = builder.toString().strip();
-if (result.isBlank()) {
-    throw new IllegalArgumentException("normalized text must not be blank");
-}
-return result;
-```
-
-- [ ] **Step 4: Run Maven verify and commit GREEN**
-
-Expected: PASS.
-
-Commit message: `feat(matching): add deterministic text normalization`
-
----
-
-### Task 3: Add scoped exact/normalized product matcher and explicit result model
-
-**Files:**
-- Create: `apps/api/src/main/java/io/github/trueruslan/zakupgotov/matching/MatchScope.java`
-- Create: `apps/api/src/main/java/io/github/trueruslan/zakupgotov/matching/ProductMatchStatus.java`
-- Create: `apps/api/src/main/java/io/github/trueruslan/zakupgotov/matching/ProductMatchStrength.java`
-- Create: `apps/api/src/main/java/io/github/trueruslan/zakupgotov/matching/ProductMatchReason.java`
-- Create: `apps/api/src/main/java/io/github/trueruslan/zakupgotov/matching/ProductMatchResult.java`
-- Create: `apps/api/src/main/java/io/github/trueruslan/zakupgotov/matching/DeterministicProductMatcher.java`
-- Create: `apps/api/src/test/java/io/github/trueruslan/zakupgotov/matching/DeterministicProductMatcherTest.java`
-
-**Interfaces:**
-
-```java
-public record MatchScope(RetailerId retailerId, String fulfillmentContextId) {}
-```
-
-```java
-public enum ProductMatchStatus { MATCHED, AMBIGUOUS, UNMATCHED }
-public enum ProductMatchStrength { EXACT, NORMALIZED, NONE }
-public enum ProductMatchReason {
-    SINGLE_EXACT_TEXT_MATCH,
-    MULTIPLE_EXACT_TEXT_MATCHES,
-    SINGLE_NORMALIZED_TEXT_MATCH,
-    MULTIPLE_NORMALIZED_TEXT_MATCHES,
-    NO_TEXT_MATCH
-}
-```
-
-```java
-public record ProductMatchResult(
-        ProductMatchStatus status,
-        ProductMatchStrength strength,
-        ProductMatchReason reason,
-        List<OfferSnapshot> candidates) {}
-```
-
-```java
-public final class DeterministicProductMatcher {
-    public ProductMatchResult match(
-            MatchScope scope,
-            ShoppingRequirement requirement,
-            List<OfferSnapshot> candidates) { ... }
-}
-```
-
-- [ ] **Step 1: Write RED result-model and matcher tests**
-
-Cover all required cases:
-
-1. one exact name → `MATCHED / EXACT / SINGLE_EXACT_TEXT_MATCH`;
-2. exact match outranks a different candidate that only becomes equal after normalization;
-3. two exact names → `AMBIGUOUS / EXACT / MULTIPLE_EXACT_TEXT_MATCHES`;
-4. no exact, one normalized match → `MATCHED / NORMALIZED`;
-5. no exact, two normalized matches → `AMBIGUOUS / NORMALIZED`;
-6. no matches → `UNMATCHED / NONE / NO_TEXT_MATCH`;
-7. input candidate order preserved among ambiguous candidates;
-8. returned candidates immutable;
-9. cheaper/more-available/fresher candidate does not break semantic ambiguity;
-10. candidate from another retailer throws `IllegalArgumentException` containing `retailer`;
-11. candidate from another fulfillment context throws `IllegalArgumentException` containing `fulfillmentContextId`;
-12. null scope/requirement/candidate list and null candidate element fail closed.
-
-Use deterministic `OfferSnapshot` fixtures created from valid `ObservedOffer` values; do not mock snapshot fields.
-
-- [ ] **Step 2: Commit RED and run Maven verify**
-
-Expected: `testCompile` fails only on absent matching result/matcher types.
-
-Commit message: `test(matching): define scoped deterministic matching contract`
-
-- [ ] **Step 3: Implement scope/result invariants**
-
-`MatchScope` validates non-null retailer and nonblank fulfillment context.
-
-`ProductMatchResult` canonical constructor:
-- `List.copyOf(candidates)`;
-- `MATCHED` requires exactly one candidate and strength not `NONE`;
-- `AMBIGUOUS` requires at least two candidates and strength not `NONE`;
-- `UNMATCHED` requires zero candidates and strength `NONE`;
-- reject null status/strength/reason/candidates.
-
-- [ ] **Step 4: Implement deterministic matcher**
-
-Pseudo-code:
-
-```java
-validateAllCandidatesBelongTo(scope, candidates);
-
-var exact = candidates.stream()
-        .filter(snapshot -> snapshot.productName().equals(requirement.text()))
-        .toList();
-if (exact.size() == 1) return matchedExact(exact.getFirst());
-if (exact.size() > 1) return ambiguousExact(exact);
-
-var normalizedRequirement = MatchTextNormalizer.normalize(requirement.text());
-var normalized = candidates.stream()
-        .filter(snapshot -> MatchTextNormalizer.normalize(snapshot.productName())
-                .equals(normalizedRequirement))
-        .toList();
-if (normalized.size() == 1) return matchedNormalized(normalized.getFirst());
-if (normalized.size() > 1) return ambiguousNormalized(normalized);
-return unmatched();
-```
-
-Do not sort candidates and do not inspect price, availability, freshness, source mode or SKU for tie-breaking.
-
-- [ ] **Step 5: Run Maven verify and commit GREEN**
-
-Expected: PASS.
-
-Commit message: `feat(matching): add scoped deterministic product matcher`
-
----
-
-### Task 4: Lock architecture boundaries, synchronize durable docs and ship
-
-**Files:**
-- Create: `apps/api/src/test/java/io/github/trueruslan/zakupgotov/matching/MatchingBoundaryArchitectureTest.java`
-- Modify: `docs/PROJECT_STATE.md`
-- Modify: `docs/ROADMAP.md`
-- Modify: `CHANGELOG.md`
-- Modify: `docs/superpowers/plans/2026-08-12-m1-deterministic-matching.md`
-
-**Interfaces:**
-- Architecture rule protects upstream packages from reverse dependency on `matching`.
-- After merge, next active M1 focus becomes complete single-store basket comparison/package selection baseline.
-
-- [ ] **Step 1: Write architecture RED/contract test**
-
-Use ArchUnit to assert production classes in `..provider..`, `..shopping..`, and `..retailer..` do not depend on classes in `..matching..`.
-
-Because the GREEN implementation should already respect this rule, introduce the test after Task 3 and require it to pass immediately; if it fails, treat the dependency as a real architecture defect and refactor before shipping.
-
-- [ ] **Step 2: Run full Maven verify**
-
-Run: `cd apps/api && ./mvnw --batch-mode --no-transfer-progress verify`
-
-Expected: PASS.
-
-- [ ] **Step 3: Synchronize durable docs**
-
-`PROJECT_STATE.md`:
-- mark Slice 6 deterministic matching COMPLETE;
-- record product-name preservation prerequisite;
-- record exact/normalized scoped semantics and ambiguity behavior;
-- move active focus to single-store basket comparison.
-
-`ROADMAP.md`:
-- mark matching COMPLETE;
-- move basket comparison/package selection NEXT.
-
-`CHANGELOG.md`:
-- add provider product-name preservation;
-- add deterministic matching result model/normalizer/scope;
-- state no hidden price/availability tie-break and no AI/fuzzy matching.
-
-Update this plan with actual RED/GREEN commit SHAs and mark implementation steps complete while leaving final shipping gate pending until it is proven.
-
-- [ ] **Step 4: Run final exact-head repository gate**
-
-Require all current repository gates on the exact final head:
-- API CI;
-- Contract CI;
-- Web CI + Web E2E;
-- CodeQL Java + JavaScript/TypeScript;
-- Dependency Review;
-- Retailer Bridge CI;
-- Container Security API + Web;
-- Release Bundle CI;
-- Release Contract CI.
-
-No failures or in-progress checks may be called complete.
-
-- [ ] **Step 5: Perform read-only Change Review**
-
-Review for:
-- label provenance not synthesized from query/SKU;
-- no matching normalization in provider/shopping models;
-- no cross-retailer/context mixing;
-- no semantic ambiguity tie-break by price/availability/freshness/source mode/SKU;
-- no fuzzy/AI behavior hidden in baseline;
-- no reverse provider/shopping/retailer dependency on matching;
-- docs match actual code/gates.
-
-Blocking P0/P1/P2 findings must be fixed with a regression test before merge.
-
-- [ ] **Step 6: Record final shipping evidence and re-run marker-head gate**
-
-Update only this plan with the proven exact-head gate and review verdict, then require branch-protection checks to pass again on that docs-only marker head.
-
-- [ ] **Step 7: Mark PR ready and squash merge with expected-head SHA guard**
-
-Use squash merge only after the marker head is fully green and unchanged.
+Final repository gate and Change Review on the docs-synchronized exact head are the remaining shipping requirements before squash merge.
