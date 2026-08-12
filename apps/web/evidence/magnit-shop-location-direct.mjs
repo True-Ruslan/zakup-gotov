@@ -1,8 +1,19 @@
 const SEARCH_URL = 'https://magnit.ru/webgate/v1/stores-facade/search';
 const STORE_TYPES = ['MM', 'GM', 'DG', 'MO', 'ME', 'MC', 'DARKSTORE', 'MM_MINI', 'ZARYAD'];
-const BBOX = {
-  leftTopPoint: { latitude: 45.069, longitude: 38.967 },
-  rightBottomPoint: { latitude: 45.065, longitude: 38.980 },
+
+const BBOXES = {
+  observedKrasnodar: {
+    leftTopPoint: { latitude: 45.069, longitude: 38.967 },
+    rightBottomPoint: { latitude: 45.065, longitude: 38.980 },
+  },
+  moscow: {
+    leftTopPoint: { latitude: 55.850, longitude: 37.450 },
+    rightBottomPoint: { latitude: 55.600, longitude: 37.850 },
+  },
+  saintPetersburg: {
+    leftTopPoint: { latitude: 60.050, longitude: 30.150 },
+    rightBottomPoint: { latitude: 59.800, longitude: 30.550 },
+  },
 };
 
 function workflowEscape(value) {
@@ -13,75 +24,109 @@ function notice(title, message) {
   console.log(`::notice title=${workflowEscape(title)}::${workflowEscape(message)}`);
 }
 
-function safeScalar(key, value) {
-  if (/address|name|city|region|token|cookie/i.test(key)) return 'redacted';
-  if (/^(storeCode|storeType|storeTypeV2|latitude|longitude|lat|lon|lng)$/i.test(key)) return String(value);
-  return typeof value;
-}
-
-function inspect(root) {
-  const seen = new Set();
-  let objectCount = 0;
-
-  function walk(value, path, parentKeys = 'root') {
-    if (!value || typeof value !== 'object') return;
-    if (seen.has(value)) return;
-    seen.add(value);
-
-    if (Array.isArray(value)) {
-      notice('magnit-direct-array-shape', `path=${path};length=${value.length};parentKeys=${parentKeys}`);
-      for (let index = 0; index < value.length; index++) walk(value[index], `${path}[${index}]`, parentKeys);
-      return;
-    }
-
-    objectCount++;
-    const keys = Object.keys(value);
-    const interesting = keys.filter((key) => /(store|code|coord|lat|lon|lng|point|cluster)/i.test(key));
-    const scalars = Object.entries(value)
-      .filter(([, child]) => child === null || ['string', 'number', 'boolean'].includes(typeof child))
-      .filter(([key]) => !/address|name|city|region/i.test(key))
-      .slice(0, 20)
-      .map(([key, child]) => `${key}=${safeScalar(key, child)}`)
-      .join(',') || 'none';
-
-    if (interesting.length || keys.some((key) => /^(latitude|longitude|lat|lon|lng)$/i.test(key))) {
-      const coordinateShape = Object.prototype.hasOwnProperty.call(value, 'coordinates')
-        ? Array.isArray(value.coordinates)
-          ? `array(${value.coordinates.length})`
-          : value.coordinates && typeof value.coordinates === 'object'
-            ? `object(${Object.keys(value.coordinates).join(',')})`
-            : `${typeof value.coordinates}:${value.coordinates}`
-        : 'none';
-      notice(
-        'magnit-direct-object-shape',
-        `path=${path};keys=${keys.join(',')};interesting=${interesting.join(',') || 'none'};coordinates=${coordinateShape};scalars=${scalars}`,
-      );
-    }
-
-    for (const [key, child] of Object.entries(value)) {
-      walk(child, `${path}.${key}`, keys.join(','));
-    }
-  }
-
-  walk(root, '$');
-  notice('magnit-direct-shape-summary', `objects=${objectCount}`);
-}
-
-const response = await fetch(SEARCH_URL, {
-  method: 'POST',
-  headers: {
-    Accept: 'application/json',
-    'Content-Type': 'application/json',
-    'User-Agent': 'ZakupGotov-Magnit-Location-Resolver-Probe/0.1 (+https://github.com/True-Ruslan/zakup-gotov)',
-  },
-  body: JSON.stringify({
+function bodyFor(bbox) {
+  return {
     filters: {
-      geo: { typeName: 'box', ...BBOX },
+      geo: {
+        typeName: 'box',
+        leftTopPoint: bbox.leftTopPoint,
+        rightBottomPoint: bbox.rightBottomPoint,
+      },
       storeTypeListV2: STORE_TYPES,
     },
-  }),
-});
+  };
+}
 
-notice('magnit-direct-known-bbox', `status=${response.status};setCookie=${response.headers.has('set-cookie')};contentType=${response.headers.get('content-type')?.split(';')[0] ?? 'none'}`);
-const payload = await response.json();
-inspect(payload);
+function collectStores(payload) {
+  const items = payload?.items?.items;
+  if (!Array.isArray(items)) return [];
+
+  const stores = [];
+  for (const item of items) {
+    const code = item?.externalId?.storeCode;
+    const latitude = Number(item?.coordinates?.latitude);
+    const longitude = Number(item?.coordinates?.longitude);
+    if ((typeof code !== 'string' && typeof code !== 'number') || !Number.isFinite(latitude) || !Number.isFinite(longitude)) {
+      continue;
+    }
+    stores.push({
+      code: String(code),
+      latitude: latitude.toFixed(3),
+      longitude: longitude.toFixed(3),
+      storeTypeV2: typeof item.storeTypeV2 === 'string' ? item.storeTypeV2 : 'unknown',
+    });
+  }
+
+  return stores.sort((a, b) => a.code.localeCompare(b.code));
+}
+
+function fingerprint(stores) {
+  return stores.map((store) => `${store.code}@${store.latitude},${store.longitude}:${store.storeTypeV2}`).join('|');
+}
+
+async function search(bbox) {
+  const response = await fetch(SEARCH_URL, {
+    method: 'POST',
+    redirect: 'follow',
+    headers: {
+      Accept: 'application/json',
+      'Content-Type': 'application/json',
+      'User-Agent': 'ZakupGotov-Magnit-Location-Resolver-Probe/0.1 (+https://github.com/True-Ruslan/zakup-gotov)',
+    },
+    body: JSON.stringify(bodyFor(bbox)),
+  });
+
+  let payload = null;
+  try {
+    payload = await response.json();
+  } catch {
+    // Non-JSON response cannot become store evidence.
+  }
+
+  return {
+    status: response.status,
+    contentType: response.headers.get('content-type')?.split(';')[0] ?? 'none',
+    setCookie: response.headers.has('set-cookie'),
+    stores: payload ? collectStores(payload) : [],
+  };
+}
+
+const firstKnown = await search(BBOXES.observedKrasnodar);
+const secondKnown = await search(BBOXES.observedKrasnodar);
+const knownStable = fingerprint(firstKnown.stores) === fingerprint(secondKnown.stores);
+notice(
+  'magnit-direct-known-reproducibility',
+  `headers=minimal;firstStatus=${firstKnown.status};secondStatus=${secondKnown.status};firstSetCookie=${firstKnown.setCookie};secondSetCookie=${secondKnown.setCookie};firstStores=${firstKnown.stores.length};secondStores=${secondKnown.stores.length};sameStoreSet=${knownStable};sampleCodes=${firstKnown.stores.slice(0, 5).map((store) => store.code).join(',') || 'none'}`,
+);
+
+if (
+  firstKnown.status < 200 || firstKnown.status >= 300 ||
+  secondKnown.status < 200 || secondKnown.status >= 300 ||
+  firstKnown.stores.length === 0 ||
+  !knownStable
+) {
+  throw new Error('known public bbox was not reproducible across stateless minimal-header requests');
+}
+
+const moscow = await search(BBOXES.moscow);
+const petersburg = await search(BBOXES.saintPetersburg);
+const differentCitySets = fingerprint(moscow.stores) !== fingerprint(petersburg.stores);
+notice(
+  'magnit-direct-city-boxes',
+  `headers=minimal;moscowStatus=${moscow.status};moscowSetCookie=${moscow.setCookie};moscowStores=${moscow.stores.length};moscowCodes=${moscow.stores.slice(0, 5).map((store) => store.code).join(',') || 'none'};petersburgStatus=${petersburg.status};petersburgSetCookie=${petersburg.setCookie};petersburgStores=${petersburg.stores.length};petersburgCodes=${petersburg.stores.slice(0, 5).map((store) => store.code).join(',') || 'none'};differentCitySets=${differentCitySets}`,
+);
+
+if (
+  moscow.status < 200 || moscow.status >= 300 ||
+  petersburg.status < 200 || petersburg.status >= 300 ||
+  moscow.stores.length === 0 ||
+  petersburg.stores.length === 0 ||
+  !differentCitySets
+) {
+  throw new Error('public city-scale bboxes did not produce distinct non-empty store sets');
+}
+
+notice(
+  'magnit-direct-summary',
+  `publicEndpoint=true;authHeaders=false;appHeaders=false;cookieJar=false;knownStable=${knownStable};knownStores=${firstKnown.stores.length};moscowStores=${moscow.stores.length};petersburgStores=${petersburg.stores.length};requests=4`,
+);
