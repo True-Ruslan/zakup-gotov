@@ -62,10 +62,10 @@ class MagnitStoreResolverTest {
         var binding = MagnitFulfillmentContextBindings.autoResolved(LOCATION_ID, "Краснодар", resolution).orElseThrow();
 
         assertThat(binding.productLocationId()).isEqualTo(LOCATION_ID);
-        assertThat(binding.locationContext().sourceProviderId()).isEqualTo("magnit-public-page");
-        assertThat(binding.locationContext().fulfillmentContextId()).isEqualTo("992301");
-        assertThat(binding.locationContext().locality()).isEqualTo("Краснодар");
-        assertThat(binding.selectionMode()).isEqualTo(FulfillmentContextSelectionMode.RESOLVED);
+        assertThat(binding.context().sourceProviderId()).isEqualTo("magnit-public-page");
+        assertThat(binding.context().fulfillmentContextId()).isEqualTo("992301");
+        assertThat(binding.context().locality()).isEqualTo("Краснодар");
+        assertThat(binding.mode()).isEqualTo(FulfillmentContextSelectionMode.RESOLVED);
         assertThat(binding.toString()).doesNotContain("45.067057").doesNotContain("38.973527");
     }
 
@@ -97,10 +97,10 @@ class MagnitStoreResolverTest {
                 "Москва",
                 candidate("011830", 55.75, 37.62));
 
-        assertThat(binding.locationContext().sourceProviderId()).isEqualTo("magnit-public-page");
-        assertThat(binding.locationContext().fulfillmentContextId()).isEqualTo("011830");
-        assertThat(binding.locationContext().locality()).isEqualTo("Москва");
-        assertThat(binding.selectionMode()).isEqualTo(FulfillmentContextSelectionMode.MANUAL);
+        assertThat(binding.context().sourceProviderId()).isEqualTo("magnit-public-page");
+        assertThat(binding.context().fulfillmentContextId()).isEqualTo("011830");
+        assertThat(binding.context().locality()).isEqualTo("Москва");
+        assertThat(binding.mode()).isEqualTo(FulfillmentContextSelectionMode.MANUAL);
     }
 
     @Test
