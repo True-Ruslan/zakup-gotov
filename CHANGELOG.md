@@ -1,108 +1,100 @@
 # Changelog
 
-All notable project changes are recorded here. Zakup Gotov is pre-release; entries focus on user-visible behavior, architecture, security, integration evidence and release engineering rather than routine refactors.
+All notable project changes are recorded here. Zakup Gotov is pre-release; entries focus on user-visible behavior, architecture, security, retailer evidence and release engineering rather than routine refactors.
 
 ## [Unreleased]
 
 ### Added
 
+#### Product and shopping core
+
+- Canonical eight-retailer registry with independent technical-connectivity and production-access states.
+- Canonical shopping quantities and shopping-list aggregate with stable UUID identity and deterministic mutation semantics.
+- Provider/path orchestration preserving retailer, source-provider, acquisition-mode and fulfillment provenance.
+- Provider-neutral `ProductLocation`, sensitive-address redaction and typed provider-scoped fulfillment bindings.
+- Immutable offer snapshots with explicit observation/provider-freshness evidence and first-class `UNKNOWN` availability.
+- Deterministic exact-before-normalized product matching with explicit matched/ambiguous/unmatched states and no fuzzy/AI baseline.
+- Whole-package single-store basket calculation with explicit package evidence, deterministic decimal arithmetic and `COMPLETE / UNCERTAIN / INCOMPLETE` aggregate states.
+- Product-facing retailer comparison/readiness model that always preserves all canonical retailers and keeps provider/acquisition identifiers internal.
+- Stateless `POST /api/v1/comparison-previews` manual-list comparison API, synchronized OpenAPI/generated TypeScript client and responsive web journey.
+- Desktop/mobile Playwright critical-journey coverage for ready, uncertain, incomplete, unavailable, unmatched, ambiguous, package-unknown and unit-mismatch paths.
+
+#### Structured package evidence
+
+- Optional canonical package quantity on `ObservedOffer`, preserved through immutable `OfferSnapshot` and projected into `PackageQuantitySet` from snapshot evidence.
+- Runtime invariant rejecting a parallel package-evidence set when it disagrees with snapshots.
+- Regression coverage proving presentation names such as `970мл` or `1,5л` do not create package evidence.
+- Pure Magnit exact-characteristic semantics for `Вес, кг` / `Объем, л`, including explicit `FOUND`, `MISSING`, `AMBIGUOUS_DIMENSIONS`, `CONFLICTING_VALUES` and `INVALID_VALUE` states.
+- Magnit 20-product × 2-shop fixed-corpus package instrumentation that separates transport/identity failure from missing metadata.
+- SKU-bound Magnit JSON-LD package extraction from the same PUBLIC_WEB response using exact `Product.sku`, proven scalar `weight` and exact `additionalProperty[name="Объем, л"]` semantics.
+- Finite JSON-LD corpus evidence: 40/40 HTTP 2xx and usable observations, 20/20 stable identity, 36/40 `FOUND`, 0 `MISSING`, 4 explicit multi-dimensional ambiguities, 0 conflicts and 0 invalid values.
+- Diagnostic evidence identifying the four ambiguity observations as milk SKU `1000013732` and kefir SKU `1000330180` in both shop contexts; structured egg mass remains mass rather than count.
+
+#### Magnit location/store context
+
+- Deterministic public Magnit geographic primitives and exact `box` request contract for `POST /webgate/v1/stores-facade/search`.
+- Sanitized response parser accepting only `items.items[].externalId.storeCode + coordinates` and rejecting conflicting store identity evidence.
+- Fail-closed store resolution semantics: zero → `NO_STORES`, exactly one → `RESOLVED`, many → `AMBIGUOUS`, conflicting duplicate identity → `CONFLICTING_STORE_EVIDENCE`.
+- Provider-scoped Magnit fulfillment bindings reusing `sourceProviderId="magnit-public-page"`; `shopCode` remains internal `LocationContext.fulfillmentContextId`.
+- Explicit manual store selection using the same provider identity without introducing a first/nearest-store heuristic.
+- Test-only merged-main live gate for issue #69, runnable only by repository owner through exact issue command `/provider-probe magnit-shopcode` and never on a schedule.
+- Direct-stateless live client contract with no cookie jar, no authenticator, `Redirect.NEVER`, no Magnit application/auth headers and exactly two requests.
+- Merged-main LOCATION_RESOLUTION proof on SHA `6ff8372c9e9e61b4c48c43d0d0c159fb65ffe7a1`, workflow run `31642543544`:
+  - both responses HTTP 200;
+  - one candidate each;
+  - public `shopCode=992301` present both times;
+  - no response `Set-Cookie` in either attempt;
+  - identical candidate-code sets;
+  - no conflicting evidence;
+  - exactly two requests;
+  - focused tests 3/3 PASS and Maven `BUILD SUCCESS`.
+
+#### Retailer connectivity and engineering
+
 - Universal Retailer Connectivity design and evidence-driven acquisition-mode fallback policy.
 - Chromium MV3 retailer bridge with minimal permissions, sanitized local storage, deterministic fixtures and persistent-Chromium E2E.
 - Accepted first-party browser paths for Perekrestok v2 and Pyaterochka v1.
-- Magnit public-page Phase A/B probes and evidence establishing `AVAILABLE_PUBLIC_WEB` technical feasibility for explicit `shopCode` contexts.
-- M0 → M1 GO decision plus explicit Magnit location-resolution (#69) and production-usage-rights (#70) follow-ups.
-- M1 canonical retailer registry with separate technical coverage and production-access status.
-- M1 canonical quantities and shopping-list aggregate with stable UUID identity/order and explicit mutation semantics.
-- Provenance-complete `ObservedOffer`, deterministic provider-path orchestration and explicit expected path-failure handling.
-- Provider-neutral product location, redacted sensitive addresses and typed fulfillment-context bindings.
-- Immutable offer snapshots and freshness evidence separating observation time from optional provider-side update time.
-- Required observed `productName` evidence preserved through snapshots.
-- Deterministic exact-before-normalized product matching with explicit matched/ambiguous/unmatched states, retailer/context scoping and no fuzzy/AI baseline.
-- Explicit basket-layer package-quantity evidence keyed by `OfferSnapshotId`; absent evidence remains unknown instead of being guessed.
-- Whole-package selection using canonical quantities and exact decimal arithmetic, including ceiling package count, provided quantity and line total.
-- Single-store basket quote model with explicit per-item outcomes and `COMPLETE`, `UNCERTAIN`, `INCOMPLETE` aggregate states.
-- Basket architecture rule preventing production provider/shopping/matching/retailer modules from depending back on basket.
-- Durable basket design/plan in `docs/superpowers/specs/2026-08-12-m1-single-store-basket-design.md` and `docs/superpowers/plans/2026-08-12-m1-single-store-basket.md`.
-- Product-facing retailer comparison/readiness model that always preserves the eight canonical retailer entries and separates technical coverage, production access, runtime comparison state and product-safe failure reasons.
-- Conservative comparison freshness summary using the oldest selected observation and provider timestamps only when every selected line has trusted provider-side timestamp evidence.
-- `GET /api/v1/retailers` REST/OpenAPI contract plus synchronized generated TypeScript client path/types.
-- M1 web retailer-status surface with product-safe Russian labels, responsive semantic retailer cards and explicit service-unavailable behavior when the API cannot be reached.
-- Comparison architecture rule preventing retailer/provider/shopping/matching/basket/location production packages from depending back on the product read model.
-- Explicit web freshness evidence copy distinguishing observation-only evidence from a trusted provider-side update timestamp without inventing a stale/fresh verdict.
-- Stateless `POST /api/v1/comparison-previews` product boundary for locality-only manual shopping-list comparison.
-- Product-safe comparison preview response containing every canonical retailer and item-level resolution details without SKU, source-provider, acquisition-mode, source-reference or fulfillment-context identifiers.
-- Strict production `NoopComparisonRuntimeEvidenceSource` so the new preview journey fails closed and never falls back to fixture prices or hidden live retailer calls.
-- Deterministic test-only runtime evidence and browser mock API covering `READY`, `UNCERTAIN`, `INCOMPLETE`, `UNAVAILABLE`, unmatched, ambiguous, package-unknown and unit-mismatch cases.
-- Responsive M1 comparison form/results UI with repeatable shopping rows, typed quantities, accessible error states and a bounded server-side comparison timeout.
-- Desktop/mobile Playwright critical-journey coverage that submits a real product request shape, keeps all eight retailer results visible and verifies that internal provider identifiers do not leak.
-- Preview architecture guard preventing upstream shopping/location/provider/matching/basket/comparison/retailer production packages from depending back on `preview`, and preventing production preview code from depending on fixture/test-support namespaces.
-- Optional source-validated canonical package quantity on `ObservedOffer`, preserved unchanged through immutable `OfferSnapshot` creation.
-- Snapshot-driven `PackageQuantitySet.fromSnapshots(...)` projection that creates basket bindings only for explicit structured package evidence.
-- Runtime package-evidence derivation from snapshots so comparison fixtures and future provider paths carry one provenance-preserving source of package truth.
-- Regression coverage proving presentation names such as `Молоко 3,2%, 970мл` and `Вода 1,5л` do not create package evidence.
-- Pure Magnit source-specific `MagnitPackageQuantityExtractor` for exact visible `Характеристики` fields `Вес, кг` and `Объем, л`, with canonical kg→g and l→ml conversion.
-- Explicit Magnit package-extraction states `FOUND`, `MISSING`, `AMBIGUOUS_DIMENSIONS`, `CONFLICTING_VALUES` and `INVALID_VALUE` so source ambiguity never becomes a guessed basket quantity.
-- Magnit provider/snapshot regression proving a `FOUND` characteristic can populate #81 structured package evidence while multi-dimensional characteristics remain package-unknown.
-- Evidence note documenting official Magnit weight-only, volume-only, multi-dimensional and count-selector examples plus unchanged #69/#70 production gates.
-- Magnit fixed-corpus package-evidence instrumentation that classifies package extraction across the existing 20-product × 2-shop explicit/manual research corpus.
-- Structural `PackageEvidenceSummary` with `FOUND`, `MISSING`, `AMBIGUOUS_DIMENSIONS`, `CONFLICTING_VALUES` and `INVALID_VALUE` counters whose sum must equal the eligible package-evidence page count.
-- Aggregate Magnit evidence-line counters for eligible package pages and each package-extraction status without logging HTML, page fragments or arbitrary provider data.
-- SKU-bound Magnit JSON-LD package extractor over the same raw PUBLIC_WEB response: exact JSON-LD `Product.sku`, scalar `Product.weight` as proven kilograms and exact `additionalProperty[name="Объем, л"]` as proven liters, without browser execution or another retailer request.
-- Deterministic JSON-LD regressions for foreign-SKU isolation, duplicate deduplication, conflicts, invalid values, multi-dimensional ambiguity, malformed JSON, script media-type boundaries and rejection of title/name/description/URL/count/generic-size heuristics.
-- Finite same-corpus JSON-LD evidence: 36/40 `FOUND`, 0 `MISSING`, 4 explicit `AMBIGUOUS_DIMENSIONS`, 0 conflicts, 0 invalid values, with 40/40 HTTP 2xx and usable observations and 20/20 stable product identity.
-- Sanitized one-shop diagnostic proving the four two-shop ambiguity observations are exactly milk SKU `1000013732` and kefir SKU `1000330180`; the other fixed requirements produce structured weight/volume evidence.
+- Magnit public-page Phase A/B evidence establishing `AVAILABLE_PUBLIC_WEB` technical feasibility.
+- M0 → M1 GO decision and explicit production-access/right-to-operate follow-up #70.
+- Architecture guards protecting basket/comparison/preview dependency direction and preventing production code from depending on fixtures/test support.
 
 ### Changed
 
 - Project phase advanced from M0 Product & Integration Discovery to **M1 Shopping Core** after satisfying technical exit criteria.
-- Retailer onboarding remains transport-neutral and universal; failed direct access changes the investigated acquisition mode rather than retailer scope.
-- Kuper remains provider/aggregator provenance rather than retailer identity.
-- Shopping text remains user wording; semantic normalization is isolated in matching.
-- `ObservedOffer` remains the provider trust boundary; `OfferSnapshot` remains the immutable comparison record.
+- Retailer onboarding remains transport-neutral and universal; a failed direct path changes acquisition mode rather than retailer scope.
+- `ObservedOffer` is the provider trust boundary and `OfferSnapshot` the immutable comparison record.
 - Observation time and provider-side update time remain distinct.
 - Matching never breaks semantic ambiguity using price, availability, freshness, acquisition mode or SKU ordering.
-- Package size/quantity is modeled as explicit structured evidence and is **not** inferred from `productName`, title, URL or other presentation text, nor assumed to be one unit per SKU.
-- Existing provider integrations remain source-compatible and package-unknown unless they explicitly supply a proven structured package quantity.
-- Runtime comparison package bindings now derive from immutable snapshot evidence instead of being independently injected downstream.
-- Deterministic comparison fixtures attach package quantity at the provider observation boundary before snapshotting, mirroring the production evidence flow without live retailer access.
-- Magnit structured package semantics accept only proven source fields; simultaneous dimensions or conflicting/invalid values remain unknown rather than using category/title/density heuristics.
-- Magnit `Количество в упаковке` remains deferred pending separate source and multi-dimensional domain evidence; structured egg mass is not treated as count.
-- Magnit fixed-corpus package metrics classify only HTTP 2xx observations with expected-SKU identity evidence, so transport failures and wrong-product pages cannot dilute metadata quality as false `MISSING` cases.
-- The guarded Magnit live corpus remains exactly 20 fixed products × 2 explicit shop contexts behind an explicit opt-in; finite research evidence does not authorize recurring production polling.
-- The first visible-text corpus result (`0 FOUND / 40 MISSING`) is now correctly treated as a visible-rendering blind spot: the same raw HTTP responses expose SKU-bound JSON-LD package metadata.
-- Magnit fixed-corpus package projection now consumes the SKU-bound JSON-LD extractor while preserving the existing price/promo/availability request and identity path.
-- Package arithmetic continues to require canonical unit equality, so structured mass/volume evidence cannot satisfy a `PIECE` requirement.
-- `UNKNOWN` availability propagates into `AVAILABILITY_UNKNOWN` line state and an `UNCERTAIN` basket rather than a confirmed complete basket.
-- Incomplete single-store baskets expose no aggregate total, preventing partial-price comparisons from masquerading as complete basket prices.
-- Technical retailer connectivity no longer leaks directly into the product/API contract: public readiness uses stable coverage/access/comparison states and finite product-safe reason codes instead of provider IDs, acquisition modes or source references.
-- The home page now makes the stateless comparison preview the primary M1 action instead of the previous readiness-only surface.
-- The critical browser journey is driven through the generated OpenAPI client and the same product-safe comparison vocabulary as the core/read model.
-- Production comparison evidence remains deliberately no-op/fail-closed; deterministic source extraction and corpus instrumentation do not activate recurring retailer polling.
-- Active Magnit engineering focus moves from package-source discovery to shipping #85, then location → public `shopCode` (#69), while production usage rights (#70) remain separately unresolved.
+- Package quantity is modeled only as explicit structured evidence; product names, URLs, slugs, category and other presentation text are non-authoritative.
+- Existing integrations remain package-unknown unless they provide a proven structured quantity.
+- Magnit visible-text corpus result `0 FOUND / 40 MISSING` is treated as a rendering blind spot because the same raw responses contain SKU-bound JSON-LD package metadata.
+- Magnit corpus projection now consumes the JSON-LD extractor without changing price/promo/availability request or identity semantics.
+- Package arithmetic requires canonical unit equality; mass/volume evidence cannot satisfy a `PIECE` requirement.
+- `UNKNOWN` availability propagates into an uncertain basket instead of confirmed availability.
+- Incomplete baskets expose no aggregate total and cannot masquerade as complete winners.
+- The home page now centers the stateless comparison journey rather than readiness-only status.
+- Production comparison evidence remains deliberately no-op/fail-closed; deterministic extraction and finite live research do not activate recurring retailer polling.
+- Magnit technical location resolution for the proven bbox/store-selection boundary is now **accepted (#69)** after deterministic #86, test/workflow #87 and merged-main live reproduction.
+- Automatic arbitrary text/address → coordinates remains intentionally unimplemented because no acceptable public contract was proven.
+- Active Magnit M1 focus moves to **#70 production usage/right-to-operate**. Technical feasibility and a public endpoint do not silently authorize recurring acquisition.
 
 ### Fixed
 
 - Provider offer validation rejects provenance/context mismatches before comparison logic.
 - Precise addresses are excluded from default string representations and provider routing.
 - Snapshot freshness rejects provider timestamps after observation time.
-- Semantic matching rejects cross-retailer/context candidate mixing.
-- Impossible matching result combinations fail closed at construction.
-- Package-quantity bindings validate null elements before immutable-copy construction, preserving deterministic diagnostic failures.
-- Duplicate package evidence for one snapshot fails closed.
-- Package selection rejects incompatible canonical units.
-- Mixed currencies across selected basket lines fail closed.
-- Incomplete basket states cannot carry a basket total by construction.
-- Product comparison evidence rejects cross-retailer or structurally impossible provider/basket combinations.
-- Public comparison views reject impossible status/coverage/access/total/freshness combinations instead of relying only on assembler correctness.
-- Comparison reason codes are constrained to the semantics of their status and coverage/access gate: uncertain availability, item-level incomplete causes, and one matching unavailable cause.
-- `RetailerFreshness` rejects basis/provider-timestamp contradictions and provider update timestamps after the observation time.
-- Incomplete/unavailable product comparison states cannot expose a misleading aggregate total or freshness summary.
-- Responsive Playwright coverage distinguishes product service-unavailable alerts from framework route announcements while preserving accessible alert semantics.
-- Critical-journey Playwright item-gap assertions are scoped to the relevant retailer card with exact text matching, avoiding collisions between item labels and explanatory retailer reason copy.
-- Runtime evidence rejects an explicit package-quantity set when it differs from the structured quantities preserved by its snapshots, preventing two package-evidence sources from silently diverging.
-- Magnit package extraction ignores title/slug/description/script/style numbers and fails closed on weight+volume or conflicting supported characteristics.
-- Magnit fixed-corpus package reporting excludes non-2xx and wrong-identity observations instead of misclassifying transport/identity failures as missing package metadata.
-- Magnit JSON-LD extraction ignores foreign Product nodes and unproven schema/presentation fields, preserving exact-SKU provenance through package evidence.
+- Semantic matching rejects cross-retailer/context candidate mixing and impossible result combinations.
+- Package bindings reject duplicate/invalid evidence and incompatible canonical units.
+- Mixed currencies fail closed.
+- Incomplete comparison states cannot expose misleading totals or freshness summaries.
+- Public comparison/readiness objects reject impossible coverage/access/status combinations.
+- Comparison preview rejects unknown JSON request fields instead of silently ignoring client-controlled data.
+- Browser E2E item-gap assertions are retailer-scoped to avoid copy collisions.
+- Magnit package extraction ignores foreign SKU nodes and unproven fields; conflicting/multi-dimensional values never become guessed quantities.
+- Magnit corpus metrics exclude non-2xx and wrong-identity pages rather than counting them as missing metadata.
+- Magnit store-search request constructors enforce the proven bbox/store-type invariants even when nested records are instantiated directly.
+- Magnit store response parsing deduplicates equivalent candidates and exposes conflicting identity evidence instead of choosing an arbitrary record.
+- Issue #69 was reopened after GitHub auto-closed it on #86 merge; it remained open until its own merged-main live acceptance contract was satisfied.
 
 ## [0.1.0-rc.2] — 2026-08-09
 
