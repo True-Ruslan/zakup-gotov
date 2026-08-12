@@ -26,18 +26,17 @@ Final technical exit status:
 - retailer-neutral connectivity architecture proven;
 - known limitations recorded rather than hidden.
 
-Magnit final evidence: [`integrations/magnit-public-page-phase-b-live-2026-08-12.md`](integrations/magnit-public-page-phase-b-live-2026-08-12.md).
-
 M0 completion is technical feasibility, not production access clearance. Issues #69, #70 and #54 remain explicit constraints/hardening work.
 
 ## M1 — Shopping Core — CURRENT
 
-Goal: compare a manually entered grocery list across connected retailers while preserving explicit coverage state, fulfillment context, provenance, freshness and uncertainty.
+Goal: compare a manually entered grocery list across connected retailers while preserving explicit coverage state, privacy-safe location input, fulfillment context, provenance, freshness and uncertainty.
 
 ### Entry rules
 
 - fixture-first provider orchestration;
 - unavailable/blocked registry entries remain visible;
+- product location stays provider-neutral and precise addresses are redacted by default;
 - retailer identity, source-provider identity, acquisition mode and fulfillment context remain distinct;
 - `UNKNOWN` availability remains first-class;
 - observation time is not misrepresented as provider update time;
@@ -62,29 +61,31 @@ Goal: compare a manually entered grocery list across connected retailers while p
    - non-positive quantities rejected;
    - package/container selection deliberately deferred to matching/basket optimization.
 3. **Provider/path orchestration over deterministic fixtures — COMPLETE (PR #74)**
-   - `ObservedOffer` preserves explicit `retailerId`, `sourceProviderId` and acquisition/source mode;
-   - `RetailerProvider` declares retailer, source provider and acquisition mode separately;
+   - explicit `retailerId`, `sourceProviderId` and acquisition/source mode on `ObservedOffer`;
    - deterministic priority `DIRECT_API → AGGREGATOR → PUBLIC_WEB → BROWSER_BRIDGE`;
-   - stable source-provider tie-break for same-mode candidates;
    - capability-aware and provider-context-aware eligibility;
-   - explicit attempt states for missing capabilities, missing context, expected failure and success;
-   - fallback only on explicit expected path-unavailable failure;
-   - successful empty search does not mix/fallback to another provider;
-   - unexpected provider defects propagate;
-   - trust boundary rejects retailer/source-provider/source-mode/fulfillment-context provenance mismatch;
+   - explicit attempt outcomes;
+   - fallback only on expected path-unavailable failure;
+   - successful empty search does not mix providers;
+   - unexpected defects propagate;
+   - trust boundary rejects provenance mismatch;
    - live adapters remain outside ordinary CI.
-4. **Location / fulfillment-context boundary — NEXT**
-   - provider-neutral product location input;
-   - provider-scoped context resolution/selection;
-   - explicit/manual contexts where automatic resolution is unavailable;
-   - no `shopCode`, X5 store IDs or other provider identifiers leaking into shopping/basket logic;
-   - precise user addresses stay out of fixtures/logs by default.
-5. **Price and availability snapshots**
-   - observation time;
-   - currency/price representation;
+4. **Location / fulfillment-context boundary — COMPLETE (PR #75)**
+   - opaque provider-neutral `ProductLocationId`;
+   - `ProductLocation` with locality and optional redacted `SensitiveAddress`;
+   - explicit `reveal()` for sensitive address use, default string/log representation `[REDACTED]`;
+   - ArchUnit prevents `location` production code from depending on provider/retailer packages;
+   - typed `FulfillmentContextBinding` and `FulfillmentContextSet` link only opaque location identity to provider-scoped contexts;
+   - manual and resolved context-selection modes are explicit without claiming universal automatic resolution;
+   - duplicate provider contexts and cross-location bindings fail closed;
+   - provider orchestrator consumes typed context sets, not raw provider maps or exact addresses.
+5. **Price and availability snapshots — NEXT**
+   - immutable snapshot identity/value boundary;
+   - observation time distinct from provider-side freshness/update time;
    - explicit availability including `UNKNOWN`;
-   - source and fulfillment-context provenance;
-   - freshness limitations surfaced to callers/UI.
+   - retailer/source-provider/acquisition-mode/fulfillment-context provenance;
+   - currency/price validation and fail-closed temporal/provenance validation;
+   - fixture-first snapshot tests with no live retailer dependency.
 6. **Deterministic product-matching baseline**
    - exact/normalized matching first;
    - explicit ambiguous/unmatched state;
@@ -104,21 +105,6 @@ Goal: compare a manually entered grocery list across connected retailers while p
    - compare available retailers;
    - inspect missing coverage/freshness/provenance honestly.
 
-### Scope
-
-- shopping list CRUD;
-- canonical units/quantities;
-- address/location input;
-- retailer registry and coverage-state visibility;
-- provider/path orchestration;
-- deterministic product matching baseline;
-- package/quantity selection baseline;
-- price and availability snapshots;
-- complete-basket comparison;
-- partial-provider failure UX;
-- data freshness UX;
-- provenance UX for aggregator, public-web and browser-assisted observations.
-
 ### Exit criteria
 
 - critical journey covered by automated integration and browser E2E tests;
@@ -126,6 +112,7 @@ Goal: compare a manually entered grocery list across connected retailers while p
 - one-store ranking deterministic and explainable;
 - unavailable retailer coverage explicit;
 - no test or user path requires hidden live retailer access;
+- product location remains provider-neutral and precise user addresses are not leaked into provider routing/logs;
 - provider provenance, fulfillment context and freshness survive through basket comparison.
 
 ## M2 — Recipes

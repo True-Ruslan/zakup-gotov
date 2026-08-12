@@ -4,7 +4,6 @@ import io.github.trueruslan.zakupgotov.retailer.RetailerId;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
-import java.util.Map;
 import java.util.Objects;
 
 public final class ProviderPathOrchestrator {
@@ -18,11 +17,11 @@ public final class ProviderPathOrchestrator {
     public ProviderSearchOutcome search(
             RetailerId retailerId,
             List<FixtureRetailerProvider> providers,
-            Map<String, LocationContext> contextsBySourceProvider,
+            FulfillmentContextSet fulfillmentContexts,
             ProductQuery query) {
         Objects.requireNonNull(retailerId, "retailerId must not be null");
         Objects.requireNonNull(providers, "providers must not be null");
-        Objects.requireNonNull(contextsBySourceProvider, "contextsBySourceProvider must not be null");
+        Objects.requireNonNull(fulfillmentContexts, "fulfillmentContexts must not be null");
         Objects.requireNonNull(query, "query must not be null");
 
         var candidates = providers.stream()
@@ -42,7 +41,7 @@ public final class ProviderPathOrchestrator {
                 continue;
             }
 
-            var location = contextsBySourceProvider.get(provider.sourceProviderId());
+            var location = fulfillmentContexts.contextFor(provider.sourceProviderId()).orElse(null);
             if (location == null) {
                 attempts.add(attempt(provider, ProviderPathAttemptStatus.MISSING_CONTEXT));
                 continue;
