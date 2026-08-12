@@ -1,10 +1,22 @@
 import { expect, test } from "@playwright/test";
 
-test("renders the honest product shell without horizontal overflow", async ({ page }) => {
+const serviceUnavailableMessage =
+  "Не удалось загрузить статус магазинов. Основной сервис временно недоступен.";
+
+test("renders the honest M1 retailer status without horizontal overflow", async ({ page }) => {
   await page.goto("/");
 
   await expect(page.getByRole("heading", { level: 1, name: "Закуп готов" })).toBeVisible();
-  await expect(page.getByText(/проверяем интеграции с магазинами/i)).toBeVisible();
+  await expect(page.getByText(/M1 · Shopping Core/i)).toBeVisible();
+  await expect(page.getByRole("heading", { level: 2, name: "Покрытие магазинов" })).toBeVisible();
+
+  const serviceAlert = page.getByRole("alert").filter({
+    hasText: serviceUnavailableMessage,
+  });
+  await expect(serviceAlert).toHaveCount(1);
+  await expect(serviceAlert).toHaveText(serviceUnavailableMessage);
+  await expect(page.getByRole("list", { name: "Статус магазинов" })).toHaveCount(0);
+  await expect(page.getByRole("heading", { level: 3 })).toHaveCount(0);
 
   const overflowsHorizontally = await page.evaluate(
     () => document.documentElement.scrollWidth > document.documentElement.clientWidth,

@@ -21,6 +21,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/retailers": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get canonical retailer coverage and comparison readiness */
+        get: operations["getRetailerReadiness"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -31,6 +48,42 @@ export interface components {
             /** @enum {string} */
             status: "UP";
         };
+        RetailerReadinessResponse: {
+            retailers: components["schemas"]["RetailerReadinessItem"][];
+        };
+        RetailerReadinessItem: {
+            id: components["schemas"]["RetailerId"];
+            displayName: string;
+            coverage: components["schemas"]["RetailerCoverageStatus"];
+            productionAccess: components["schemas"]["RetailerProductionAccessStatus"];
+            comparisonStatus: components["schemas"]["RetailerComparisonStatus"];
+            reasons: components["schemas"]["RetailerComparisonReason"][];
+            total?: components["schemas"]["BasketTotal"];
+            freshness?: components["schemas"]["RetailerFreshness"];
+        };
+        /** @enum {string} */
+        RetailerId: "pyaterochka" | "perekrestok" | "chizhik" | "magnit" | "lenta" | "vkusvill" | "ozon-fresh" | "samokat";
+        /** @enum {string} */
+        RetailerCoverageStatus: "CONNECTED" | "DISCOVERY" | "DEGRADED" | "BLOCKED";
+        /** @enum {string} */
+        RetailerProductionAccessStatus: "READY" | "PENDING" | "BLOCKED";
+        /** @enum {string} */
+        RetailerComparisonStatus: "READY" | "UNCERTAIN" | "INCOMPLETE" | "UNAVAILABLE";
+        /** @enum {string} */
+        RetailerComparisonReason: "COVERAGE_DISCOVERY" | "COVERAGE_DEGRADED" | "COVERAGE_BLOCKED" | "PRODUCTION_ACCESS_PENDING" | "PRODUCTION_ACCESS_BLOCKED" | "DATA_NOT_AVAILABLE" | "SOURCE_UNAVAILABLE" | "ITEM_UNMATCHED" | "ITEM_AMBIGUOUS" | "ITEM_UNAVAILABLE" | "PACKAGE_QUANTITY_UNKNOWN" | "QUANTITY_UNIT_MISMATCH" | "AVAILABILITY_UNKNOWN";
+        BasketTotal: {
+            amount: number;
+            currencyCode: string;
+        };
+        RetailerFreshness: {
+            basis: components["schemas"]["RetailerFreshnessBasis"];
+            /** Format: date-time */
+            observedAt: string;
+            /** Format: date-time */
+            providerUpdatedAt?: string;
+        };
+        /** @enum {string} */
+        RetailerFreshnessBasis: "OBSERVATION_ONLY" | "PROVIDER_TIMESTAMP";
     };
     responses: never;
     parameters: never;
@@ -56,6 +109,26 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["SystemInfo"];
+                };
+            };
+        };
+    };
+    getRetailerReadiness: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Canonical retailer readiness information */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RetailerReadinessResponse"];
                 };
             };
         };
