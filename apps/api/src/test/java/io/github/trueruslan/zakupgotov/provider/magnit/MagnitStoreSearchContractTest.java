@@ -46,6 +46,28 @@ class MagnitStoreSearchContractTest {
     }
 
     @Test
+    void directNestedConstructionCannotBypassBoundingBoxGeometry() {
+        assertThatThrownBy(() -> new MagnitStoreSearchRequest.GeoFilter(
+                        "box",
+                        new MagnitGeoPoint(54.0, 37.0),
+                        new MagnitGeoPoint(55.0, 38.0)))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("latitude");
+    }
+
+    @Test
+    void directNestedConstructionCannotReplaceTheProvenStoreTypeContract() {
+        var geo = new MagnitStoreSearchRequest.GeoFilter(
+                "box",
+                new MagnitGeoPoint(55.0, 37.0),
+                new MagnitGeoPoint(54.0, 38.0));
+
+        assertThatThrownBy(() -> new MagnitStoreSearchRequest.Filters(geo, List.of("MM")))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("storeTypeListV2");
+    }
+
+    @Test
     void geoPointRejectsNonFiniteAndOutOfRangeCoordinates() {
         for (var latitude : List.of(Double.NaN, Double.POSITIVE_INFINITY, -90.0001, 90.0001)) {
             assertThatThrownBy(() -> new MagnitGeoPoint(latitude, 37.6))
