@@ -55,7 +55,8 @@ All notable project changes are recorded here. Zakup Gotov is pre-release; entri
 - Chromium MV3 retailer bridge with minimal permissions, sanitized local storage, deterministic fixtures and persistent-Chromium E2E.
 - Accepted first-party browser paths for Perekrestok v2 and Pyaterochka v1.
 - Magnit public-page Phase A/B evidence establishing `AVAILABLE_PUBLIC_WEB` technical feasibility.
-- M0 → M1 GO decision and explicit production-access/right-to-operate follow-up #70.
+- M0 → M1 GO decision and explicit production-access/right-to-operate gate.
+- Magnit right-to-operate decision memo documenting why recurring production public-web reuse remains disabled pending affirmative permission or licensed/supported access terms.
 - Architecture guards protecting basket/comparison/preview dependency direction and preventing production code from depending on fixtures/test support.
 
 ### Changed
@@ -74,9 +75,12 @@ All notable project changes are recorded here. Zakup Gotov is pre-release; entri
 - Incomplete baskets expose no aggregate total and cannot masquerade as complete winners.
 - The home page now centers the stateless comparison journey rather than readiness-only status.
 - Production comparison evidence remains deliberately no-op/fail-closed; deterministic extraction and finite live research do not activate recurring retailer polling.
-- Magnit technical location resolution for the proven bbox/store-selection boundary is now **accepted (#69)** after deterministic #86, test/workflow #87 and merged-main live reproduction.
+- Magnit technical location resolution for the proven bbox/store-selection boundary is **accepted (#69)** after deterministic #86, test/workflow #87 and merged-main live reproduction.
 - Automatic arbitrary text/address → coordinates remains intentionally unimplemented because no acceptable public contract was proven.
-- Active Magnit M1 focus moves to **#70 production usage/right-to-operate**. Technical feasibility and a public endpoint do not silently authorize recurring acquisition.
+- Magnit remains technically `AVAILABLE_PUBLIC_WEB`, but its production-access state changes from `UNRESOLVED` to **`BLOCKED` by Zakup Gotov product policy (#70)** because current authoritative evidence does not establish affirmative permission for the intended recurring production catalog-acquisition/reuse model.
+- Product-facing retailer readiness now exposes Magnit as `CONNECTED + BLOCKED + UNAVAILABLE` with reason `PRODUCTION_ACCESS_BLOCKED`, without totals or freshness evidence.
+- `BLOCKED` is explicitly an operational fail-closed state, not a claim that Magnit has expressly forbidden every automated HTTP request or that the intended use has been adjudicated unlawful.
+- The next M1 step is the final end-to-end acceptance pass; M2 Recipes begins only after an explicit GO decision.
 
 ### Fixed
 
