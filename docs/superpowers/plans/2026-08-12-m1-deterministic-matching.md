@@ -1,6 +1,6 @@
 # M1 Deterministic Product Matching Implementation Plan
 
-Status: **IMPLEMENTED — final repository shipping gate pending on docs-synchronized head**
+Status: **COMPLETE — final marker head must satisfy branch protection before merge**
 
 **Goal:** Preserve human product labels through the validated provider/snapshot pipeline and add a conservative deterministic exact/normalized matcher for one retailer + fulfillment context.
 
@@ -64,19 +64,26 @@ Evidence:
 - RED head `dc96540025d495979ad4e160c35a08fa5bc83600` produced 31 compile errors, all for the absent matcher/result/scope contract; the completed normalizer compiled.
 - GREEN head `cb74528f44822f744cce91a04429d17a7ac56d75` added the deterministic matcher and structural result invariants; full Maven `verify` passed.
 
-## Task 4 — architecture boundary and durable docs — IMPLEMENTED
+## Task 4 — architecture, durable docs and shipping — COMPLETE EXCEPT MARKER GATE/MERGE
 
 - [x] Add ArchUnit rule: production provider/shopping/retailer must not depend on matching.
 - [x] Run full Maven `verify` with architecture rule.
 - [x] Synchronize `PROJECT_STATE.md`, `ROADMAP.md`, `CHANGELOG.md` and this plan.
-- [ ] Run full exact-head repository CI/security gate.
-- [ ] Perform read-only Change Review.
-- [ ] Record final shipping evidence in this plan and re-run marker-head gate.
+- [x] Run full exact-head repository CI/security gate.
+- [x] Perform read-only Change Review.
+- [x] Record final shipping evidence in this plan.
+- [ ] Require the docs-only marker head to pass branch-protection checks again.
 - [ ] Mark PR ready and squash merge with expected-head SHA guard.
 
 Architecture evidence:
 
 - Head `a7a7a1ce153c4c429a0ec331346040d3ecd5f2e4` added `MatchingBoundaryArchitectureTest`; full Maven `verify` passed.
+
+Shipping evidence:
+
+- Docs-synchronized exact head `9fb998086b49f9760b57febfe33caefe1a0b049c` passed API CI, Contract CI, Web CI + Web E2E, CodeQL Java + JavaScript/TypeScript, Dependency Review, Retailer Bridge CI, Container Security API + Web, Release Bundle CI and Release Contract CI.
+- Read-only Change Review on that implementation found no P0/P1/P2 blockers: product labels are observed evidence rather than query/SKU synthesis; matching normalization remains package-local; cross-retailer/context mixing fails closed; no price/availability/freshness/source-mode/SKU semantic tie-break exists; no fuzzy/AI behavior is hidden in the baseline; upstream module direction is protected by ArchUnit.
+- This marker commit changes only historical shipping evidence. Its exact head must still pass branch protection before merge.
 
 ## Delivered behavior
 
@@ -94,5 +101,3 @@ Architecture evidence:
 ## Next after merge
 
 M1 moves to **complete single-store basket comparison**, beginning with deterministic package/quantity selection and explicit complete/incomplete basket semantics. Delivery fees/minimum-order rules remain out until supported evidence exists.
-
-Final repository gate and Change Review on the docs-synchronized exact head are the remaining shipping requirements before squash merge.
