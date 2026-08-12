@@ -1,11 +1,6 @@
-import { RetailerCoverageSection } from "./retailer-coverage";
-import { loadRetailerReadiness } from "./retailer-readiness";
+import { ComparisonPreviewForm } from "./comparison-preview-form";
 
-export const dynamic = "force-dynamic";
-
-export default async function Home() {
-  const retailerState = await loadRetailerReadiness();
-
+export default function Home() {
   return (
     <main className="min-h-screen bg-stone-50 text-stone-950">
       <div className="mx-auto w-full max-w-5xl px-6 py-16 sm:px-10 lg:px-16 lg:py-24">
@@ -19,9 +14,9 @@ export default async function Home() {
           </h1>
 
           <p className="mt-6 max-w-xl text-lg leading-8 text-stone-600 sm:text-xl">
-            Список покупок, сопоставление товаров и расчёт одной корзины уже
-            работают в ядре. Теперь показываем, какие магазины действительно
-            готовы к сравнению и где данных пока недостаточно.
+            Соберите список покупок и сравните, что действительно можно посчитать
+            по подтверждённым данным магазинов. Неполные корзины и неопределённость
+            остаются видимыми.
           </p>
 
           <section
@@ -32,14 +27,14 @@ export default async function Home() {
               Сейчас
             </h2>
             <p className="mt-2 text-base leading-7 text-stone-600">
-              Статус каждого магазина остаётся видимым: подключение источника,
-              готовность использования данных и неопределённость не скрываются
-              ради красивого результата.
+              Сравнение работает как stateless preview: без аккаунта и сохранения
+              адреса. Если для магазина нет безопасных данных, мы не подставляем
+              фиктивную цену.
             </p>
           </section>
         </div>
 
-        <RetailerCoverageSection state={retailerState} />
+        <ComparisonPreviewForm />
 
         <a
           href="https://github.com/True-Ruslan/zakup-gotov#readme"
