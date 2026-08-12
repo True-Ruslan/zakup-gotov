@@ -52,7 +52,7 @@ Goal: compare a manually entered grocery list across connected retailers while p
    - retailer/context-scoped exact-before-normalized matching;
    - explicit matched/ambiguous/unmatched states;
    - no semantic tie-break by price/availability/freshness/SKU and no fuzzy/AI baseline.
-7. **Complete single-store basket comparison — COMPLETE (#78 implementation; shipping gate pending)**
+7. **Complete single-store basket comparison — COMPLETE (#78)**
    - explicit package-quantity evidence keyed by snapshot identity;
    - no package-size parsing from product names and no one-SKU-equals-one-requirement assumption;
    - canonical unit-safe whole-package `ceil(required/package)` selection;
@@ -63,20 +63,27 @@ Goal: compare a manually entered grocery list across connected retailers while p
    - incomplete baskets expose no aggregate total;
    - mixed selected currencies fail closed;
    - architecture rule prevents upstream provider/shopping/matching/retailer dependence on basket.
-8. **Failure / coverage / freshness product + API + UX boundary — NEXT**
-   - product-facing retailer comparison/read model;
-   - explicit connected/discovery/blocked/unavailable coverage representation;
-   - provider attempt/failure information translated to product-safe outcomes;
-   - basket complete/uncertain/incomplete and matching ambiguity surfaced honestly;
-   - observation-only vs provider-timestamp freshness surfaced without fake precision;
-   - contract-first API shape and generated client integration;
-   - no UI that silently hides missing retailers or unresolved production access.
-9. **Critical-journey browser E2E**
-   - enter list;
-   - choose location/context where supported;
-   - compare visible retailer states/quotes;
-   - inspect incomplete/uncertain/freshness/provenance outcomes;
-   - prove responsive desktop/mobile journey.
+8. **Failure / coverage / freshness product + API + UX boundary — IMPLEMENTED (#79; shipping gate pending)**
+   - product-facing retailer comparison/readiness model;
+   - all eight canonical retailers remain visible in stable registry order;
+   - technical coverage and production-access readiness map independently;
+   - explicit `READY`, `UNCERTAIN`, `INCOMPLETE`, `UNAVAILABLE` comparison states and finite product-safe reasons;
+   - provider-path failures translate to stable product reasons without provider ID/acquisition/source leakage;
+   - basket complete/uncertain/incomplete semantics remain fail-closed;
+   - conservative observation/provider timestamp aggregation without invented stale thresholds;
+   - `GET /api/v1/retailers` REST contract;
+   - OpenAPI + generated TypeScript client synchronization;
+   - dynamic M1 Next.js status surface using `API_BASE_URL` server-side;
+   - API failure renders accessible service-unavailable state without fake retailer cards/prices;
+   - responsive desktop/mobile browser acceptance protects focus visibility and horizontal layout.
+9. **Critical product journey — NEXT after #79 ships**
+   - enter/edit a manual shopping list through a stable API/product boundary;
+   - choose provider-neutral location and fulfillment context where supported;
+   - execute deterministic comparison using the completed provider/snapshot/matching/basket/read-model layers;
+   - render every canonical retailer with `READY`, `UNCERTAIN`, `INCOMPLETE` or `UNAVAILABLE` state;
+   - expose item-level incomplete/ambiguous/package-unknown reasons without internal provider implementation details;
+   - preserve freshness and production-access restrictions;
+   - prove the journey in responsive desktop/mobile Playwright without hidden live retailer dependencies.
 
 ### Important remaining basket-data limitation
 
