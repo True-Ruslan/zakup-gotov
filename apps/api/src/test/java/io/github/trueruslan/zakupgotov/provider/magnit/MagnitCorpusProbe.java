@@ -13,6 +13,7 @@ import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.regex.Pattern;
 
@@ -111,6 +112,7 @@ final class MagnitCorpusProbe {
         var nearSkuPromoMarkerObservations = 0;
         var priceBoundPromoMarkerObservations = 0;
         var failedRequirements = new ArrayList<String>();
+        var packageExtractions = new ArrayList<MagnitPackageQuantityExtraction>();
 
         for (var item : FIXED_CORPUS) {
             var first = observe(item, firstShop);
@@ -127,6 +129,12 @@ final class MagnitCorpusProbe {
             }
             if (second.usable()) {
                 secondUsable++;
+            }
+            if (first.packageEvidenceEligible()) {
+                packageExtractions.add(first.observation().packageExtraction());
+            }
+            if (second.packageEvidenceEligible()) {
+                packageExtractions.add(second.observation().packageExtraction());
             }
             if (first.http2xx() && second.http2xx()
                     && first.observation().skuEvidence()
@@ -181,6 +189,7 @@ final class MagnitCorpusProbe {
                 nearSkuMultiplePriceObservations,
                 nearSkuPromoMarkerObservations,
                 priceBoundPromoMarkerObservations,
+                PackageEvidenceSummary.summarize(packageExtractions),
                 List.copyOf(failedRequirements));
     }
 
@@ -243,7 +252,8 @@ final class MagnitCorpusProbe {
                 currentPrice,
                 regularPrice,
                 promo,
-                availability);
+                availability,
+                MagnitPackageQuantityExtractor.extract(html));
     }
 
     static RawShapeEvidence inspectNearSkuRawShape(String html, String expectedSku) {
@@ -379,10 +389,21 @@ final class MagnitCorpusProbe {
             Optional<BigDecimal> currentPrice,
             Optional<BigDecimal> regularPrice,
             boolean promo,
-            Availability availability) {
+            Availability availability,
+            MagnitPackageQuantityExtraction packageExtraction) {
+
+        PageObservation {
+            packageExtraction = Objects.requireNonNull(packageExtraction, "packageExtraction must not be null");
+        }
 
         static PageObservation missingSku() {
-            return new PageObservation(false, Optional.empty(), Optional.empty(), false, Availability.UNKNOWN);
+            return new PageObservation(
+                    false,
+                    Optional.empty(),
+                    Optional.empty(),
+                    false,
+                    Availability.UNKNOWN,
+                    MagnitPackageQuantityExtraction.empty(MagnitPackageQuantityStatus.MISSING));
         }
     }
 
@@ -402,6 +423,75 @@ final class MagnitCorpusProbe {
         boolean usable() {
             return http2xx() && observation.skuEvidence() && observation.currentPrice().isPresent();
         }
+
+        boolean packageEvidenceEligible() {
+            return http2xx() && observation.skuEvidence();
+        }
+    }
+
+    record PackageEvidenceSummary(
+            int packageEvidencePages,
+            int found,
+            int missing,
+            int ambiguousDimensions,
+            int conflictingValues,
+            int invalidValues) {
+
+        PackageEvidenceSummary {
+            if (packageEvidencePages < 0
+                    || found < 0
+                    || missing < 0
+                    || ambiguousDimensions < 0
+                    || conflictingValues < 0
+                    || invalidValues < 0) {
+                throw new IllegalArgumentException("package evidence counts must not be negative");
+            }
+            if (classifiedPages(found, missing, ambiguousDimensions, conflictingValues, invalidValues)
+                    != packageEvidencePages) {
+                throw new IllegalArgumentException("package evidence counts must equal eligible pages");
+            }
+        }
+
+        static PackageEvidenceSummary summarize(List<MagnitPackageQuantityExtraction> extractions) {
+            var input = Objects.requireNonNull(extractions, "extractions must not be null");
+            var found = 0;
+            var missing = 0;
+            var ambiguousDimensions = 0;
+            var conflictingValues = 0;
+            var invalidValues = 0;
+
+            for (var extraction : input) {
+                Objects.requireNonNull(extraction, "extraction must not be null");
+                switch (extraction.status()) {
+                    case FOUND -> found++;
+                    case MISSING -> missing++;
+                    case AMBIGUOUS_DIMENSIONS -> ambiguousDimensions++;
+                    case CONFLICTING_VALUES -> conflictingValues++;
+                    case INVALID_VALUE -> invalidValues++;
+                }
+            }
+
+            return new PackageEvidenceSummary(
+                    input.size(),
+                    found,
+                    missing,
+                    ambiguousDimensions,
+                    conflictingValues,
+                    invalidValues);
+        }
+
+        int classifiedPages() {
+            return classifiedPages(found, missing, ambiguousDimensions, conflictingValues, invalidValues);
+        }
+
+        private static int classifiedPages(
+                int found,
+                int missing,
+                int ambiguousDimensions,
+                int conflictingValues,
+                int invalidValues) {
+            return found + missing + ambiguousDimensions + conflictingValues + invalidValues;
+        }
     }
 
     record CorpusResult(
@@ -417,7 +507,12 @@ final class MagnitCorpusProbe {
             int nearSkuMultiplePriceObservations,
             int nearSkuPromoMarkerObservations,
             int priceBoundPromoMarkerObservations,
+            PackageEvidenceSummary packageEvidence,
             List<String> failedRequirements) {
+
+        CorpusResult {
+            packageEvidence = Objects.requireNonNull(packageEvidence, "packageEvidence must not be null");
+        }
 
         String toEvidenceLine() {
             return "MAGNIT_PHASE_B"
@@ -433,6 +528,12 @@ final class MagnitCorpusProbe {
                     + " near_sku_multi_price=" + nearSkuMultiplePriceObservations
                     + " near_sku_promo_marker=" + nearSkuPromoMarkerObservations
                     + " price_bound_promo_marker=" + priceBoundPromoMarkerObservations
+                    + " package_evidence_pages=" + packageEvidence.packageEvidencePages()
+                    + " package_found=" + packageEvidence.found()
+                    + " package_missing=" + packageEvidence.missing()
+                    + " package_ambiguous_dimensions=" + packageEvidence.ambiguousDimensions()
+                    + " package_conflicting_values=" + packageEvidence.conflictingValues()
+                    + " package_invalid_values=" + packageEvidence.invalidValues()
                     + " failed_count=" + failedRequirements.size()
                     + " failed_requirements=" + String.join(",", failedRequirements);
         }
