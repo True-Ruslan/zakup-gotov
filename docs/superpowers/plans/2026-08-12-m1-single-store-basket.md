@@ -1,6 +1,6 @@
 # M1 Single-Store Basket Comparison Implementation Plan
 
-Status: **IMPLEMENTED — final repository shipping gate pending on docs-synchronized head**
+Status: **COMPLETE — final marker head must satisfy branch protection before merge**
 
 **Goal:** Build a deterministic single-store basket quote for one retailer + fulfillment context, using explicit package-quantity evidence and preserving complete/uncertain/incomplete semantics.
 
@@ -83,19 +83,26 @@ Delivered semantics:
 - shopping item order/results immutable;
 - selection snapshot must be the matcher-selected candidate.
 
-## Task 4 — architecture, docs and shipping — IMPLEMENTED
+## Task 4 — architecture, docs and shipping — COMPLETE EXCEPT MARKER GATE/MERGE
 
 - [x] Add upstream module-direction ArchUnit rule.
 - [x] Run full Maven `verify` with architecture rule.
 - [x] Synchronize `PROJECT_STATE.md`, `ROADMAP.md`, `CHANGELOG.md` and this plan.
-- [ ] Run full exact-head repository CI/security gate.
-- [ ] Perform read-only Change Review.
-- [ ] Record final shipping evidence and rerun marker-head branch protection.
+- [x] Run full exact-head repository CI/security gate.
+- [x] Perform read-only Change Review.
+- [x] Record final shipping evidence in this plan.
+- [ ] Require this docs-only marker head to pass branch-protection checks again.
 - [ ] Mark PR ready and squash merge with expected-head SHA guard.
 
 Architecture evidence:
 
 - `d056c6e2be84534bfd881cafc58abdee3d28ea4a` adds `BasketBoundaryArchitectureTest`; full Maven `verify` passed.
+
+Shipping evidence:
+
+- Docs-synchronized exact head `b4734c994cc1af8627e27237588eea532137d950` passed API CI, Contract CI, Web CI + Web E2E, CodeQL Java + JavaScript/TypeScript, Dependency Review, Retailer Bridge CI, Container Security API + Web, Release Bundle CI and Release Contract CI.
+- Read-only Change Review found no P0/P1/P2 blockers: package quantity is never parsed/inferred from names; one SKU is not assumed to satisfy a requirement; ambiguity remains unresolved; explicit `UNAVAILABLE` wins before package math; `UNKNOWN` availability stays uncertain; package math uses canonical positive quantities and exact decimal ceiling arithmetic; incomplete quotes cannot carry a total; mixed currencies fail closed; quote scope remains one retailer/context through the matcher; upstream module direction is protected; no live retailer behavior changed.
+- This marker commit changes only historical shipping evidence. Its exact head must still pass branch protection before squash merge.
 
 ## Important limitation
 
@@ -104,5 +111,3 @@ The basket core consumes explicit trusted package-quantity evidence, but accepte
 ## Next after merge
 
 M1 moves to **failure / coverage / freshness product/API/UX semantics** before critical browser E2E. Structured package-quantity extraction remains parallel evidence-driven integration work only where a retailer/source exposes trustworthy semantics.
-
-Final repository gate and Change Review on the docs-synchronized exact head are the remaining shipping requirements before squash merge.
