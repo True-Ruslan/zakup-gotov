@@ -29,6 +29,13 @@ All notable project changes are recorded here. Zakup Gotov is pre-release; entri
 - M1 web retailer-status surface with product-safe Russian labels, responsive semantic retailer cards and explicit service-unavailable behavior when the API cannot be reached.
 - Comparison architecture rule preventing retailer/provider/shopping/matching/basket/location production packages from depending back on the product read model.
 - Explicit web freshness evidence copy distinguishing observation-only evidence from a trusted provider-side update timestamp without inventing a stale/fresh verdict.
+- Stateless `POST /api/v1/comparison-previews` product boundary for locality-only manual shopping-list comparison.
+- Product-safe comparison preview response containing every canonical retailer and item-level resolution details without SKU, source-provider, acquisition-mode, source-reference or fulfillment-context identifiers.
+- Strict production `NoopComparisonRuntimeEvidenceSource` so the new preview journey fails closed and never falls back to fixture prices or hidden live retailer calls.
+- Deterministic test-only runtime evidence and browser mock API covering `READY`, `UNCERTAIN`, `INCOMPLETE`, `UNAVAILABLE`, unmatched, ambiguous, package-unknown and unit-mismatch cases.
+- Responsive M1 comparison form/results UI with repeatable shopping rows, typed quantities, accessible error states and a bounded server-side comparison timeout.
+- Desktop/mobile Playwright critical-journey coverage that submits a real product request shape, keeps all eight retailer results visible and verifies that internal provider identifiers do not leak.
+- Preview architecture guard preventing upstream shopping/location/provider/matching/basket/comparison/retailer production packages from depending back on `preview`, and preventing production preview code from depending on fixture/test-support namespaces.
 
 ### Changed
 
@@ -43,10 +50,10 @@ All notable project changes are recorded here. Zakup Gotov is pre-release; entri
 - `UNKNOWN` availability propagates into `AVAILABILITY_UNKNOWN` line state and an `UNCERTAIN` basket rather than a confirmed complete basket.
 - Incomplete single-store baskets expose no aggregate total, preventing partial-price comparisons from masquerading as complete basket prices.
 - Technical retailer connectivity no longer leaks directly into the product/API contract: public readiness uses stable coverage/access/comparison states and finite product-safe reason codes instead of provider IDs, acquisition modes or source references.
-- The home page now reports **M1 · Shopping Core** state and reads retailer readiness through the generated API client rather than presenting the retired M0 discovery placeholder.
-- The web route is dynamic, so builds do not require a live API; missing/unreachable API fails closed to an accessible error instead of hard-coded or fabricated retailer readiness.
-- Server-side retailer-readiness requests are bounded by a 3-second abort timeout so a hanging upstream cannot leave the product status route waiting indefinitely.
-- Active M1 focus moves to the critical shopping-list → location/context → comparison browser journey after the comparison-readiness slice ships.
+- The home page now makes the stateless comparison preview the primary M1 action instead of the previous readiness-only surface.
+- The critical browser journey is driven through the generated OpenAPI client and the same product-safe comparison vocabulary as the core/read model.
+- Production comparison evidence remains deliberately no-op/fail-closed in this slice; passing deterministic acceptance does not claim live production retailer acquisition.
+- Active M1 focus moves from building the shopping-list comparison journey to trusted structured package evidence, retailer connectivity/lifecycle hardening and production-access constraints after #80 ships.
 
 ### Fixed
 
@@ -65,7 +72,8 @@ All notable project changes are recorded here. Zakup Gotov is pre-release; entri
 - Comparison reason codes are constrained to the semantics of their status and coverage/access gate: uncertain availability, item-level incomplete causes, and one matching unavailable cause.
 - `RetailerFreshness` rejects basis/provider-timestamp contradictions and provider update timestamps after the observation time.
 - Incomplete/unavailable product comparison states cannot expose a misleading aggregate total or freshness summary.
-- Responsive Playwright coverage distinguishes the product service-unavailable alert from Next.js' internal route announcer while preserving accessible alert semantics.
+- Responsive Playwright coverage distinguishes product service-unavailable alerts from framework route announcements while preserving accessible alert semantics.
+- Critical-journey Playwright item-gap assertions are scoped to the relevant retailer card with exact text matching, avoiding collisions between item labels and explanatory retailer reason copy.
 
 ## [0.1.0-rc.2] — 2026-08-09
 
