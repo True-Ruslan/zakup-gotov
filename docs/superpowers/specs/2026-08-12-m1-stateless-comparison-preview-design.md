@@ -66,7 +66,7 @@ The application layer orchestrates these modules but does not reimplement their 
 
 ### 4.3 External systems enter through ports
 
-The M1 use case introduces an application-facing runtime-evidence port. A concrete production adapter may return evidence only when a retailer path is explicitly allowed and configured.
+The M1 use case introduces an application-facing runtime-evidence port. The production adapter implemented by this slice is intentionally **no-op/fail-closed**: it returns no retailer runtime evidence and performs no live retailer calls. Activation of any real production provider path is a later, provider-specific change that must pass its own technical, legal/usage-rights, reliability, location-context, and operational gates.
 
 Future external concerns remain ports/adapters rather than domain dependencies, including:
 
@@ -82,7 +82,7 @@ Future external concerns remain ports/adapters rather than domain dependencies, 
 
 Deterministic fixture evidence is permitted only in tests/test composition.
 
-Production composition must never silently fall back to fixture prices or package quantities. When production evidence is absent, the retailer remains visible with a truthful `UNAVAILABLE`/`INCOMPLETE` reason according to the existing comparison vocabulary.
+Production composition must never silently fall back to fixture prices or package quantities. In this slice, the production evidence adapter always produces no evidence; therefore every retailer that otherwise passes coverage/access gates remains truthfully unavailable for runtime comparison instead of receiving fabricated data.
 
 Ordinary CI remains offline with respect to live retailer traffic.
 
@@ -224,7 +224,9 @@ The application service must not infer missing package quantities or availabilit
 
 ### 6.2 Production adapter
 
-The initial production adapter is fail-closed. It uses only explicitly approved/configured production paths. Retailers without a safe active path produce no fabricated runtime evidence.
+The production adapter implemented in this slice is a **strict no-op/fail-closed adapter**. For every comparison request it returns no runtime retailer evidence, performs no retailer HTTP/browser calls, and creates no synthetic offers or package quantities.
+
+This is deliberate: the vertical product/API/web journey ships before production acquisition activation. Provider-specific production activation must be introduced later behind the same evidence port after the corresponding technical, legal/usage-rights, reliability, location-context, and operational gates are explicitly satisfied.
 
 Issue-specific blockers such as Magnit location resolution and usage-rights remain blockers; this endpoint must not bypass them simply because M0 technical feasibility was proven.
 
@@ -293,9 +295,30 @@ The form must be keyboard accessible and responsive on the existing desktop/mobi
 
 ### 9.1 Client input errors
 
-Invalid request shape or validation failure returns HTTP 400 with a stable product-safe problem response.
+Invalid request shape or validation failure returns HTTP 400 with `application/problem+json` using this stable product-safe schema:
 
-No Java class names, stack traces, SQL details, provider IDs, tokens, source URLs, or raw upstream errors may be returned.
+```json
+{
+  "type": "https://zakup-gotov.dev/problems/invalid-comparison-preview",
+  "title": "Invalid comparison preview request",
+  "status": 400,
+  "code": "INVALID_COMPARISON_PREVIEW",
+  "errors": [
+    {
+      "field": "items[0].quantity.amount",
+      "message": "must be greater than 0"
+    }
+  ]
+}
+```
+
+Rules:
+
+- `type`, `title`, `status`, and `code` are always present for this validation problem;
+- `errors` contains one or more product-safe field/message pairs in deterministic field order;
+- field paths use public request field names only;
+- malformed JSON may use field `$request`;
+- no Java class names, stack traces, SQL details, provider IDs, tokens, source URLs, raw upstream errors, or internal exception messages are returned.
 
 ### 9.2 Runtime retailer failures
 
@@ -412,7 +435,7 @@ Implementation proceeds in independent RED -> GREEN checkpoints:
 2. runtime evidence port plus fail-closed production/test separation;
 3. end-to-end application orchestration using existing shopping/matching/basket/comparison layers;
 4. item-level product-safe result projection and anti-leak tests;
-5. REST integration behavior and sanitized validation failures;
+5. REST integration behavior and deterministic `application/problem+json` validation failures;
 6. OpenAPI plus generated TypeScript client;
 7. web form/state unit tests;
 8. deterministic API integration composition;
@@ -427,10 +450,11 @@ The slice is accepted only when all of the following hold:
 
 - one public request can traverse HTTP -> shopping -> location -> evidence -> snapshots -> matching -> basket -> comparison -> HTTP response;
 - all eight canonical retailers are present in stable order;
-- production without valid runtime evidence never fabricates a quote;
+- the production evidence adapter is no-op/fail-closed and never fabricates or fetches retailer evidence;
 - item-level reasons remain explicit and consistent with the retailer summary;
 - no provider/source/store implementation IDs leak through API or web;
 - locality-only comparison works without requiring a sensitive address;
+- invalid requests return the stable `INVALID_COMPARISON_PREVIEW` problem schema without internal details;
 - web users can submit, edit, add, and remove items with accessible controls;
 - desktop and mobile browser tests exercise the full deterministic critical journey;
 - API unavailable/timeout behavior is explicit and bounded;
@@ -438,9 +462,3 @@ The slice is accepted only when all of the following hold:
 - OpenAPI/generated client is synchronized;
 - Maven, web unit/type/build, Playwright, CodeQL, Dependency Review, container security, release bundle/contract, and retailer bridge gates are all green on the exact merge candidate;
 - final read-only review has no unresolved P0/P1/P2 findings.
-
-## 16. Architectural rule for future work
-
-> Do not build infrastructure for hypothetical scale prematurely, but no M1 decision may close the path to multi-user ownership, horizontal scaling, mobile clients, commercial retailer data providers, entitlement-based monetization, or provider-independent acquisition.
-
-This rule is subordinate to privacy, truthful evidence, and fail-closed behavior: future commercial potential never justifies fabricating retailer data, weakening provenance, or bypassing production access/usage-rights gates.
