@@ -13,8 +13,6 @@ import static io.github.trueruslan.zakupgotov.comparison.RetailerComparisonStatu
 import static org.assertj.core.api.Assertions.assertThat;
 
 import io.github.trueruslan.zakupgotov.basket.BasketItemResolutionStatus;
-import io.github.trueruslan.zakupgotov.basket.PackageQuantityBinding;
-import io.github.trueruslan.zakupgotov.basket.PackageQuantitySet;
 import io.github.trueruslan.zakupgotov.provider.AcquisitionMode;
 import io.github.trueruslan.zakupgotov.provider.AvailabilityStatus;
 import io.github.trueruslan.zakupgotov.provider.ObservedOffer;
@@ -130,8 +128,7 @@ class ComparisonPreviewServiceTest {
                 RetailerId.PYATEROCHKA,
                 "ctx-empty",
                 outcome,
-                List.of(),
-                PackageQuantitySet.of(List.of()));
+                List.of());
         var source = (ComparisonRuntimeEvidenceSource) (shoppingList, productLocation) ->
                 ComparisonRuntimeEvidence.of(List.of(evidence));
 
@@ -241,8 +238,7 @@ class ComparisonPreviewServiceTest {
         return new RetailerRuntimeEvidence(
                 retailerId,
                 new ProviderSearchOutcome(retailerId, Optional.empty(), List.of(), List.of()),
-                List.of(),
-                PackageQuantitySet.of(List.of()));
+                List.of());
     }
 
     private static RetailerRuntimeEvidence successfulEvidence(
@@ -250,29 +246,44 @@ class ComparisonPreviewServiceTest {
             String context,
             List<ObservedOffer> offers,
             List<Quantity> packageQuantities) {
+        var normalizedOffers = new ArrayList<ObservedOffer>();
         var snapshots = new ArrayList<OfferSnapshot>();
-        var bindings = new ArrayList<PackageQuantityBinding>();
         for (var index = 0; index < offers.size(); index++) {
-            var snapshot = OfferSnapshot.observationOnly(
+            var offer = withPackageQuantity(offers.get(index), packageQuantities.get(index));
+            normalizedOffers.add(offer);
+            snapshots.add(OfferSnapshot.observationOnly(
                     new OfferSnapshotId(UUID.nameUUIDFromBytes((retailerId + "-snapshot-" + index).getBytes())),
-                    offers.get(index));
-            snapshots.add(snapshot);
-            var packageQuantity = packageQuantities.get(index);
-            if (packageQuantity != null) {
-                bindings.add(new PackageQuantityBinding(snapshot.id(), packageQuantity));
-            }
+                    offer));
         }
         var outcome = new ProviderSearchOutcome(
                 retailerId,
                 Optional.of(new ProviderPathSelection("fixture-" + retailerId.canonicalId(), AcquisitionMode.DIRECT_API)),
-                offers,
+                normalizedOffers,
                 List.of());
         return RetailerRuntimeEvidence.withFulfillmentContext(
                 retailerId,
                 context,
                 outcome,
-                snapshots,
-                PackageQuantitySet.of(bindings));
+                snapshots);
+    }
+
+    private static ObservedOffer withPackageQuantity(ObservedOffer offer, Quantity packageQuantity) {
+        if (packageQuantity == null) {
+            return offer;
+        }
+        return new ObservedOffer(
+                offer.retailerId(),
+                offer.sourceProviderId(),
+                offer.sourceMode(),
+                offer.fulfillmentContextId(),
+                offer.sku(),
+                offer.productName(),
+                offer.price(),
+                offer.currencyCode(),
+                offer.availability(),
+                offer.observedAt(),
+                offer.sourceReference(),
+                Optional.of(packageQuantity));
     }
 
     private static ObservedOffer offer(
