@@ -62,10 +62,12 @@ class RetailerComparisonReadModelAssemblerTest {
 
         var magnit = catalog.require(RetailerId.MAGNIT);
         assertThat(magnit.coverage()).isEqualTo(RetailerCoverageStatus.CONNECTED);
-        assertThat(magnit.productionAccess()).isEqualTo(RetailerProductionAccessStatus.PENDING);
+        assertThat(magnit.productionAccess()).isEqualTo(RetailerProductionAccessStatus.BLOCKED);
         assertThat(magnit.comparisonStatus()).isEqualTo(RetailerComparisonStatus.UNAVAILABLE);
         assertThat(magnit.reasons())
-                .containsExactly(RetailerComparisonReason.PRODUCTION_ACCESS_PENDING);
+                .containsExactly(RetailerComparisonReason.PRODUCTION_ACCESS_BLOCKED);
+        assertThat(magnit.total()).isEmpty();
+        assertThat(magnit.freshness()).isEmpty();
 
         var chizhik = catalog.require(RetailerId.CHIZHIK);
         assertThat(chizhik.coverage()).isEqualTo(RetailerCoverageStatus.DISCOVERY);
@@ -135,7 +137,6 @@ class RetailerComparisonReadModelAssemblerTest {
             RetailerComparisonReason expectedReason) {
         var catalog = assembler.assembleEntries(List.of(entry), Map.of());
         var view = catalog.retailers().getFirst();
-
         assertThat(view.coverage()).isEqualTo(expectedCoverage);
         assertThat(view.productionAccess()).isEqualTo(expectedAccess);
         assertThat(view.comparisonStatus()).isEqualTo(RetailerComparisonStatus.UNAVAILABLE);
