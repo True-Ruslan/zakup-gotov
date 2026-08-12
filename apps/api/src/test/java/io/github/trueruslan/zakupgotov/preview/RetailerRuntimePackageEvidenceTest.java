@@ -1,5 +1,6 @@
 package io.github.trueruslan.zakupgotov.preview;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import io.github.trueruslan.zakupgotov.basket.PackageQuantityBinding;
@@ -24,26 +25,28 @@ import org.junit.jupiter.api.Test;
 class RetailerRuntimePackageEvidenceTest {
 
     @Test
-    void rejectsParallelPackageEvidenceThatIsAbsentFromSnapshot() {
-        var observation = new ObservedOffer(
+    void derivesRuntimePackageEvidenceFromStructuredSnapshotEvidence() {
+        var packageQuantity = new Quantity(new BigDecimal("0.97"), QuantityUnit.LITER);
+        var observation = observation(Optional.of(packageQuantity));
+        var snapshotId = new OfferSnapshotId(UUID.fromString("42424242-4242-4242-4242-424242424242"));
+        var snapshot = OfferSnapshot.observationOnly(snapshotId, observation);
+        var outcome = successfulOutcome(observation);
+
+        var evidence = new RetailerRuntimeEvidence(
                 RetailerId.PEREKRESTOK,
-                "fixture-perekrestok",
-                AcquisitionMode.DIRECT_API,
-                "store-42",
-                "sku-milk",
-                "Молоко 970мл",
-                new BigDecimal("89.99"),
-                "RUB",
-                AvailabilityStatus.AVAILABLE,
-                Instant.parse("2026-08-12T16:30:00Z"),
-                "fixture://perekrestok/milk");
+                outcome,
+                List.of(snapshot));
+
+        assertThat(evidence.packageQuantities().quantityFor(snapshotId))
+                .contains(new Quantity(new BigDecimal("970"), QuantityUnit.MILLILITER));
+    }
+
+    @Test
+    void rejectsParallelPackageEvidenceThatIsAbsentFromSnapshot() {
+        var observation = observation(Optional.empty());
         var snapshotId = new OfferSnapshotId(UUID.fromString("41414141-4141-4141-4141-414141414141"));
         var snapshot = OfferSnapshot.observationOnly(snapshotId, observation);
-        var outcome = new ProviderSearchOutcome(
-                RetailerId.PEREKRESTOK,
-                Optional.of(new ProviderPathSelection("fixture-perekrestok", AcquisitionMode.DIRECT_API)),
-                List.of(observation),
-                List.of());
+        var outcome = successfulOutcome(observation);
         var parallelEvidence = PackageQuantitySet.of(List.of(new PackageQuantityBinding(
                 snapshotId,
                 new Quantity(new BigDecimal("970"), QuantityUnit.MILLILITER))));
@@ -56,5 +59,29 @@ class RetailerRuntimePackageEvidenceTest {
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessageContaining("package quantity")
                 .hasMessageContaining("snapshot");
+    }
+
+    private static ObservedOffer observation(Optional<Quantity> packageQuantity) {
+        return new ObservedOffer(
+                RetailerId.PEREKRESTOK,
+                "fixture-perekrestok",
+                AcquisitionMode.DIRECT_API,
+                "store-42",
+                "sku-milk",
+                "Молоко 970мл",
+                new BigDecimal("89.99"),
+                "RUB",
+                AvailabilityStatus.AVAILABLE,
+                Instant.parse("2026-08-12T16:30:00Z"),
+                "fixture://perekrestok/milk",
+                packageQuantity);
+    }
+
+    private static ProviderSearchOutcome successfulOutcome(ObservedOffer observation) {
+        return new ProviderSearchOutcome(
+                RetailerId.PEREKRESTOK,
+                Optional.of(new ProviderPathSelection("fixture-perekrestok", AcquisitionMode.DIRECT_API)),
+                List.of(observation),
+                List.of());
     }
 }
