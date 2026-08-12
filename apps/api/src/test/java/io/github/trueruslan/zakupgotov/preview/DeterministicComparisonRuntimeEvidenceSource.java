@@ -1,0 +1,175 @@
+package io.github.trueruslan.zakupgotov.preview;
+
+import io.github.trueruslan.zakupgotov.basket.PackageQuantityBinding;
+import io.github.trueruslan.zakupgotov.basket.PackageQuantitySet;
+import io.github.trueruslan.zakupgotov.location.ProductLocation;
+import io.github.trueruslan.zakupgotov.provider.AcquisitionMode;
+import io.github.trueruslan.zakupgotov.provider.AvailabilityStatus;
+import io.github.trueruslan.zakupgotov.provider.ObservedOffer;
+import io.github.trueruslan.zakupgotov.provider.OfferSnapshot;
+import io.github.trueruslan.zakupgotov.provider.OfferSnapshotId;
+import io.github.trueruslan.zakupgotov.provider.ProviderPathSelection;
+import io.github.trueruslan.zakupgotov.provider.ProviderSearchOutcome;
+import io.github.trueruslan.zakupgotov.retailer.RetailerId;
+import io.github.trueruslan.zakupgotov.shopping.Quantity;
+import io.github.trueruslan.zakupgotov.shopping.QuantityUnit;
+import io.github.trueruslan.zakupgotov.shopping.ShoppingList;
+import java.math.BigDecimal;
+import java.nio.charset.StandardCharsets;
+import java.time.Instant;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
+import java.util.Objects;
+import java.util.Optional;
+import java.util.UUID;
+
+/** Test-only deterministic evidence for API/browser acceptance. Performs no network I/O. */
+final class DeterministicComparisonRuntimeEvidenceSource implements ComparisonRuntimeEvidenceSource {
+
+    private static final Instant OBSERVED_AT = Instant.parse("2026-08-12T10:00:00Z");
+
+    @Override
+    public ComparisonRuntimeEvidence load(ShoppingList shoppingList, ProductLocation productLocation) {
+        Objects.requireNonNull(shoppingList, "shoppingList must not be null");
+        Objects.requireNonNull(productLocation, "productLocation must not be null");
+
+        return ComparisonRuntimeEvidence.of(List.of(
+                completeEvidence(RetailerId.PYATEROCHKA, AvailabilityStatus.AVAILABLE),
+                completeEvidence(RetailerId.PEREKRESTOK, AvailabilityStatus.UNKNOWN),
+                packageUnknownEvidence(RetailerId.MAGNIT),
+                unmatchedEvidence(RetailerId.LENTA),
+                ambiguousEvidence(RetailerId.VKUSVILL),
+                unitMismatchEvidence(RetailerId.OZON_FRESH),
+                unavailableEvidence(RetailerId.SAMOKAT)));
+    }
+
+    private static RetailerRuntimeEvidence completeEvidence(
+            RetailerId retailerId,
+            AvailabilityStatus milkAvailability) {
+        var context = context(retailerId);
+        return successfulEvidence(
+                retailerId,
+                context,
+                List.of(
+                        offer(retailerId, context, "milk", "Молоко", "100.00", milkAvailability),
+                        offer(retailerId, context, "eggs", "Яйца", "120.00", AvailabilityStatus.AVAILABLE)),
+                List.of(
+                        new Quantity(BigDecimal.ONE, QuantityUnit.LITER),
+                        new Quantity(new BigDecimal("10"), QuantityUnit.PIECE)));
+    }
+
+    private static RetailerRuntimeEvidence packageUnknownEvidence(RetailerId retailerId) {
+        var context = context(retailerId);
+        return successfulEvidence(
+                retailerId,
+                context,
+                List.of(
+                        offer(retailerId, context, "milk", "Молоко", "90.00", AvailabilityStatus.AVAILABLE),
+                        offer(retailerId, context, "eggs", "Яйца", "110.00", AvailabilityStatus.AVAILABLE)),
+                Arrays.asList(null, new Quantity(new BigDecimal("10"), QuantityUnit.PIECE)));
+    }
+
+    private static RetailerRuntimeEvidence unmatchedEvidence(RetailerId retailerId) {
+        var context = context(retailerId);
+        return successfulEvidence(
+                retailerId,
+                context,
+                List.of(offer(retailerId, context, "bread", "Хлеб", "70.00", AvailabilityStatus.AVAILABLE)),
+                List.of(new Quantity(BigDecimal.ONE, QuantityUnit.PIECE)));
+    }
+
+    private static RetailerRuntimeEvidence ambiguousEvidence(RetailerId retailerId) {
+        var context = context(retailerId);
+        return successfulEvidence(
+                retailerId,
+                context,
+                List.of(
+                        offer(retailerId, context, "milk-a", "Молоко", "100.00", AvailabilityStatus.AVAILABLE),
+                        offer(retailerId, context, "milk-b", "Молоко", "105.00", AvailabilityStatus.AVAILABLE),
+                        offer(retailerId, context, "eggs", "Яйца", "120.00", AvailabilityStatus.AVAILABLE)),
+                List.of(
+                        new Quantity(BigDecimal.ONE, QuantityUnit.LITER),
+                        new Quantity(BigDecimal.ONE, QuantityUnit.LITER),
+                        new Quantity(new BigDecimal("10"), QuantityUnit.PIECE)));
+    }
+
+    private static RetailerRuntimeEvidence unitMismatchEvidence(RetailerId retailerId) {
+        var context = context(retailerId);
+        return successfulEvidence(
+                retailerId,
+                context,
+                List.of(
+                        offer(retailerId, context, "milk", "Молоко", "100.00", AvailabilityStatus.AVAILABLE),
+                        offer(retailerId, context, "eggs", "Яйца", "120.00", AvailabilityStatus.AVAILABLE)),
+                List.of(
+                        new Quantity(new BigDecimal("500"), QuantityUnit.GRAM),
+                        new Quantity(new BigDecimal("10"), QuantityUnit.PIECE)));
+    }
+
+    private static RetailerRuntimeEvidence unavailableEvidence(RetailerId retailerId) {
+        return new RetailerRuntimeEvidence(
+                retailerId,
+                new ProviderSearchOutcome(retailerId, Optional.empty(), List.of(), List.of()),
+                List.of(),
+                PackageQuantitySet.of(List.of()));
+    }
+
+    private static RetailerRuntimeEvidence successfulEvidence(
+            RetailerId retailerId,
+            String fulfillmentContext,
+            List<ObservedOffer> offers,
+            List<Quantity> packageQuantities) {
+        var snapshots = new ArrayList<OfferSnapshot>();
+        var bindings = new ArrayList<PackageQuantityBinding>();
+        for (var index = 0; index < offers.size(); index++) {
+            var snapshot = OfferSnapshot.observationOnly(
+                    new OfferSnapshotId(UUID.nameUUIDFromBytes(
+                            (retailerId.name() + "-acceptance-" + index).getBytes(StandardCharsets.UTF_8))),
+                    offers.get(index));
+            snapshots.add(snapshot);
+            var packageQuantity = packageQuantities.get(index);
+            if (packageQuantity != null) {
+                bindings.add(new PackageQuantityBinding(snapshot.id(), packageQuantity));
+            }
+        }
+        var outcome = new ProviderSearchOutcome(
+                retailerId,
+                Optional.of(new ProviderPathSelection(
+                        "fixture-" + retailerId.canonicalId(),
+                        AcquisitionMode.DIRECT_API)),
+                offers,
+                List.of());
+        return RetailerRuntimeEvidence.withFulfillmentContext(
+                retailerId,
+                fulfillmentContext,
+                outcome,
+                snapshots,
+                PackageQuantitySet.of(bindings));
+    }
+
+    private static ObservedOffer offer(
+            RetailerId retailerId,
+            String fulfillmentContext,
+            String sku,
+            String productName,
+            String price,
+            AvailabilityStatus availability) {
+        return new ObservedOffer(
+                retailerId,
+                "fixture-" + retailerId.canonicalId(),
+                AcquisitionMode.DIRECT_API,
+                fulfillmentContext,
+                sku,
+                productName,
+                new BigDecimal(price),
+                "RUB",
+                availability,
+                OBSERVED_AT,
+                "fixture://" + retailerId.canonicalId() + "/" + sku);
+    }
+
+    private static String context(RetailerId retailerId) {
+        return "acceptance-" + retailerId.canonicalId();
+    }
+}
