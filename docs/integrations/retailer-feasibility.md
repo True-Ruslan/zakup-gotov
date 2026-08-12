@@ -1,206 +1,169 @@
 # Retailer Feasibility Matrix
 
-Updated: 2026-08-10
-Status: M0B discovery evidence — **no retailer/provider is supported yet**
+Updated: 2026-08-12  
+Status: **M0 technical feasibility complete; M1 may start**
 
-This document records technical and usage-rights evidence for candidate retailer data paths. It is an engineering feasibility record, not legal advice.
+## Decision vocabulary
 
-## M0B integration policy
+Use explicit evidence labels rather than “seems supported” language:
 
-Zakup Gotov does **not** reject a data source merely because an API is undocumented or unofficial. A public consumer backend may be evaluated as `PUBLIC_UNOFFICIAL_API` when the ordinary web/mobile product itself uses it and the path can be exercised without bypassing access controls.
+- `AVAILABLE_BROWSER_BRIDGE` — accepted user-assisted first-party browser path;
+- `AVAILABLE_PUBLIC_WEB` — accepted ordinary public-web technical path for its documented context boundary;
+- `LIVE_PENDING` — deterministic implementation exists but real acceptance gate is outstanding;
+- `SPIKE` — feasibility work is in progress;
+- `RESEARCH` — source/path research only;
+- `UNSUITABLE_*` — investigated path failed its acceptance gate;
+- `BLOCKED` — authoritative access/usage constraint prevents the intended path;
+- `UNRESOLVED` — a required production/legal/product decision is not yet established.
 
-A public unofficial API is acceptable for an M0B spike only when all of the following remain true:
+An accepted technical M0 path is not automatically production-cleared. Usage rights, location resolution and operating constraints remain explicit dimensions.
 
-1. requests do not require stolen, forged, reverse-engineered private credentials or another user's session;
-2. no CAPTCHA bypass, anti-bot bypass, browser-fingerprint evasion, proxy rotation, IP rotation, or deliberate blocking circumvention is required;
-3. rate limits, `429`, retry hints and provider failures are respected rather than hidden;
-4. data collection is minimized to what the product needs rather than mirroring an entire retailer database by default;
-5. exact source and observation time are preserved;
-6. location/store context is explicit so prices are not presented as universal when they are store-specific;
-7. raw responses can be sanitized into deterministic fixtures without secrets or precise user-address data;
-8. current terms/usage-rights evidence does not make the intended reuse clearly unacceptable.
+## Current registry snapshot
 
-Third-party wrappers are **technical evidence only**. Their existence or MIT license does not grant rights to the retailer's underlying data and does not make their anti-bot techniques acceptable for Zakup Gotov.
-
-## Provider access types
-
-The executable provider model distinguishes:
-
-- `OFFICIAL_API` — documented API offered by the provider for the relevant use;
-- `PUBLIC_UNOFFICIAL_API` — public consumer backend used by the ordinary product, subject to the M0B restrictions above;
-- `PARTNER_API` — supported API that requires a partnership/seller/merchant agreement and may not fit a consumer comparison client.
-
-## Decision labels
-
-- `SPIKE_NOW` — enough technical evidence exists to justify a controlled M0B probe; support is still unproven.
-- `SPIKE_IF_RAW_HTTP_WORKS` — third-party evidence exists, but browser-emulation/anti-bot coupling must first be removed from the path.
-- `PROMISING_CONTACT_REQUIRED` — official integration surface exists, but access/scope/usage rights still need confirmation.
-- `PARTNER_SIDE_ONLY` — official API exists, but its documented direction is for a retailer/merchant partner rather than a read-side comparison client.
-- `BLOCKED_WITHOUT_AGREEMENT` — public consumer data exists, but current terms do not provide an acceptable production assumption for automated reuse.
-- `RESEARCH_REQUIRED` — public surface exists but the location/catalog/price path is not sufficiently characterized yet.
-- `UNSUITABLE_PUBLIC_PATH` — the required consumer path cannot be exercised without prohibited circumvention; do not build a production adapter from it.
-
-## Current matrix
-
-| Candidate | Technical evidence | Location / store evidence | Current decision | Next proof required |
+| Retailer/banner | Best current path | M0 technical status | Usage-rights / production status | Key limitations / next work |
 |---|---|---|---|---|
-| **Pyaterochka / 5ka** | Open-Inflation `pyaterochka_api` identifies `5d.5ka.ru/api` store lookup, store-scoped catalog/search/product routes and PLU identity, but performs Camoufox/browser warm-up, optional CAPTCHA interaction and captures browser-derived app/device/platform headers. Zakup Gotov independently implemented a transparent JDK HTTP probe without those techniques. | The live Phase A probe attempted the coordinate→store lookup on the researched consumer backend and received **HTTP 403** before any store ID, product search, PLU, price, fixture or corpus step. | **`UNSUITABLE_PUBLIC_PATH`** for the currently known consumer backend. | Do not bypass the 403. Reconsider only if X5/Pyaterochka publishes an acceptable API/partner path or a genuinely public non-evasive path appears. |
-| **Perekrestok** | Open-Inflation `perekrestok_api` reproduces ordinary site network calls, exposes geolocation, category tree and product feed/IDs, with schema-snapshot tests. | City/session context is demonstrated; exact store-level price/availability semantics still need independent proof. | `SPIKE_NOW` | Identify fulfillment/store selector, run the same non-evasive Phase A gate, then fixtures/corpus only if it passes. |
-| **Magnit** | Official public catalog exposes current product prices and supports a `shopCode` query parameter. | Public catalog pages with different `shopCode` values return different catalog sizes/content, strong evidence that store context matters. | `SPIKE_NOW` | Discover the ordinary backend calls used by the public catalog, then test two explicit stores with a 20-item corpus using non-evasive HTTP. |
-| **Chizhik** | Open-Inflation `chizhik_api` exposes cities, categories, products and active offers. | Geolocation/catalog APIs exist in the wrapper, but the README installs Camoufox and explicitly discusses optional proxies/imitating a regular user. | `SPIKE_IF_RAW_HTTP_WORKS` | Determine whether required catalog calls work with a plain HTTP client. If stealth/proxy rotation is required, mark the path unsuitable. |
-| **Ozon / Ozon Fresh** | Open-Inflation has an experimental `ozon_api`; Ozon also has extensive official seller APIs, but seller APIs are not the target consumer read path. | Fresh fulfillment-zone/store and stock semantics have not yet been proven. | `RESEARCH_REQUIRED` | Characterize Ozon Fresh consumer requests, location semantics, SKU/price/availability and whether ordinary public HTTP is sufficient. |
-| **Samokat** | Public consumer product exists, but no sufficiently characterized current read-side API path is yet recorded here. | Fulfillment is highly location-dependent by product design. | `RESEARCH_REQUIRED` | Inspect ordinary web/mobile network behavior and determine whether a non-evasive public catalog path exists. |
-| **Kuper** | Official API portal exposes Merchant Service API, Fulfillment API, **Client apps API**, Other API, integration contact and technical support. | Exact Client apps API catalog/search/store semantics are not yet proven from accessible public docs. | `PROMISING_CONTACT_REQUIRED` | Resolve issue #36: read-side scope, auth, location, catalog, price, availability, caching/fixtures, comparison rights, sandbox and rate limits. |
-| **Yandex Eats Retail API** | Official Retail API documentation includes nomenclature, availability and product price/promotion exchange. | Documented architecture has Yandex/Yango acting as the client of a partner retailer POS/system. | `PARTNER_SIDE_ONLY` | Find a separate documented read-side partner/product path for a comparison client; do not misuse the retailer-side integration. |
-| **Lenta** | Consumer catalog/order experience is location-dependent and a business partnership surface exists. | Consumer agreement ties order assembly to the delivery address / nearest store. | `BLOCKED_WITHOUT_AGREEMENT` | Obtain an explicit supported data-access/partner basis before an automated production adapter. |
-| **VkusVill** | Consumer web/app and VkusVill Business exist. | Delivery/catalog is consumer-context dependent; no reusable public client API is proven. | `BLOCKED_WITHOUT_AGREEMENT` | Obtain explicit partner/API permission before production catalog/price reuse. |
-| **X5 Group** | X5 operates Pyaterochka, Perekrestok and Chizhik, but their consumer technical surfaces differ. Pyaterochka's currently known consumer API path failed the non-evasive gate. | Store/location behavior must be proven independently per banner even if shared infrastructure later emerges. | `RESEARCH_REQUIRED` | Continue with Perekrestok independently; do not generalize the Pyaterochka 403 to all X5 banners or share bypass techniques. |
+| **Pyaterochka / 5ka** | User-assisted first-party browser bridge | **`AVAILABLE_BROWSER_BRIDGE`** | First-party user-assisted transport; supported/partner paths still worth pursuing | Reload-based page snapshot; direct anonymous HTTP unsuitable; broader corpus/context hardening continues |
+| **Perekrestok** | User-assisted first-party browser bridge | **`AVAILABLE_BROWSER_BRIDGE`** | First-party user-assisted transport; supported/partner paths still worth pursuing | Reload-based page snapshot; direct server path unsuitable; #54 for SPA/store-change lifecycle |
+| **Magnit grocery** | Ordinary public product pages with explicit public `shopCode` | **`AVAILABLE_PUBLIC_WEB` for explicit-store-context M0 feasibility** | **`UNRESOLVED` for recurring production reuse — #70** | 20/20 fixed corpus in both contexts; #69 for location→`shopCode`; regular/old price only when explicitly present; availability may be `UNKNOWN` |
+| **Kuper** | Supported aggregator/provider path | `RESEARCH / SPIKE` | Must preserve Kuper provider provenance separately from retailer identity | #36; useful for broader coverage even though M0 second-mode gate is already closed |
+| **Chizhik** | To be selected | `RESEARCH` | Not production-cleared | Mandatory registry coverage work |
+| **Ozon Fresh** | To be selected | `RESEARCH` | Not production-cleared | Mandatory registry coverage work |
+| **Samokat** | To be selected | `RESEARCH` | Not production-cleared | Mandatory registry coverage work |
+| **Lenta** | To be selected | `RESEARCH` | Not production-cleared | Mandatory registry coverage work |
+| **VkusVill** | To be selected | `RESEARCH` | Not production-cleared | Mandatory registry coverage work |
 
-## Evidence
+Universal retailer connectivity remains the invariant: a difficult or unavailable path is an explicit coverage state, not a reason to remove the retailer from the product registry.
 
-### Pyaterochka / 5ka
+## Accepted evidence: Pyaterochka
 
-Official/public surfaces:
+Direct ordinary server-side access failed closed and remains unsuitable.
 
-- https://5ka.ru/catalog/
-- https://5ka.ru/docs/
+The accepted browser bridge uses:
 
-Independent technical reference:
+- official `5ka.ru` pages in the user's first-party browser profile;
+- exact `pyaterochka` / `pyaterochka-browser` provenance;
+- canonical official store-context resource evidence;
+- sanitized normalized observations;
+- `UNKNOWN` availability unless stock semantics are actually supported;
+- no exported/replayed browser credentials.
 
-- https://github.com/Open-Inflation/pyaterochka_api
+Real gate on 2026-08-11:
 
-The reference identifies these store-scoped consumer-backend requests:
+- 12 normalized observations;
+- exactly one fulfillment context;
+- adapter v1;
+- zero validation failures.
 
-- catalog base: `https://5d.5ka.ru/api`;
-- nearest store: `GET /orders/v1/orders/stores/?lon={longitude}&lat={latitude}`;
-- categories: `GET /catalog/v2/stores/{sapCode}/categories?...`;
-- search: `GET /catalog/v3/stores/{sapCode}/search?mode=store&include_restrict=true&q={query}&limit={limit}`;
-- product: `GET /catalog/v2/stores/{sapCode}/products/{plu}?mode=store&include_restrict=true`.
+Evidence:
 
-The same third-party client is **not** suitable as a production dependency for our policy: before making those requests it starts Camoufox, opens the main site, optionally attempts to interact with a robot/CAPTCHA control, and captures `x-app-version`, `x-device-id`, and `x-platform` from browser traffic. Those steps are evidence that access may be guarded, not techniques Zakup Gotov is allowed to inherit.
+- [`pyaterochka-browser-bridge-phase-a.md`](pyaterochka-browser-bridge-phase-a.md);
+- [`pyaterochka-browser-bridge-live-2026-08-11.md`](pyaterochka-browser-bridge-live-2026-08-11.md).
 
-PR #39 implemented a separate plain-HTTP Phase A probe using the JDK HTTP client only. Its deterministic tests prove exact URI construction and a request policy limited to `Accept` and a transparent Zakup Gotov `User-Agent`; it contains no Cookie, Authorization, captured app/device/platform headers, browser automation, proxy support or retry loop. The live test is opt-in only.
+## Accepted evidence: Perekrestok
 
-PR #40 added a least-privilege machine-readable commit-status channel (`contents: read`, `statuses: write` only). PR #41 added a finite sanitized outcome suffix to that status because the connected status reader exposes context/state but not legacy description. Neither PR changed the retailer request itself.
+Direct ordinary server-side access failed closed and remains unsuitable.
 
-The decisive live run occurred after PR #41 on `main` SHA:
+The accepted browser adapter v2 uses the current semantic product-card DOM plus same-origin shop-resource context evidence while keeping browser credentials inside the first-party profile.
 
-`73d9f18d714bd1eafc165e7f5941405a0ce10b5b`
+Repeated real gate on 2026-08-11:
 
-The machine-readable result was:
+- 90 normalized observations;
+- exactly one fulfillment context;
+- adapter version `2`;
+- zero acceptance-validation failures;
+- canonical source references without query/hash.
 
-`Provider Live Probe / Pyaterochka / store-403` → `failure`
+Evidence:
 
-This means the **first** coordinate→store lookup returned HTTP 403. The probe stopped fail-closed. It never obtained a `sapCode`, never searched `молоко`, never obtained a PLU or price, and never entered fixture/corpus work.
+- [`perekrestok-browser-bridge-phase-a.md`](perekrestok-browser-bridge-phase-a.md);
+- [`perekrestok-browser-bridge-live-2026-08-11.md`](perekrestok-browser-bridge-live-2026-08-11.md).
 
-This is sufficient to stop the currently known public path under the approved policy. Using Camoufox, a browser-like identity, CAPTCHA interaction, captured app headers, proxy rotation, or retry behavior to turn that 403 into success would contradict the acceptance criteria rather than satisfy them.
+Issue #54 remains lifecycle hardening rather than a Phase A connectivity blocker.
 
-Decision: **`UNSUITABLE_PUBLIC_PATH`** for the currently known Pyaterochka consumer backend. This is not a claim that Pyaterochka can never be integrated; a documented X5/Pyaterochka API, partner agreement, or genuinely public non-evasive path may reopen the candidate later.
+## Accepted technical evidence: Magnit public web
 
-### Perekrestok
+### Request boundary
 
-Independent technical reference:
+The Magnit feasibility probe uses ordinary public product pages and JDK `HttpClient` only:
 
-- https://github.com/Open-Inflation/perekrestok_api
+- explicit public `shopCode` context;
+- fixed timeouts;
+- transparent project User-Agent;
+- no Cookie/login;
+- no Authorization or partner API key;
+- no browser automation;
+- no CAPTCHA handling;
+- no proxy/IP rotation or fingerprint evasion;
+- no retry/evasion loop.
 
-The project states that it reproduces the ordinary network behavior of a website user, demonstrates Moscow geolocation, category/product IDs, and has endpoint schema-snapshot tests. This is strong technical evidence for a controlled spike, but it is not evidence of store-specific availability or data-reuse permission.
+Ordinary CI never depends on live Magnit traffic.
 
-### Magnit
+### Phase A
 
-Official/public surface:
+Both explicit contexts returned HTTP 2xx with expected SKU and RUB-price evidence for the fixed Phase A product.
 
-- https://magnit.ru/catalog
-- example store-scoped surface: https://magnit.ru/catalog?shopCode=611694
+Evidence: [`magnit-public-page-live-2026-08-12.md`](magnit-public-page-live-2026-08-12.md).
 
-The public catalog currently exposes concrete prices and accepts a `shopCode`. Publicly indexed pages with different `shopCode` values show different catalog sizes/content. The next spike should inspect only the ordinary requests used by this page and must not add anti-bot circumvention.
+### Phase B
 
-### Chizhik
+The fixed 20-requirement corpus was exercised against both explicit contexts.
 
-Independent technical reference:
+Final merged-main run `31544035409` proved:
 
-- https://github.com/Open-Inflation/chizhik_api
+- 20/20 HTTP 2xx in each context;
+- 20/20 expected-SKU/current-price usable observations in each context;
+- stable identity 20/20;
+- zero failed requirements;
+- price-bound promo status on all 40 final observations;
+- known explicit availability on 6/40 observations, `UNKNOWN` otherwise;
+- no regular/old price invented when a second supported price was absent.
 
-The wrapper demonstrates city lookup, category tree, product lists and active offers. However, its documented setup includes Camoufox and optional proxies, and its own comments emphasize appearing like a regular user. Those techniques are explicitly **not** part of Zakup Gotov's acceptable provider path. Chizhik advances only if required calls are reproducible without them.
+Evidence:
 
-### Ozon / Ozon Fresh
+- [`magnit-phase-b.md`](magnit-phase-b.md);
+- [`magnit-public-page-phase-b-live-2026-08-12.md`](magnit-public-page-phase-b-live-2026-08-12.md).
 
-Independent experimental reference:
+### Magnit decision
 
-- https://github.com/Open-Inflation/ozon_api
+Technical status: **`AVAILABLE_PUBLIC_WEB` for explicit-store-context M0 feasibility**.
 
-This repository currently has very little public documentation, so it is only evidence that investigation exists, not evidence of a usable Ozon Fresh provider path. Seller API integrations must not be confused with consumer Fresh catalog access.
+Production constraints:
 
-### Kuper
+- #69 — automatic user location/address → public `shopCode` selection is not yet proven;
+- #70 — catalog usage rights for recurring production automated acquisition remain `UNRESOLVED`.
 
-Official API portal:
+Until #70 is `ACCEPTABLE`, M1 must use Magnit deterministic fixtures/research evidence rather than silently enabling recurring production polling.
 
-- https://docs.kuper.ru/
-- integration contact: `new.partners@sbermarket.ru`
-- technical support: `kuper-api@kuper.ru`
+## M0 scorecard outcome
 
-The portal explicitly lists Client apps API, but accessible public documentation still does not prove the exact read-side comparison scope required by Zakup Gotov. Issue #36 remains the access/rights gate.
+| Criterion | Pyaterochka | Perekrestok | Magnit |
+|---|---|---|---|
+| Reproducible fulfillment/store context | PASS | PASS | PASS for explicit `shopCode` |
+| Usable product identity | PASS | PASS | PASS 20/20 |
+| Current price | PASS | PASS | PASS 20/20 × 2 contexts |
+| Availability semantics | Explicit / `UNKNOWN` | Explicit / `UNKNOWN` | Explicit where present / `UNKNOWN` otherwise |
+| Promo semantics | Not a Phase A blocker | Not a Phase A blocker | PASS through price-bound marker |
+| Sanitized deterministic verification | PASS | PASS | PASS |
+| Acquisition mode | Browser bridge | Browser bridge | Public web |
+| Production limitations explicit | PASS | PASS | PASS — #69/#70 |
 
-### Yandex Eats Retail API
+Result: the project has an accepted independent non-X5 technical path and two acquisition modes. **M0 technical discovery is complete.**
 
-- https://yandex.ru/support/picker-app/en/ref/
+## Remaining retailer research rules
 
-The documented API is useful evidence that standardized assortment/price/availability exchange exists, but its direction is retailer-partner integration rather than a public comparison read API.
+Future retailer work must follow the same discipline:
 
-### Lenta
+1. start with supported/partner/public first-party surfaces;
+2. distinguish retailer identity from provider/aggregator provenance;
+3. treat direct API failure as a transport result, not a retailer-scope decision;
+4. keep CAPTCHA bypass, stealth/fingerprint evasion and proxy rotation used to circumvent access controls out of scope;
+5. keep ordinary CI offline/deterministic;
+6. preserve sanitized fixtures and explicit live gates;
+7. record usage-rights state separately from technical accessibility;
+8. never infer stock, freshness, regular price or location scope beyond evidence.
 
-- https://lenta.com/i/pokupatelyam/online-sale/user-agreement/
-- https://lenta.com/i/yuridicheskim-litsam
+## M1 implication
 
-Current consumer terms are not treated as permission for a production scraping strategy. A supported B2B path remains required.
+M1 Shopping Core may now start over deterministic provider observations and explicit retailer coverage states.
 
-### VkusVill
-
-- https://vkusvill.ru/legal/polzovatelskoe-soglashenie/
-
-Current agreement restrictions make undocumented production scraping/reuse an unacceptable default assumption without a separate permission basis.
-
-## Executable feasibility harness
-
-M0B uses a shared provider contract before any retailer-specific implementation:
-
-- provider access type (`OFFICIAL_API`, `PUBLIC_UNOFFICIAL_API`, `PARTNER_API`);
-- declared capabilities (`LOCATION_RESOLUTION`, `CATALOG`, `PRODUCT_SEARCH`, `PRICE`, `AVAILABILITY`);
-- provider-scoped `LocationContext`;
-- normalized `ProductQuery`;
-- common `RetailerProvider` port;
-- deterministic `FixtureRetailerProvider` type accepted by `ProviderFeasibilityHarness.offline()`;
-- network-capable `LiveRetailerProvider` type accepted only by the separate explicit `ProviderLiveProbe` entry point;
-- shared provenance/capability validation for both fixture and live probes.
-
-The fixture/live boundary is structural rather than a provider-supplied enum flag. Ordinary deterministic CI instantiates fixture-backed providers and uses the offline harness. Live probes are separate opt-in actions and are never part of the normal PR verification path.
-
-Offer search requires both `PRODUCT_SEARCH` and `PRICE` capabilities. Every returned offer must match the provider and requested fulfillment context before the harness accepts it.
-
-## Provider-spike acceptance test
-
-A provider that passes Phase A uses one explicit fulfillment/location context and a fixed corpus of **20 common grocery requirements**, then repeats against a second context where possible.
-
-A spike passes only when it can deterministically measure and preserve:
-
-- location/fulfillment context;
-- product identity/SKU;
-- price and currency;
-- availability as `AVAILABLE`, `UNAVAILABLE`, or `UNKNOWN` — never invented;
-- source and observation timestamp;
-- parser/contract failure behavior;
-- sanitized replayable fixtures with zero live-network dependency;
-- corpus coverage rate;
-- differences between two stores/contexts where store-specific behavior is claimed.
-
-A single successful manual request is not provider support, and a failed Phase A must not proceed to corpus work.
-
-## Implementation sequence
-
-1. Shared feasibility harness — merged in PR #37.
-2. **Pyaterochka Phase A — STOPPED:** `UNSUITABLE_PUBLIC_PATH`, store lookup returned HTTP 403 through the non-evasive probe. No Phase B.
-3. **Perekrestok — NEXT:** controlled provider spike using the same harness and non-evasive Phase A gate.
-4. **Magnit — HIGH PRIORITY:** independent non-X5 path; run immediately after or in parallel with Perekrestok.
-5. **Chizhik:** evaluate only under the plain-HTTP gate.
-6. **Ozon Fresh** and **Samokat:** second-wave discovery.
-7. **Kuper:** keep official-access work active in parallel through issue #36.
-8. Do not enter M1 Shopping Core until at least two acceptable provider paths satisfy the M0 exit criteria, preferably including one non-X5 provider.
+The accepted M0 paths provide architecture and fixture evidence, not permission to hide unresolved live-production constraints. See [`../superpowers/specs/2026-08-12-m0-to-m1-go-decision.md`](../superpowers/specs/2026-08-12-m0-to-m1-go-decision.md).
