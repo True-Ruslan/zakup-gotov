@@ -27,6 +27,9 @@ public record MagnitStoreSearchRequest(Filters filters) {
         public Filters {
             geo = Objects.requireNonNull(geo, "geo must not be null");
             storeTypeListV2 = List.copyOf(Objects.requireNonNull(storeTypeListV2, "storeTypeListV2 must not be null"));
+            if (!STORE_TYPES.equals(storeTypeListV2)) {
+                throw new IllegalArgumentException("storeTypeListV2 must match the proven Magnit public contract");
+            }
         }
     }
 
@@ -37,6 +40,7 @@ public record MagnitStoreSearchRequest(Filters filters) {
             }
             leftTopPoint = Objects.requireNonNull(leftTopPoint, "leftTopPoint must not be null");
             rightBottomPoint = Objects.requireNonNull(rightBottomPoint, "rightBottomPoint must not be null");
+            new MagnitGeoBoundingBox(leftTopPoint, rightBottomPoint);
         }
     }
 }
