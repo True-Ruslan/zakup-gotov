@@ -11,7 +11,7 @@ Visibility: Public
 Current phase: **M1 — Shopping Core**  
 M0 status: **technical discovery COMPLETE**  
 M0→M1 decision: **GO** — [`superpowers/specs/2026-08-12-m0-to-m1-go-decision.md`](superpowers/specs/2026-08-12-m0-to-m1-go-decision.md)  
-Current focus: **failure / coverage / freshness product/API/UX boundary before critical browser E2E**
+Current focus: **ship the product comparison/readiness boundary; then implement the critical shopping-list → location/context → comparison browser journey**
 
 ## Product connectivity invariant
 
@@ -62,30 +62,51 @@ Observed product labels preserved through snapshots; matching-only NFKC/case/`ё
 
 Design: [`superpowers/specs/2026-08-12-m1-deterministic-matching-design.md`](superpowers/specs/2026-08-12-m1-deterministic-matching-design.md).
 
-### Slice 7 — single-store basket quote — COMPLETE (#78 implementation; shipping gate pending)
+### Slice 7 — single-store basket quote — COMPLETE (#78)
 
-The first deterministic one-retailer/one-context basket core is implemented:
+The deterministic one-retailer/one-context basket core is merged to `main`:
 
 - package quantity is explicit trusted evidence keyed by `OfferSnapshotId`; it is never inferred from `productName`;
 - missing package evidence is `PACKAGE_QUANTITY_UNKNOWN`, not an assumed one-piece package;
-- duplicate package evidence fails closed and binding snapshots are immutable;
 - whole-package math uses canonical `Quantity` and exact decimal arithmetic: `ceil(required / package)`;
-- package count is a positive `BigInteger`; provided quantity and line total are structurally validated;
-- per-item outcomes are explicit: `FULFILLED`, `AVAILABILITY_UNKNOWN`, `UNMATCHED`, `AMBIGUOUS`, `UNAVAILABLE`, `PACKAGE_QUANTITY_UNKNOWN`, `QUANTITY_UNIT_MISMATCH`;
-- explicit `UNAVAILABLE` wins before package math;
+- item outcomes preserve fulfilled/unknown/unmatched/ambiguous/unavailable/package-unknown/unit-mismatch semantics;
 - `UNKNOWN` availability can produce a priced selection but only an **UNCERTAIN** quote;
 - basket states are `COMPLETE`, `UNCERTAIN`, `INCOMPLETE`;
-- `COMPLETE` requires all items fulfilled;
-- `UNCERTAIN` requires all items selected and at least one unknown-availability line;
-- `INCOMPLETE` has **no basket total**, preventing partial totals from masquerading as complete-basket prices;
+- `INCOMPLETE` has **no basket total**;
 - mixed selected currencies fail closed;
-- shopping item order is preserved and result collections are immutable;
-- ArchUnit prevents production provider/shopping/matching/retailer code from depending back on basket.
+- ArchUnit protects upstream domain direction.
 
 Design: [`superpowers/specs/2026-08-12-m1-single-store-basket-design.md`](superpowers/specs/2026-08-12-m1-single-store-basket-design.md).  
 Implementation evidence: [`superpowers/plans/2026-08-12-m1-single-store-basket.md`](superpowers/plans/2026-08-12-m1-single-store-basket.md).
 
-Important limitation: accepted retailer adapters do **not yet provide structured package-quantity evidence** through the normalized provider boundary. The basket core is therefore fixture/evidence-ready, but this PR does not claim a production end-to-end basket flow or parse package size from presentation text.
+### Slice 8 — failure / coverage / freshness product boundary — IMPLEMENTED (#79; shipping gate pending)
+
+PR #79 now provides the first stable product-facing comparison/readiness contract:
+
+- all eight canonical retailers remain visible in registry order even when integration/access/data is unavailable;
+- technical coverage and production-access readiness map independently;
+- public comparison states are `READY`, `UNCERTAIN`, `INCOMPLETE`, `UNAVAILABLE` with finite product-safe reasons;
+- provider IDs, acquisition modes, source references and precise addresses remain internal and do not cross the read-model/API boundary;
+- coverage/access restrictions take precedence over runtime quote evidence;
+- source failure maps to `SOURCE_UNAVAILABLE` without leaking provider error details;
+- complete/uncertain/incomplete basket invariants survive the product boundary without hidden ranking or certainty upgrades;
+- aggregate freshness is conservative: oldest selected observation; provider timestamp only when every selected line has trusted provider-side evidence;
+- no universal `fresh/stale` threshold is invented;
+- `GET /api/v1/retailers` exposes the canonical readiness contract;
+- OpenAPI and generated TypeScript client include the retailer endpoint;
+- the Next.js home surface is now M1-aware and uses the typed server loader;
+- CI without an API displays an accessible service-unavailable state and never fabricates retailer cards/prices;
+- responsive desktop/mobile Playwright verifies the failure state, focus visibility and no horizontal overflow;
+- upstream retailer/provider/shopping/matching/basket/location packages cannot depend back on `comparison`.
+
+Design: [`superpowers/specs/2026-08-12-m1-product-comparison-read-model-design.md`](superpowers/specs/2026-08-12-m1-product-comparison-read-model-design.md).  
+Implementation/TDD evidence: [`superpowers/plans/2026-08-12-m1-product-comparison-read-model.md`](superpowers/plans/2026-08-12-m1-product-comparison-read-model.md).
+
+Important limitations:
+
+- the initial controller intentionally supplies no fabricated runtime provider/basket evidence; it reports current canonical registry/readiness truth;
+- accepted retailer adapters still do **not** provide a universal structured package-quantity field through the normalized provider boundary;
+- this slice therefore does not claim a production end-to-end basket comparison journey yet.
 
 ## Accepted retailer paths
 
@@ -111,31 +132,34 @@ M1 must not enable default recurring Magnit production polling until #70 reaches
 
 ## M1 invariants
 
-1. Core shopping/basket logic is deterministic over fixtures/evidence.
+1. Core shopping/basket/comparison logic is deterministic over fixtures/evidence.
 2. Retailer coverage is explicit; unavailable retailers are not silently omitted.
-3. Precise addresses remain sensitive and redacted by default.
-4. Provider-specific fulfillment identifiers remain provider-scoped.
-5. Retailer, source provider, acquisition mode and fulfillment context remain distinct.
-6. `UNKNOWN` availability is never coerced to available/unavailable.
-7. Observation time is never misrepresented as provider freshness.
-8. Snapshots derive only from validated provider observations.
-9. Matching ambiguity never becomes a hidden winner.
-10. Package quantity is explicit evidence; missing evidence is not guessed.
-11. Incomplete baskets never expose a misleading complete-basket total.
-12. Production activation respects usage-rights state.
-13. Universal retailer connectivity remains mandatory for every registry entry.
+3. Technical connectivity and production-access readiness remain independent.
+4. Precise addresses remain sensitive and redacted by default.
+5. Provider-specific fulfillment identifiers remain provider-scoped.
+6. Retailer, source provider, acquisition mode and fulfillment context remain distinct internally.
+7. `UNKNOWN` availability is never coerced to available/unavailable.
+8. Observation time is never misrepresented as provider freshness.
+9. No stale/fresh policy is invented without source-specific evidence.
+10. Snapshots derive only from validated provider observations.
+11. Matching ambiguity never becomes a hidden winner.
+12. Package quantity is explicit evidence; missing evidence is not guessed.
+13. Incomplete baskets never expose a misleading complete-basket total.
+14. Product/API responses never expose internal provider transport details as user-facing semantics.
+15. Production activation respects usage-rights state.
+16. Universal retailer connectivity remains mandatory for every registry entry.
 
 ## Immediate next work
 
-1. **Failure / coverage / freshness product/API/UX boundary — NEXT**
-   - define a product-facing comparison/read model that preserves retailer coverage state, provider attempt/failure evidence, match/basket status and freshness provenance;
-   - expose complete/uncertain/incomplete semantics without leaking provider implementation details;
-   - represent unavailable/discovery retailers rather than omitting them;
-   - expose observation-only vs provider-timestamp freshness honestly;
-   - keep production-access restrictions visible to orchestration, not bypassed by UI/API;
-   - remain fixture-first while the public contract stabilizes.
+1. **Critical product journey — NEXT after #79 ships**
+   - accept a manually entered shopping list through a stable product/API boundary;
+   - choose provider-neutral location and fulfillment context where supported;
+   - invoke comparison through the public contract over deterministic fixture/runtime evidence;
+   - render `READY`, `UNCERTAIN`, `INCOMPLETE` and `UNAVAILABLE` retailer outcomes without hiding registry entries;
+   - prove desktop/mobile browser behavior end-to-end;
+   - preserve current privacy, provenance, freshness and production-access boundaries.
 2. Connect structured package-quantity evidence only where a supported retailer/source proves it; do not parse names heuristically.
-3. Critical-journey browser E2E over the product contract/UI.
+3. Continue universal retailer onboarding and open connectivity hardening in parallel.
 
 ## Parallel open work
 
