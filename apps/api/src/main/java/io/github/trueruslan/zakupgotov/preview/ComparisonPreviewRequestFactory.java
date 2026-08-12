@@ -33,7 +33,7 @@ public final class ComparisonPreviewRequestFactory {
             shoppingList.add(new ShoppingItem(
                     new ShoppingItemId(item.id()),
                     new ShoppingRequirement(normalize(item.requirement())),
-                    new Quantity(item.amount(), item.unit())));
+                    new Quantity(item.quantity().amount(), item.quantity().unit())));
         }
 
         var productLocation = ProductLocation.localityOnly(
@@ -89,14 +89,17 @@ public final class ComparisonPreviewRequestFactory {
                 errors.add(error(prefix + ".requirement", "must not exceed 240 characters"));
             }
 
-            if (item.amount() == null) {
-                errors.add(error(prefix + ".amount", "must not be null"));
-            } else if (item.amount().signum() <= 0) {
-                errors.add(error(prefix + ".amount", "must be greater than 0"));
+            if (item.quantity() == null) {
+                errors.add(error(prefix + ".quantity", "must not be null"));
+                continue;
             }
-
-            if (item.unit() == null) {
-                errors.add(error(prefix + ".unit", "must not be null"));
+            if (item.quantity().amount() == null) {
+                errors.add(error(prefix + ".quantity.amount", "must not be null"));
+            } else if (item.quantity().amount().signum() <= 0) {
+                errors.add(error(prefix + ".quantity.amount", "must be greater than 0"));
+            }
+            if (item.quantity().unit() == null) {
+                errors.add(error(prefix + ".quantity.unit", "must not be null"));
             }
         }
         return List.copyOf(errors);

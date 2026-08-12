@@ -7,5 +7,13 @@ import java.util.UUID;
 public record ComparisonPreviewItemRequest(
         UUID id,
         String requirement,
-        BigDecimal amount,
-        QuantityUnit unit) {}
+        ComparisonPreviewQuantityRequest quantity) {
+
+    public ComparisonPreviewItemRequest(
+            UUID id,
+            String requirement,
+            BigDecimal amount,
+            QuantityUnit unit) {
+        this(id, requirement, new ComparisonPreviewQuantityRequest(amount, unit));
+    }
+}
