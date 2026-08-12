@@ -35,7 +35,7 @@ Goal: compare a manually entered grocery list across connected retailers while p
 - retailer/source-provider/acquisition-mode/fulfillment context remain distinct;
 - `UNKNOWN` availability remains first-class;
 - observation time is not provider-update time;
-- freshness evidence basis must remain explicit and structurally valid;
+- freshness evidence basis remains explicit and structurally valid;
 - package quantity is explicit evidence, never inferred from product names;
 - production activation respects usage-rights state;
 - ordinary M1 tests make no live retailer requests.
@@ -55,41 +55,47 @@ Goal: compare a manually entered grocery list across connected retailers while p
    - no semantic tie-break by price/availability/freshness/SKU and no fuzzy/AI baseline.
 7. **Complete single-store basket comparison — COMPLETE (#78)**
    - explicit package-quantity evidence keyed by snapshot identity;
-   - no package-size parsing from product names and no one-SKU-equals-one-requirement assumption;
-   - canonical unit-safe whole-package `ceil(required/package)` selection;
-   - exact provided quantity and line-total evidence;
-   - explicit per-item fulfilled/unknown/unmatched/ambiguous/unavailable/package-unknown/unit-mismatch states;
-   - `COMPLETE`, `UNCERTAIN`, `INCOMPLETE` basket status;
-   - unknown availability may produce a priced uncertain basket but never a confirmed complete basket;
+   - no package-size parsing from product names;
+   - canonical unit-safe whole-package selection;
+   - explicit item outcomes and `COMPLETE`, `UNCERTAIN`, `INCOMPLETE` basket states;
+   - unknown availability cannot become a confirmed complete basket;
    - incomplete baskets expose no aggregate total;
-   - mixed selected currencies fail closed;
-   - architecture rule prevents upstream provider/shopping/matching/retailer dependence on basket.
-8. **Failure / coverage / freshness product + API + UX boundary — IMPLEMENTED + REVIEW HARDENED (#79; shipping gate pending)**
+   - mixed selected currencies fail closed.
+8. **Failure / coverage / freshness product + API + UX boundary — COMPLETE (#79)**
    - product-facing retailer comparison/readiness model;
    - all eight canonical retailers remain visible in stable registry order;
    - technical coverage and production-access readiness map independently;
-   - explicit `READY`, `UNCERTAIN`, `INCOMPLETE`, `UNAVAILABLE` comparison states and finite product-safe reasons;
+   - explicit `READY`, `UNCERTAIN`, `INCOMPLETE`, `UNAVAILABLE` states and finite product-safe reasons;
    - public records reject impossible status/coverage/access/total/freshness combinations;
-   - reason codes are structurally compatible with comparison status and coverage/access precedence;
-   - provider-path failures translate to stable product reasons without provider ID/acquisition/source leakage;
-   - basket complete/uncertain/incomplete semantics remain fail-closed;
-   - conservative observation/provider timestamp aggregation without invented stale thresholds;
-   - freshness basis/provider timestamp consistency is enforced by construction;
-   - `GET /api/v1/retailers` REST contract;
-   - OpenAPI + generated TypeScript client synchronization;
-   - dynamic M1 Next.js status surface using `API_BASE_URL` server-side;
-   - web distinguishes observation-only evidence from trusted provider-side update time without inventing freshness verdicts;
-   - server readiness requests have a bounded 3-second abort timeout;
-   - API failure or timeout renders accessible service-unavailable state without fake retailer cards/prices;
-   - responsive desktop/mobile browser acceptance protects focus visibility and horizontal layout.
-9. **Critical product journey — NEXT after #79 ships**
-   - enter/edit a manual shopping list through a stable API/product boundary;
-   - choose provider-neutral location and fulfillment context where supported;
-   - execute deterministic comparison using the completed provider/snapshot/matching/basket/read-model layers;
-   - render every canonical retailer with `READY`, `UNCERTAIN`, `INCOMPLETE` or `UNAVAILABLE` state;
-   - expose item-level incomplete/ambiguous/package-unknown reasons without internal provider implementation details;
-   - preserve freshness and production-access restrictions;
-   - prove the journey in responsive desktop/mobile Playwright without hidden live retailer dependencies.
+   - provider-path failures translate without provider ID/acquisition/source leakage;
+   - conservative freshness aggregation without invented stale thresholds;
+   - `GET /api/v1/retailers` REST/OpenAPI/generated-client contract;
+   - responsive M1 readiness surface with bounded server-side timeout and fail-closed unavailable behavior.
+9. **Critical product journey — IMPLEMENTED IN #80; FINAL SHIPPING GATE IN PROGRESS**
+   - `POST /api/v1/comparison-previews` accepts locality-only context and a manual shopping list;
+   - request construction reuses canonical shopping quantities and product location;
+   - comparison orchestration reuses provider snapshots, matching, basket and comparison/read-model semantics instead of duplicating them;
+   - all eight canonical retailers remain visible with `READY`, `UNCERTAIN`, `INCOMPLETE` or `UNAVAILABLE` state;
+   - item-level unmatched/ambiguous/package-unknown/unit-mismatch outcomes are product-safe and preserve the same basket evidence;
+   - no SKU, provider ID, acquisition mode, source reference or fulfillment-context ID crosses the public API/web boundary;
+   - production evidence is strict no-op/fail-closed in this slice, so production never falls back to deterministic fixture prices;
+   - deterministic evidence and mock API exist only for test/acceptance composition;
+   - OpenAPI/generated TypeScript client and the primary Next.js comparison form/results are synchronized;
+   - request timeout is bounded and API failure renders one accessible unavailable state with no fabricated retailer results;
+   - desktop/mobile Playwright proves the full deterministic journey without hidden live retailer dependencies;
+   - architecture guards keep upstream production domains independent of `preview` and prevent production preview code from depending on fixture/test-support namespaces.
+
+### Current shipping gate for #80
+
+Before #80 can be called complete:
+
+- final exact-head API, Contract, Web + responsive E2E, Retailer Bridge, Dependency Review, CodeQL, Container Security, Release Bundle and Release Contract checks must all be green;
+- final read-only change review must have no unresolved P0/P1/P2 findings;
+- a docs-only shipping marker must record the evidence;
+- the branch-protection gate must be green again on that marker SHA;
+- squash merge must use the exact reviewed head and post-merge `main` must be verified.
+
+The Web E2E assertion defect discovered during hardening has already been corrected and the exact `683f29a` candidate passed all workflow groups before the final architecture/docs candidate was prepared.
 
 ### Important remaining basket-data limitation
 
@@ -103,15 +109,28 @@ The core can consume trusted package-quantity evidence, but accepted retailer ad
 - unavailable retailer coverage explicit;
 - no test/user path requires hidden live retailer access;
 - product location/privacy boundary preserved;
-- provider provenance, fulfillment context and freshness survive into comparison;
+- provider provenance, fulfillment context and freshness survive into comparison internally without leaking implementation identifiers publicly;
 - freshness evidence basis is visible without invented stale/fresh policy;
-- incomplete baskets cannot masquerade as complete winners.
+- incomplete baskets cannot masquerade as complete winners;
+- production retailer activation remains separately gated by access, location/context and source-evidence constraints.
+
+### Next M1 engineering focus after #80 ships
+
+1. **Trusted structured package-quantity extraction** where a specific accepted source proves the field semantics. Missing evidence stays unknown.
+2. **Browser bridge lifecycle hardening (#54)** for persistent sessions, same-document store changes and SPA navigation.
+3. **Magnit location → `shopCode` resolution (#69)** without leaking precise address into default product telemetry or contracts.
+4. **Magnit production usage-rights decision (#70)** before recurring production polling.
+5. **Kuper supported aggregator investigation (#36)**.
+6. Continue mandatory Chizhik, Ozon Fresh, Samokat, Lenta, VkusVill and additional retailer onboarding.
+7. Prove a successful real `v0.1.0-rc.3` release event.
 
 ## M2 — Recipes
 
 Goal: make recipes a first-class source of shopping requirements.
 
 Scope: built-in/user recipes, servings, normalized ingredient quantities, instructions, recipe → shopping-requirement conversion, editing/duplication and import experiments after the core model is stable.
+
+Do not start M2 merely because the fixture-driven M1 critical journey is merged. M1 evidence limitations and production activation constraints must remain explicit and accepted rather than hidden.
 
 ## M3 — Weekly Planning
 
@@ -132,16 +151,6 @@ Goal: reliable repeat-use product with privacy-aware accounts/preferences, analy
 ## M6 — Native Mobile
 
 Goal: native Android/iOS clients via Expo/React Native/TypeScript using generated API clients and shared product vocabulary/design tokens.
-
-## Parallel connectivity and engineering work
-
-- Kuper supported aggregator investigation (#36);
-- browser bridge persistent-session lifecycle hardening (#54);
-- Magnit location → public `shopCode` resolution (#69);
-- Magnit production usage-rights decision (#70);
-- Chizhik, Ozon Fresh, Samokat, Lenta, VkusVill and additional mandatory retailer onboarding;
-- structured package-quantity extraction where source evidence is trustworthy;
-- successful real `v0.1.0-rc.3` release proof.
 
 ## Guiding rule
 
