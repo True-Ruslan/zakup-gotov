@@ -1,5 +1,6 @@
 package io.github.trueruslan.zakupgotov.preview;
 
+import com.fasterxml.jackson.annotation.JsonInclude;
 import io.github.trueruslan.zakupgotov.basket.BasketTotal;
 import io.github.trueruslan.zakupgotov.comparison.RetailerComparisonReason;
 import io.github.trueruslan.zakupgotov.comparison.RetailerComparisonStatus;
@@ -10,6 +11,7 @@ import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
 
+@JsonInclude(JsonInclude.Include.NON_ABSENT)
 public record ComparisonPreviewRetailer(
         String id,
         String displayName,

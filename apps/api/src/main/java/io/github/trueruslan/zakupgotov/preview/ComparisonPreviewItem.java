@@ -1,5 +1,6 @@
 package io.github.trueruslan.zakupgotov.preview;
 
+import com.fasterxml.jackson.annotation.JsonInclude;
 import io.github.trueruslan.zakupgotov.basket.BasketItemResolutionStatus;
 import io.github.trueruslan.zakupgotov.shopping.Quantity;
 import java.util.List;
@@ -7,6 +8,7 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.UUID;
 
+@JsonInclude(JsonInclude.Include.NON_ABSENT)
 public record ComparisonPreviewItem(
         UUID id,
         String requirement,

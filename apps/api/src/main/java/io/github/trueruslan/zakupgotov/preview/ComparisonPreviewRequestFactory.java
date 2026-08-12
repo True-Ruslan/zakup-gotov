@@ -8,7 +8,9 @@ import io.github.trueruslan.zakupgotov.shopping.ShoppingItemId;
 import io.github.trueruslan.zakupgotov.shopping.ShoppingList;
 import io.github.trueruslan.zakupgotov.shopping.ShoppingListId;
 import io.github.trueruslan.zakupgotov.shopping.ShoppingRequirement;
+import java.util.ArrayList;
 import java.util.HashSet;
+import java.util.List;
 import java.util.UUID;
 
 public final class ComparisonPreviewRequestFactory {
@@ -20,48 +22,17 @@ public final class ComparisonPreviewRequestFactory {
     private ComparisonPreviewRequestFactory() {}
 
     public static ComparisonPreviewInput create(ComparisonPreviewRequest request) {
-        if (request == null) {
-            throw new IllegalArgumentException("request must not be null");
+        var errors = validate(request);
+        if (!errors.isEmpty()) {
+            throw new InvalidComparisonPreviewRequestException(errors);
         }
 
-        var locality = normalize(request.locality(), "locality");
-        if (locality.length() > MAX_LOCALITY_LENGTH) {
-            throw new IllegalArgumentException("locality must not exceed 160 characters");
-        }
-        if (request.items() == null || request.items().isEmpty()) {
-            throw new IllegalArgumentException("items must contain at least one item");
-        }
-        if (request.items().size() > MAX_ITEMS) {
-            throw new IllegalArgumentException("items must not exceed 100 items");
-        }
-
+        var locality = normalize(request.locality());
         var shoppingList = new ShoppingList(new ShoppingListId(UUID.randomUUID()));
-        var seenIds = new HashSet<UUID>();
         for (var item : request.items()) {
-            if (item == null) {
-                throw new IllegalArgumentException("item must not be null");
-            }
-            if (item.id() == null) {
-                throw new IllegalArgumentException("item id must not be null");
-            }
-            if (!seenIds.add(item.id())) {
-                throw new IllegalArgumentException("duplicate item id: " + item.id());
-            }
-
-            var requirementText = normalize(item.requirement(), "requirement");
-            if (requirementText.length() > MAX_REQUIREMENT_LENGTH) {
-                throw new IllegalArgumentException("requirement must not exceed 240 characters");
-            }
-            if (item.amount() == null || item.amount().signum() <= 0) {
-                throw new IllegalArgumentException("amount must be greater than 0");
-            }
-            if (item.unit() == null) {
-                throw new IllegalArgumentException("unit must not be null");
-            }
-
             shoppingList.add(new ShoppingItem(
                     new ShoppingItemId(item.id()),
-                    new ShoppingRequirement(requirementText),
+                    new ShoppingRequirement(normalize(item.requirement())),
                     new Quantity(item.amount(), item.unit())));
         }
 
@@ -71,14 +42,75 @@ public final class ComparisonPreviewRequestFactory {
         return new ComparisonPreviewInput(shoppingList, productLocation);
     }
 
-    private static String normalize(String value, String field) {
-        if (value == null) {
-            throw new IllegalArgumentException(field + " must not be null");
+    private static List<ComparisonPreviewValidationError> validate(ComparisonPreviewRequest request) {
+        var errors = new ArrayList<ComparisonPreviewValidationError>();
+        if (request == null) {
+            errors.add(error("$request", "must not be null"));
+            return errors;
         }
-        var normalized = value.strip().replaceAll("\\s+", " ");
-        if (normalized.isBlank()) {
-            throw new IllegalArgumentException(field + " must not be blank");
+
+        var locality = normalizeNullable(request.locality());
+        if (locality == null || locality.isBlank()) {
+            errors.add(error("locality", "must not be blank"));
+        } else if (locality.length() > MAX_LOCALITY_LENGTH) {
+            errors.add(error("locality", "must not exceed 160 characters"));
         }
-        return normalized;
+
+        if (request.items() == null) {
+            errors.add(error("items", "must not be null"));
+            return errors;
+        }
+        if (request.items().isEmpty()) {
+            errors.add(error("items", "must contain at least one item"));
+        }
+        if (request.items().size() > MAX_ITEMS) {
+            errors.add(error("items", "must not exceed 100 items"));
+        }
+
+        var seenIds = new HashSet<UUID>();
+        for (var index = 0; index < request.items().size(); index++) {
+            var item = request.items().get(index);
+            var prefix = "items[" + index + "]";
+            if (item == null) {
+                errors.add(error(prefix, "must not be null"));
+                continue;
+            }
+
+            if (item.id() == null) {
+                errors.add(error(prefix + ".id", "must not be null"));
+            } else if (!seenIds.add(item.id())) {
+                errors.add(error(prefix + ".id", "duplicate item id"));
+            }
+
+            var requirement = normalizeNullable(item.requirement());
+            if (requirement == null || requirement.isBlank()) {
+                errors.add(error(prefix + ".requirement", "must not be blank"));
+            } else if (requirement.length() > MAX_REQUIREMENT_LENGTH) {
+                errors.add(error(prefix + ".requirement", "must not exceed 240 characters"));
+            }
+
+            if (item.amount() == null) {
+                errors.add(error(prefix + ".amount", "must not be null"));
+            } else if (item.amount().signum() <= 0) {
+                errors.add(error(prefix + ".amount", "must be greater than 0"));
+            }
+
+            if (item.unit() == null) {
+                errors.add(error(prefix + ".unit", "must not be null"));
+            }
+        }
+        return List.copyOf(errors);
+    }
+
+    private static ComparisonPreviewValidationError error(String field, String message) {
+        return new ComparisonPreviewValidationError(field, message);
+    }
+
+    private static String normalize(String value) {
+        return value.strip().replaceAll("\\s+", " ");
+    }
+
+    private static String normalizeNullable(String value) {
+        return value == null ? null : normalize(value);
     }
 }
