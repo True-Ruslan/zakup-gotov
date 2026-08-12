@@ -40,6 +40,10 @@ All notable project changes are recorded here. Zakup Gotov is pre-release; entri
 - Snapshot-driven `PackageQuantitySet.fromSnapshots(...)` projection that creates basket bindings only for explicit structured package evidence.
 - Runtime package-evidence derivation from snapshots so comparison fixtures and future provider paths carry one provenance-preserving source of package truth.
 - Regression coverage proving presentation names such as `Молоко 3,2%, 970мл` and `Вода 1,5л` do not create package evidence.
+- Pure Magnit source-specific `MagnitPackageQuantityExtractor` for exact `Характеристики` fields `Вес, кг` and `Объем, л`, with canonical kg→g and l→ml conversion.
+- Explicit Magnit package-extraction states `FOUND`, `MISSING`, `AMBIGUOUS_DIMENSIONS`, `CONFLICTING_VALUES` and `INVALID_VALUE` so source ambiguity never becomes a guessed basket quantity.
+- Magnit provider/snapshot regression proving a `FOUND` characteristic can populate #81 structured package evidence while multi-dimensional characteristics remain package-unknown.
+- Evidence note documenting official Magnit weight-only, volume-only, multi-dimensional and count-selector examples plus unchanged #69/#70 production gates.
 
 ### Changed
 
@@ -54,13 +58,15 @@ All notable project changes are recorded here. Zakup Gotov is pre-release; entri
 - Existing provider integrations remain source-compatible and package-unknown unless they explicitly supply a proven structured package quantity.
 - Runtime comparison package bindings now derive from immutable snapshot evidence instead of being independently injected downstream.
 - Deterministic comparison fixtures attach package quantity at the provider observation boundary before snapshotting, mirroring the production evidence flow without live retailer access.
+- Magnit v1 structured package semantics accept only exact weight/volume characteristics; simultaneous dimensions or conflicting/invalid values remain unknown rather than using category/title heuristics.
+- Magnit `Количество в упаковке` remains deferred pending separate source and multi-dimensional domain evidence.
 - `UNKNOWN` availability propagates into `AVAILABILITY_UNKNOWN` line state and an `UNCERTAIN` basket rather than a confirmed complete basket.
 - Incomplete single-store baskets expose no aggregate total, preventing partial-price comparisons from masquerading as complete basket prices.
 - Technical retailer connectivity no longer leaks directly into the product/API contract: public readiness uses stable coverage/access/comparison states and finite product-safe reason codes instead of provider IDs, acquisition modes or source references.
 - The home page now makes the stateless comparison preview the primary M1 action instead of the previous readiness-only surface.
 - The critical browser journey is driven through the generated OpenAPI client and the same product-safe comparison vocabulary as the core/read model.
-- Production comparison evidence remains deliberately no-op/fail-closed in this slice; passing deterministic acceptance does not claim live production retailer acquisition.
-- Active M1 focus is the first evidence-backed source-specific package extractor plus retailer connectivity/lifecycle and production-access constraints.
+- Production comparison evidence remains deliberately no-op/fail-closed; deterministic source extraction does not activate recurring retailer polling.
+- Active M1 focus moves to Magnit corpus package-evidence measurement plus retailer connectivity/lifecycle and production-access constraints after #82 ships.
 
 ### Fixed
 
@@ -82,6 +88,7 @@ All notable project changes are recorded here. Zakup Gotov is pre-release; entri
 - Responsive Playwright coverage distinguishes product service-unavailable alerts from framework route announcements while preserving accessible alert semantics.
 - Critical-journey Playwright item-gap assertions are scoped to the relevant retailer card with exact text matching, avoiding collisions between item labels and explanatory retailer reason copy.
 - Runtime evidence rejects an explicit package-quantity set when it differs from the structured quantities preserved by its snapshots, preventing two package-evidence sources from silently diverging.
+- Magnit package extraction ignores title/slug/description/script/style numbers and fails closed on weight+volume or conflicting supported characteristics.
 
 ## [0.1.0-rc.2] — 2026-08-09
 
