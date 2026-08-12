@@ -1,6 +1,6 @@
-import { expect, test } from "@playwright/test";
+import { expect, test, type Page } from "@playwright/test";
 
-async function fillComparisonForm(page: Parameters<typeof test>[0] extends never ? never : any) {
+async function fillComparisonForm(page: Page) {
   await page.getByLabel("Населённый пункт").fill("Москва");
   await page.getByLabel("Товар").fill("Молоко");
   await page.getByLabel("Количество").fill("2");
