@@ -25,6 +25,11 @@ All notable project changes are recorded here. Zakup Gotov is pre-release; entri
 - `AcquisitionMode` with explicit `DIRECT_API`, `AGGREGATOR`, `PUBLIC_WEB` and `BROWSER_BRIDGE` values independent from technical `ProviderAccessType`.
 - Deterministic fixture-only provider/path orchestrator with explicit selected-path and per-attempt outcome records.
 - Explicit expected provider-path failure type (`ProviderPathUnavailableException`) used as the only fallback trigger.
+- Provider-neutral `ProductLocationId` and `ProductLocation` M1 boundary for locality/address input without provider/store identifiers.
+- `SensitiveAddress` value object that requires explicit `reveal()` for raw use and renders `[REDACTED]` from default string/log representation.
+- ArchUnit privacy/modularity rule preventing production `location` classes from depending on provider or retailer packages.
+- Typed `FulfillmentContextBinding` / `FulfillmentContextSet` with `MANUAL` and `RESOLVED` selection provenance, stable order and duplicate/cross-location rejection.
+- Location-boundary implementation plan at `docs/superpowers/plans/2026-08-12-m1-location-boundary.md`.
 
 ### Changed
 
@@ -43,7 +48,10 @@ All notable project changes are recorded here. Zakup Gotov is pre-release; entri
 - Provider path selection is capability/context-aware; missing capabilities and missing source-provider contexts are explicit outcomes and do not invoke the provider.
 - A successful empty provider search remains a success and does not silently combine/fallback to a lower-priority source.
 - Only explicit expected path unavailability triggers fallback; unexpected runtime defects propagate fail-fast.
-- `docs/PROJECT_STATE.md` and `docs/ROADMAP.md` now mark provenance-aware provider/path orchestration complete and move the active M1 focus to the location/fulfillment-context product boundary.
+- Provider routing now accepts a typed `FulfillmentContextSet` instead of a raw `Map<String, LocationContext>` and therefore never receives precise `ProductLocation`/`SensitiveAddress` values.
+- Provider-specific `shopCode`, X5 store IDs and similar identifiers stay inside source-provider-scoped `LocationContext` values bound to an opaque product location identity.
+- Manual provider context selection and already-resolved context selection are represented explicitly without claiming universal automatic address resolution.
+- `docs/PROJECT_STATE.md` and `docs/ROADMAP.md` now mark the location/fulfillment-context boundary complete and move the active M1 focus to price/availability snapshots.
 
 ### Fixed
 
@@ -53,6 +61,7 @@ All notable project changes are recorded here. Zakup Gotov is pre-release; entri
 - Magnit promo status is now independent from regular-price presence: a proven price-bound promo marker may set `promo=true`, while regular/old price remains empty unless a second supported price is actually present.
 - Documentation index links were corrected to reference only documents that exist in the repository.
 - Provider offer validation now rejects retailer, source-provider, acquisition-mode and fulfillment-context mismatches before observations can reach comparison logic.
+- Precise user addresses are excluded from default `toString()` output for both `SensitiveAddress` and `ProductLocation`.
 
 ## [0.1.0-rc.2] — 2026-08-09
 

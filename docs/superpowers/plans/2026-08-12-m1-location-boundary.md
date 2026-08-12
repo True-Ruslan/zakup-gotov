@@ -1,5 +1,7 @@
 # M1 Location / Fulfillment Context Boundary Implementation Plan
 
+Status: **COMPLETE** — implemented in PR #75 on 2026-08-12.
+
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
 **Goal:** Separate privacy-sensitive provider-neutral product location from provider-specific fulfillment contexts, then route fixture providers through typed bindings instead of raw provider-ID maps.
@@ -19,121 +21,79 @@
 
 ---
 
-### Task 1: Provider-neutral product location and sensitive address
+### Task 1: Provider-neutral product location and sensitive address — COMPLETE
 
 **Files:**
-- Create: `apps/api/src/main/java/io/github/trueruslan/zakupgotov/location/ProductLocationId.java`
-- Create: `apps/api/src/main/java/io/github/trueruslan/zakupgotov/location/SensitiveAddress.java`
-- Create: `apps/api/src/main/java/io/github/trueruslan/zakupgotov/location/ProductLocation.java`
-- Test: `apps/api/src/test/java/io/github/trueruslan/zakupgotov/location/ProductLocationTest.java`
-- Test: `apps/api/src/test/java/io/github/trueruslan/zakupgotov/location/LocationBoundaryArchitectureTest.java`
+- `apps/api/src/main/java/io/github/trueruslan/zakupgotov/location/ProductLocationId.java`
+- `apps/api/src/main/java/io/github/trueruslan/zakupgotov/location/SensitiveAddress.java`
+- `apps/api/src/main/java/io/github/trueruslan/zakupgotov/location/ProductLocation.java`
+- `apps/api/src/test/java/io/github/trueruslan/zakupgotov/location/ProductLocationTest.java`
+- `apps/api/src/test/java/io/github/trueruslan/zakupgotov/location/LocationBoundaryArchitectureTest.java`
 
-**Interfaces:**
-- Produces: `ProductLocationId(UUID value)`.
-- Produces: `SensitiveAddress.of(String raw)`, `String reveal()`, redacted `toString()`.
-- Produces: `ProductLocation.localityOnly(ProductLocationId id, String locality)`.
-- Produces: `ProductLocation.withAddress(ProductLocationId id, String locality, String address)`.
-- Produces: `id()`, `locality()`, `Optional<SensitiveAddress> address()`.
+- [x] **Step 1: Write failing value/privacy tests**
+- [x] **Step 2: Add architecture RED**
+- [x] **Step 3: Run Maven verify and observe RED**
+- [x] **Step 4: Implement minimal product location types**
+- [x] **Step 5: Run full Maven verify and commit GREEN**
 
-- [ ] **Step 1: Write failing value/privacy tests**
+RED head `48df6d36994f42ff684e95d1d7bc9d2a46d20d87` failed at `testCompile` only because location production types did not exist. GREEN head `f840ebe8ddea0d93b60be0421388f5cb332da4a5` passed full Maven verification including the ArchUnit dependency rule.
 
-```java
-@Test
-void keepsPreciseAddressRedactedByDefault() {
-    var location = ProductLocation.withAddress(ID, " Москва ", " ул. Тестовая, 10 ");
-    assertThat(location.locality()).isEqualTo("Москва");
-    assertThat(location.address()).get().extracting(SensitiveAddress::reveal).isEqualTo("ул. Тестовая, 10");
-    assertThat(location.address().orElseThrow().toString()).isEqualTo("[REDACTED]");
-    assertThat(location.toString()).doesNotContain("Тестовая", "10");
-}
-```
+Delivered behavior:
 
-Also require locality-only locations, blank locality/address rejection, non-null ID, immutable equality semantics for IDs, and no raw provider identifiers on the product location API.
-
-- [ ] **Step 2: Add architecture RED**
-
-Use ArchUnit to require that `..location..` classes do not depend on `..provider..` or `..retailer..` classes.
-
-- [ ] **Step 3: Run `./mvnw --batch-mode --no-transfer-progress verify` in `apps/api`**
-
-Expected: RED because the `location` package/types do not exist.
-
-- [ ] **Step 4: Implement minimal product location types**
-
-`SensitiveAddress` stores trimmed raw text, exposes it only through explicit `reveal()`, implements value equality/hashCode, and always returns `[REDACTED]` from `toString()`. `ProductLocation` validates/normalizes locality, stores optional sensitive address, and uses a custom redacted `toString()`.
-
-- [ ] **Step 5: Run full Maven verify and commit GREEN**
-
-Expected: all API tests and architecture checks pass.
+- `ProductLocationId(UUID value)` with non-null identity;
+- locality-only or locality+address product locations;
+- locality normalization and blank rejection;
+- explicit `SensitiveAddress.reveal()`;
+- default sensitive-address string representation `[REDACTED]`;
+- `ProductLocation.toString()` never renders the precise address;
+- production `location` package has no dependency on provider/retailer packages.
 
 ---
 
-### Task 2: Typed fulfillment-context bindings
+### Task 2: Typed fulfillment-context bindings — COMPLETE
 
 **Files:**
-- Create: `apps/api/src/main/java/io/github/trueruslan/zakupgotov/provider/FulfillmentContextSelectionMode.java`
-- Create: `apps/api/src/main/java/io/github/trueruslan/zakupgotov/provider/FulfillmentContextBinding.java`
-- Create: `apps/api/src/main/java/io/github/trueruslan/zakupgotov/provider/FulfillmentContextSet.java`
-- Test: `apps/api/src/test/java/io/github/trueruslan/zakupgotov/provider/FulfillmentContextSetTest.java`
+- `apps/api/src/main/java/io/github/trueruslan/zakupgotov/provider/FulfillmentContextSelectionMode.java`
+- `apps/api/src/main/java/io/github/trueruslan/zakupgotov/provider/FulfillmentContextBinding.java`
+- `apps/api/src/main/java/io/github/trueruslan/zakupgotov/provider/FulfillmentContextSet.java`
+- `apps/api/src/test/java/io/github/trueruslan/zakupgotov/provider/FulfillmentContextSetTest.java`
 
-**Interfaces:**
-- Produces enum: `MANUAL`, `RESOLVED`.
-- Produces record: `FulfillmentContextBinding(ProductLocationId productLocationId, LocationContext context, FulfillmentContextSelectionMode mode)`.
-- Produces: `FulfillmentContextSet.of(ProductLocationId productLocationId, List<FulfillmentContextBinding> bindings)`.
-- Produces: `productLocationId()`, `bindings()`, `Optional<FulfillmentContextBinding> bindingFor(String sourceProviderId)`, `Optional<LocationContext> contextFor(String sourceProviderId)`.
+- [x] **Step 1: Write failing binding tests**
+- [x] **Step 2: Run Maven verify and observe RED**
+- [x] **Step 3: Implement minimal immutable binding set**
+- [x] **Step 4: Run Maven verify and commit GREEN**
 
-- [ ] **Step 1: Write failing binding tests**
+RED head `bf4bcdf63c0d76cd0029f2fddc26874c79ffb367` failed at `testCompile` only because typed binding classes did not exist. GREEN head `4f9d08d1f7d902ef8fce3cf5829087b68f7de9a9` passed full Maven verification.
 
-Require manual and resolved contexts to coexist, preserve stable input order, reject bindings for a different `ProductLocationId`, reject duplicate `sourceProviderId`, return immutable bindings, and return empty for unknown source providers.
+Delivered behavior:
 
-- [ ] **Step 2: Run Maven verify**
-
-Expected: RED because binding types do not exist.
-
-- [ ] **Step 3: Implement minimal immutable binding set**
-
-Use an insertion-preserving map keyed by `LocationContext.sourceProviderId()`. The set stores only opaque `ProductLocationId` plus provider contexts; it never stores `ProductLocation` or `SensitiveAddress`.
-
-- [ ] **Step 4: Run Maven verify and commit GREEN**
-
-Expected: all tests pass.
+- selection provenance `MANUAL` / `RESOLVED`;
+- a binding stores only opaque `ProductLocationId` plus source-provider-scoped `LocationContext`;
+- stable binding order;
+- immutable binding snapshot;
+- duplicate source-provider contexts rejected;
+- binding to another product location rejected;
+- unknown source provider returns no binding/context.
 
 ---
 
-### Task 3: Route providers through typed fulfillment contexts
+### Task 3: Route providers through typed fulfillment contexts — COMPLETE
 
 **Files:**
-- Modify: `apps/api/src/main/java/io/github/trueruslan/zakupgotov/provider/ProviderPathOrchestrator.java`
-- Modify: `apps/api/src/test/java/io/github/trueruslan/zakupgotov/provider/ProviderPathOrchestratorTest.java`
-- Test: `apps/api/src/test/java/io/github/trueruslan/zakupgotov/provider/ProviderPathLocationBoundaryTest.java`
-- Modify: `docs/PROJECT_STATE.md`
-- Modify: `docs/ROADMAP.md`
-- Modify: `CHANGELOG.md`
+- `apps/api/src/main/java/io/github/trueruslan/zakupgotov/provider/ProviderPathOrchestrator.java`
+- `apps/api/src/test/java/io/github/trueruslan/zakupgotov/provider/ProviderPathOrchestratorTest.java`
+- `apps/api/src/test/java/io/github/trueruslan/zakupgotov/provider/ProviderPathLocationBoundaryTest.java`
+- `docs/PROJECT_STATE.md`
+- `docs/ROADMAP.md`
+- `CHANGELOG.md`
 
-**Interfaces:**
-- Replaces the orchestration parameter `Map<String, LocationContext> contextsBySourceProvider` with `FulfillmentContextSet fulfillmentContexts`.
-- Retains all existing path ordering, capability checks, fallback behavior and trust validation unchanged.
-
-- [ ] **Step 1: Write failing typed-boundary test and migrate orchestration test calls**
-
-Require the orchestrator to accept `FulfillmentContextSet`, preserve `MISSING_CONTEXT` behavior for absent bindings, and expose no method that accepts a raw provider-context map.
-
-- [ ] **Step 2: Run Maven verify**
-
-Expected: RED because the orchestrator still requires the raw `Map<String, LocationContext>` signature.
-
-- [ ] **Step 3: Implement minimal orchestrator migration**
-
-Replace direct map lookup with `fulfillmentContexts.contextFor(provider.sourceProviderId())`; do not change priority, fallback or offer validation.
-
-- [ ] **Step 4: Run Maven verify**
-
-Expected: all provider/orchestration tests remain green.
-
-- [ ] **Step 5: Synchronize durable docs**
-
-Mark M1 slice 4 complete, make price/availability snapshots the next active slice, record privacy/address redaction and typed fulfillment binding behavior in `CHANGELOG.md`.
-
+- [x] **Step 1: Write failing typed-boundary test and migrate orchestration test calls**
+- [x] **Step 2: Run Maven verify and observe RED**
+- [x] **Step 3: Implement minimal orchestrator migration**
+- [x] **Step 4: Run Maven verify**
+- [x] **Step 5: Synchronize durable docs**
 - [ ] **Step 6: Run final repository CI/security gate and review**
 
-Require API, Contract, Web/E2E, CodeQL Java+JS/TS, Dependency Review, Retailer Bridge, Container Security API+Web, Release Bundle and Release Contract to pass on the exact final head before squash merge.
+RED head `c2735cb11630f7b9da2d7f04bf983bd618c657d8` failed with seven expected compile errors because `ProviderPathOrchestrator` still required `Map<String, LocationContext>`. GREEN head `a58b0e3cf8baf29c8caa9da7ef5926e66a8d0fd9` replaced that raw map with `FulfillmentContextSet` and passed full Maven verification without changing priority, capability, fallback or provenance behavior.
+
+Final repository-wide CI/security verification and exact-head review are the remaining shipping gate before squash merge.
