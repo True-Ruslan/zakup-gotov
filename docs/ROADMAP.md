@@ -16,7 +16,7 @@ Decision: **GO to M1** — [`superpowers/specs/2026-08-12-m0-to-m1-go-decision.m
 
 Exit evidence remains Perekrestok/Pyaterochka browser bridge, Magnit public web, two acquisition modes, deterministic sanitized verification and retailer-neutral architecture. M0 is technical feasibility, not blanket production-access clearance.
 
-## M1 — Shopping Core — CURRENT
+## M1 — Shopping Core — FINAL ACCEPTANCE
 
 Goal: compare a manually entered grocery list across connected retailers while preserving explicit coverage, location/context, provenance, freshness, package evidence and uncertainty.
 
@@ -28,12 +28,13 @@ Goal: compare a manually entered grocery list across connected retailers while p
 - retailer/provider/acquisition/fulfillment context remain distinct;
 - `UNKNOWN` availability is first-class;
 - observation time is not provider-update time;
-- package quantity is structured evidence, never inferred from names/slugs/category/presentation text;
+- package quantity is structured evidence, never inferred from presentation text;
 - mass, volume and count are not interchangeable;
 - source ambiguity/conflict fails closed;
 - transport/identity failures are not counted as missing metadata;
 - ordinary CI makes no live retailer requests;
-- production activation is independently gated by right-to-operate/access policy.
+- production activation is independently gated by right-to-operate/access policy;
+- a public technical endpoint is never considered production authorization by itself.
 
 ### Completed implementation sequence
 
@@ -52,8 +53,9 @@ Goal: compare a manually entered grocery list across connected retailers while p
 13. **Magnit SKU-bound JSON-LD package evidence — COMPLETE / ACCEPTED (#85)**
 14. **Magnit deterministic bbox → `shopCode` domain boundary — COMPLETE / ACCEPTED (#86)**
 15. **Magnit merged-main LOCATION_RESOLUTION live gate — COMPLETE / ACCEPTED (#87 / #69)**
+16. **Magnit production access / right-to-operate — IMPLEMENTED / SHIPPING (#89 / #70)**
 
-### Magnit evidence now accepted
+### Magnit accepted technical evidence
 
 #### Package evidence
 
@@ -70,7 +72,7 @@ Finite 20-product × 2-shop replay:
 - conflicts: 0;
 - invalid: 0.
 
-Milk SKU `1000013732` and kefir SKU `1000330180` are deliberately ambiguous in both shop contexts because both weight and volume are present. Count remains unproven; structured egg mass is not count.
+Milk SKU `1000013732` and kefir SKU `1000330180` remain deliberately ambiguous because both weight and volume are present. Count remains unproven; structured egg mass is not count.
 
 #### Location/store context
 
@@ -78,74 +80,75 @@ Accepted first-party surface:
 
 `POST /webgate/v1/stores-facade/search`
 
-Accepted product semantics:
+Accepted semantics:
 
 - validated bbox → public candidate set;
-- 0 candidates → `NO_STORES`;
+- 0 → `NO_STORES`;
 - 1 → `RESOLVED`;
 - >1 → `AMBIGUOUS`;
-- conflicting duplicate store identity → `CONFLICTING_STORE_EVIDENCE`;
+- conflicting duplicate identity → `CONFLICTING_STORE_EVIDENCE`;
 - explicit choice → `MANUAL`;
-- never pick first/nearest without a separately proven rule.
+- never pick first/nearest without separately proven semantics.
 
-PR #86 merged the deterministic domain boundary. PR #87 merged the guarded default-branch acceptance workflow.
-
-Merged-main run `31642543544` on SHA `6ff8372c9e9e61b4c48c43d0d0c159fb65ffe7a1` produced:
-
-```text
-MAGNIT_SHOPCODE_LOCATION first_status=200 first_candidates=1 first_has_992301=true first_set_cookie=false second_status=200 second_candidates=1 second_has_992301=true second_set_cookie=false same_candidate_set=true conflicting_evidence=false total_requests=2
-```
-
-Therefore issue #69's technical `LOCATION_RESOLUTION` requirement is satisfied for the proven bbox/store-selection boundary.
+Merged-main run `31642543544` on SHA `6ff8372c9e9e61b4c48c43d0d0c159fb65ffe7a1` proved the same public `shopCode=992301` across two direct stateless requests with no cookie jar, authenticator, redirects or Magnit app/auth headers.
 
 Text/locality/address → coordinates remains intentionally unproven; no hidden geocoder is introduced.
 
-### Remaining M1 exit work
+### Magnit production access / right-to-operate — #70
 
-#### 1. Magnit production usage/right-to-operate — **NEXT (#70)**
+Decision memo: [`integrations/magnit-production-access-decision-2026-08-13.md`](integrations/magnit-production-access-decision-2026-08-13.md).
 
-Technical feasibility is no longer the blocker. The next mandatory decision is whether and under what constraints the public Magnit surfaces may be used for recurring production acquisition.
+Chosen operational state: **`BLOCKED` pending affirmative permission or licensed/supported access terms**.
 
-The #70 decision must define one explicit operational state such as:
+This keeps the two independent dimensions honest:
 
-- production enabled under documented constraints;
-- guarded/low-frequency/manual-only;
-- disabled pending explicit authorization;
-- another evidence-backed fail-closed mode.
+- technical coverage: `AVAILABLE_PUBLIC_WEB` / connected;
+- production access: `BLOCKED` / not production-ready.
 
-Until #70 is accepted:
+Public product behavior:
 
-- no recurring Magnit polling;
-- no comparison-preview live Magnit HTTP client;
-- ordinary CI remains live-free;
-- production runtime evidence remains no-op/fail-closed.
+- `productionAccess=BLOCKED`;
+- `comparisonStatus=UNAVAILABLE`;
+- reason `PRODUCTION_ACCESS_BLOCKED`;
+- no total/freshness/live Magnit evidence exposed as if production-ready.
 
-#### 2. Final M1 acceptance pass
+`BLOCKED` is a conservative Zakup Gotov product-policy state. It does **not** claim that Magnit expressly prohibits every automated HTTP request and does not decide a legal dispute. It means current authoritative evidence does not establish affirmative permission for the intended recurring commercial catalog acquisition/reuse model, so production must remain off.
 
-After #70, verify the complete vertical path:
+Unblocking requires a new source-backed review based on affirmative permission or another authoritative basis that covers the actual scope, storage, refresh/rate, attribution and redistribution constraints.
+
+### Remaining M1 exit work — NEXT
+
+#### 1. Final M1 acceptance pass
+
+Verify the complete vertical path:
 
 `ShoppingList → ProductLocation/FulfillmentContext → ProviderEvidence → OfferSnapshot → Matching → BasketQuote → RetailerComparison`
 
-Acceptance must cover:
+Acceptance must prove:
 
-- complete/uncertain/incomplete/unavailable outcomes;
-- package unknown and unit mismatch;
-- ambiguous matching and ambiguous store selection;
-- freshness/provenance boundaries;
-- privacy and identifier non-leakage;
-- incomplete basket cannot become a winner;
-- no hidden fixture/live fallback.
+- complete/uncertain/incomplete/unavailable states remain distinct;
+- package unknown and unit mismatch fail safely;
+- ambiguous product matching and ambiguous store selection never become hidden winners;
+- freshness/provenance boundaries survive end to end;
+- addresses/provider/store IDs remain private/internal where required;
+- incomplete baskets never expose misleading totals;
+- `ProductionAccessStatus.BLOCKED` overrides runtime evidence and prevents a production-ready claim;
+- production preview does not fall back to deterministic fixtures or live retailer requests;
+- all eight canonical retailers remain visible.
 
-#### 3. Parallel connectivity/hardening
+The output should be a durable M1 acceptance document with exact test/CI evidence and an explicit **GO / NO-GO to M2** decision.
 
-Continue without blocking M2 unnecessarily:
+#### 2. Parallel connectivity/hardening
+
+Continue without blocking deterministic M2 work unnecessarily:
 
 - **#54** browser-bridge persistent-session/store-change/SPA lifecycle;
 - **#36** Kuper supported aggregator investigation;
 - Chizhik, Ozon Fresh, Samokat, Lenta and VkusVill onboarding/hardening;
-- retailer-specific structured package semantics only when source evidence proves them.
+- retailer-specific structured package semantics only when source evidence proves them;
+- any retailer production activation only after its own explicit access/right-to-operate decision.
 
-#### 4. Release proof
+#### 3. Release proof
 
 Publish and verify a successful real **`v0.1.0-rc.3`** GitHub Release event with final image promotion, SBOM/attestation and digest smoke evidence.
 
@@ -163,15 +166,13 @@ M1 exits only when:
 - incomplete baskets cannot masquerade as winners;
 - ordinary tests/product journey have no hidden live retailer dependency;
 - production activation states are explicit rather than implied by technical feasibility;
-- the remaining M1 production/access constraints have an accepted outcome.
+- the final acceptance pass produces an explicit GO/NO-GO decision for M2.
 
 ## M2 — Recipes
 
-Goal: make recipes a first-class source of shopping requirements.
+Goal: make recipes a first-class deterministic source of shopping requirements.
 
 ### First vertical slice
-
-Start with:
 
 `Recipe → ingredients → canonical quantities → ShoppingList`
 
@@ -195,8 +196,6 @@ Non-goals for the first slice:
 - nutritional optimization;
 - fuzzy ingredient equivalence;
 - pantry prediction.
-
-Those can follow once the deterministic recipe model is accepted.
 
 ## M3 — Weekly Planning
 
