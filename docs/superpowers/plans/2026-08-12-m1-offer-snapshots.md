@@ -1,6 +1,6 @@
 # M1 Price / Availability Snapshot Implementation Plan
 
-Status: **IMPLEMENTED — shipping gate pending on final docs head**
+Status: **COMPLETE — final marker head must satisfy branch protection before merge**
 
 **Goal:** Introduce an immutable internal offer snapshot derived from validated provider observations while keeping observation time distinct from provider-side freshness evidence.
 
@@ -56,7 +56,7 @@ Delivered behavior:
 
 ---
 
-### Task 2: Immutable offer snapshot derived from validated observation — IMPLEMENTED
+### Task 2: Immutable offer snapshot derived from validated observation — COMPLETE
 
 **Files:**
 - `apps/api/src/main/java/io/github/trueruslan/zakupgotov/provider/OfferSnapshotId.java`
@@ -75,7 +75,7 @@ Delivered behavior:
 - [x] Implement minimal immutable snapshot with no direct arbitrary-value constructor; public creation goes through validated `ObservedOffer` factories.
 - [x] Run Maven verify and record GREEN.
 - [x] Synchronize project state, roadmap and changelog; next active slice becomes deterministic product matching.
-- [ ] Run full exact-head repository CI/security gate, review and squash merge.
+- [x] Run full exact-head repository CI/security gate and read-only change review.
 
 RED head `fe7fa2c22d112163afce9feb3c282e387fb077a3` compiled the completed freshness model and failed at `testCompile` only because `OfferSnapshotId` / `OfferSnapshot` did not yet exist.
 
@@ -91,4 +91,9 @@ Delivered behavior:
 - optional provider update time is accepted only through explicit provider-timestamp freshness semantics;
 - persistence/API/matching/basket/live-access remain out of scope.
 
-Final exact-head repository verification after this documentation synchronization is the only remaining shipping gate before review and squash merge.
+Shipping evidence:
+
+- functional GREEN head `f395797cc57f3a3f65abdb1a548f4a987121be01` passed the full repository gate;
+- synchronized docs head `46514d2281a0a461d296b25670651f4435c528f7` passed API, Contract, Web/E2E, CodeQL Java+JS/TS, Dependency Review, Retailer Bridge, Container Security API+Web, Release Bundle and Release Contract;
+- final read-only Change Review verdict on the synchronized implementation was **Looks good**, with no P0/P1/P2 findings;
+- this final marker commit changes only historical shipping evidence; branch protection must still be green on the marker head before squash merge.
