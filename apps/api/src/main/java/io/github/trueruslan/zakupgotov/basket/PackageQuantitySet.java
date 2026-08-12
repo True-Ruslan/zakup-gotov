@@ -14,10 +14,9 @@ public final class PackageQuantitySet {
     private final Map<OfferSnapshotId, PackageQuantityBinding> bindingsBySnapshotId;
 
     private PackageQuantitySet(List<PackageQuantityBinding> bindings) {
-        this.bindings = List.copyOf(Objects.requireNonNull(bindings, "bindings must not be null"));
-
+        var input = Objects.requireNonNull(bindings, "bindings must not be null");
         var bySnapshot = new LinkedHashMap<OfferSnapshotId, PackageQuantityBinding>();
-        for (var binding : this.bindings) {
+        for (var binding : input) {
             Objects.requireNonNull(binding, "binding must not be null");
             var previous = bySnapshot.putIfAbsent(binding.snapshotId(), binding);
             if (previous != null) {
@@ -25,6 +24,8 @@ public final class PackageQuantitySet {
                         + binding.snapshotId().value());
             }
         }
+
+        this.bindings = List.copyOf(input);
         this.bindingsBySnapshotId = Map.copyOf(bySnapshot);
     }
 
