@@ -15,8 +15,8 @@ final class ProviderProbeSupport {
         Objects.requireNonNull(location, "location");
         Objects.requireNonNull(query, "query");
 
-        if (!provider.providerId().equals(location.providerId())) {
-            throw new IllegalArgumentException("providerId must match location context providerId");
+        if (!provider.sourceProviderId().equals(location.sourceProviderId())) {
+            throw new IllegalArgumentException("sourceProviderId must match location context sourceProviderId");
         }
         var capabilities = Objects.requireNonNull(provider.capabilities(), "capabilities");
         requireCapability(capabilities, ProviderCapability.PRODUCT_SEARCH);
@@ -24,7 +24,7 @@ final class ProviderProbeSupport {
 
         var offers = List.copyOf(provider.search(location, query));
         for (var offer : offers) {
-            if (!provider.providerId().equals(offer.sourceProviderId())) {
+            if (!provider.sourceProviderId().equals(offer.sourceProviderId())) {
                 throw new IllegalStateException("offer sourceProviderId does not match provider");
             }
             if (!location.fulfillmentContextId().equals(offer.fulfillmentContextId())) {

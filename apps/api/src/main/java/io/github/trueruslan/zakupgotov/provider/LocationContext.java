@@ -1,9 +1,9 @@
 package io.github.trueruslan.zakupgotov.provider;
 
-public record LocationContext(String providerId, String fulfillmentContextId, String locality) {
+public record LocationContext(String sourceProviderId, String fulfillmentContextId, String locality) {
 
     public LocationContext {
-        providerId = requireText(providerId, "providerId");
+        sourceProviderId = requireText(sourceProviderId, "sourceProviderId");
         fulfillmentContextId = requireText(fulfillmentContextId, "fulfillmentContextId");
         locality = requireText(locality, "locality");
     }
