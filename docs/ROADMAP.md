@@ -1,12 +1,12 @@
 # Roadmap
 
-Updated: 2026-08-12
+Updated: 2026-08-13
 
-The roadmap is evidence-driven. Milestones may change when retailer integration feasibility or product usage contradicts current assumptions.
+The roadmap is evidence-driven. Milestones change when integration evidence, product behavior or production constraints contradict an earlier assumption.
 
 ## Product connectivity invariant
 
-Zakup Gotov targets **universal connectivity for the retailer registry**, not a permanently curated subset of easy integrations. Every retailer/banner added to the target registry remains mandatory coverage work until at least one reproducible acquisition path is available.
+Zakup Gotov targets **universal connectivity for the retailer registry**, not a permanently curated subset of easy integrations. Every retailer/banner remains mandatory coverage work until at least one reproducible acquisition path exists.
 
 Durable design: [`superpowers/specs/2026-08-10-universal-retailer-connectivity-design.md`](superpowers/specs/2026-08-10-universal-retailer-connectivity-design.md).
 
@@ -14,128 +14,193 @@ Durable design: [`superpowers/specs/2026-08-10-universal-retailer-connectivity-d
 
 Decision: **GO to M1** — [`superpowers/specs/2026-08-12-m0-to-m1-go-decision.md`](superpowers/specs/2026-08-12-m0-to-m1-go-decision.md).
 
-Exit evidence remains Perekrestok/Pyaterochka browser bridge, Magnit public web for explicit `shopCode`, two acquisition modes, deterministic sanitized verification and retailer-neutral architecture. M0 completion is technical feasibility, not production-access clearance; #54, #69 and #70 remain explicit constraints.
+Exit evidence remains Perekrestok/Pyaterochka browser bridge, Magnit public web, two acquisition modes, deterministic sanitized verification and retailer-neutral architecture. M0 is technical feasibility, not blanket production-access clearance.
 
 ## M1 — Shopping Core — CURRENT
 
 Goal: compare a manually entered grocery list across connected retailers while preserving explicit coverage, location/context, provenance, freshness, package evidence and uncertainty.
 
-### Entry rules
+### Permanent M1 rules
 
 - fixture/evidence-first core;
 - unavailable/blocked retailers remain visible;
 - exact addresses redacted by default;
-- retailer/source-provider/acquisition-mode/fulfillment context remain distinct;
-- `UNKNOWN` availability remains first-class;
+- retailer/provider/acquisition/fulfillment context remain distinct;
+- `UNKNOWN` availability is first-class;
 - observation time is not provider-update time;
-- package quantity is explicit structured evidence, never inferred from product names, slugs, category or presentation text;
-- source-specific extraction fails closed on ambiguity/conflict;
+- package quantity is structured evidence, never inferred from names/slugs/category/presentation text;
 - mass, volume and count are not interchangeable;
-- corpus quality metrics classify only transport-successful, identity-valid pages;
-- production activation respects usage-rights state;
-- ordinary M1 tests make no live retailer requests.
+- source ambiguity/conflict fails closed;
+- transport/identity failures are not counted as missing metadata;
+- ordinary CI makes no live retailer requests;
+- production activation is independently gated by right-to-operate/access policy.
 
-### Implementation sequence
+### Completed implementation sequence
 
-1. **Retailer registry + coverage-state model — COMPLETE (#72)**
-2. **Shopping-list aggregate + canonical quantities/units — COMPLETE (#73)**
-3. **Provider/path orchestration over deterministic fixtures — COMPLETE (#74)**
+1. **Retailer registry + coverage state — COMPLETE (#72)**
+2. **Shopping-list aggregate + canonical quantities — COMPLETE (#73)**
+3. **Provider/path orchestration — COMPLETE (#74)**
 4. **Location / fulfillment-context boundary — COMPLETE (#75)**
-5. **Price and availability snapshots — COMPLETE (#76)**
+5. **Price / availability snapshots — COMPLETE (#76)**
 6. **Deterministic product matching — COMPLETE (#77)**
-7. **Complete single-store basket comparison — COMPLETE (#78)**
-8. **Failure / coverage / freshness product + API + UX boundary — COMPLETE (#79)**
+7. **Single-store basket comparison — COMPLETE (#78)**
+8. **Failure / coverage / freshness product boundary — COMPLETE (#79)**
 9. **Critical product journey — COMPLETE / ACCEPTED (#80)**
-   - stateless manual-list comparison API and responsive web journey;
-   - all eight retailers remain visible with explicit comparison states;
-   - product-safe item gaps;
-   - production runtime evidence strict no-op/fail-closed;
-   - desktop/mobile deterministic Playwright without hidden live retailer access.
 10. **Structured package-evidence plumbing — COMPLETE / ACCEPTED (#81)**
-   - optional canonical `ObservedOffer.packageQuantity`;
-   - immutable snapshot preservation;
-   - snapshot-derived `PackageQuantitySet`;
-   - runtime rejects a parallel package set that disagrees with snapshots;
-   - title/presentation parsing explicitly prohibited and regression-tested.
-11. **Magnit visible exact-characteristic semantics — COMPLETE / ACCEPTED (#82)**
-   - pure exact-field semantics for `Вес, кг` / `Объем, л` inside visible `Характеристики`;
-   - canonical kg→g / l→ml;
-   - fail-closed ambiguity/conflict/invalid states;
-   - title/slug/description/script/style/out-of-section data cannot create evidence;
-   - count semantics deferred;
-   - no HTTP/Spring activation.
-12. **Magnit fixed-corpus package-evidence instrumentation — COMPLETE / ACCEPTED (#83)**
-   - existing explicit/manual 20-product × 2-shop corpus remains unchanged in request count and transport policy;
-   - package status metrics include only HTTP 2xx + expected-SKU observations;
-   - transport/error and wrong-identity pages are excluded rather than counted as `MISSING`;
-   - structural summary reports `FOUND`, `MISSING`, `AMBIGUOUS_DIMENSIONS`, `CONFLICTING_VALUES`, `INVALID_VALUE`;
-   - status counts equal `packageEvidencePages` exactly;
-   - ordinary CI remains live-retailer-free;
-   - first visible-text live measurement: `FOUND=0`, `MISSING=40`, with 40 eligible pages and no ambiguity/conflict/invalid values.
-13. **Magnit SKU-bound JSON-LD package evidence — IMPLEMENTED / LIVE EVIDENCE PROVEN / SHIPPING (#85)**
-   - same raw PUBLIC_WEB response, no extra retailer request and no browser execution;
-   - exact JSON-LD `Product` + exact expected `sku` identity;
-   - scalar `Product.weight` accepted as kilograms only because Magnit provenance was explicitly proven;
-   - exact `additionalProperty.name="Объем, л"` scalar value accepted as liters;
-   - generic fields and presentation text remain non-authoritative;
-   - duplicate equivalent values deduplicate;
-   - invalid/conflicting/multi-dimensional source evidence remains fail-closed;
-   - count remains deferred;
-   - corpus projection uses the JSON-LD extractor without changing price/promo/availability transport logic;
-   - deterministic extractor/corpus tests and full API verification are green;
-   - same finite 40-request replay produced `FOUND=36`, `MISSING=0`, `AMBIGUOUS_DIMENSIONS=4`, `CONFLICTING_VALUES=0`, `INVALID_VALUE=0`, failed requirements `0`;
-   - the four ambiguity observations are exactly milk SKU `1000013732` and kefir SKU `1000330180` in both shop contexts;
-   - all other fixed requirements are `FOUND` in the one-shop diagnostic;
-   - egg evidence is structured mass, not package count, and canonical unit mismatch prevents mass from satisfying `PIECE` requirements.
+11. **Magnit exact visible-characteristic semantics — COMPLETE / ACCEPTED (#82)**
+12. **Magnit fixed-corpus package instrumentation — COMPLETE / ACCEPTED (#83)**
+13. **Magnit SKU-bound JSON-LD package evidence — COMPLETE / ACCEPTED (#85)**
+14. **Magnit deterministic bbox → `shopCode` domain boundary — COMPLETE / ACCEPTED (#86)**
+15. **Magnit merged-main LOCATION_RESOLUTION live gate — COMPLETE / ACCEPTED (#87 / #69)**
 
-   Design: [`superpowers/specs/2026-08-12-magnit-jsonld-package-evidence-design.md`](superpowers/specs/2026-08-12-magnit-jsonld-package-evidence-design.md).  
-   Plan: [`superpowers/plans/2026-08-12-magnit-jsonld-package-evidence.md`](superpowers/plans/2026-08-12-magnit-jsonld-package-evidence.md).  
-   Evidence: [`integrations/magnit-jsonld-package-evidence-2026-08-12.md`](integrations/magnit-jsonld-package-evidence-2026-08-12.md).
+### Magnit evidence now accepted
 
-### Important remaining basket-data limitation
+#### Package evidence
 
-Magnit now has strong structured weight/volume coverage on the measured fixed corpus, but this is not universal-catalog proof. Products with both weight and volume remain unknown under the current single-`Quantity` model; count is deferred; other retailers still lack an accepted structured package field.
+The same raw PUBLIC_WEB response supplies exact-SKU JSON-LD package evidence without another retailer request or browser execution.
 
-Never replace this with product-name parsing or density/category guesses.
+Finite 20-product × 2-shop replay:
+
+- HTTP 2xx: 40/40;
+- usable: 40/40;
+- stable identity: 20/20;
+- `FOUND=36`;
+- `MISSING=0`;
+- `AMBIGUOUS_DIMENSIONS=4`;
+- conflicts: 0;
+- invalid: 0.
+
+Milk SKU `1000013732` and kefir SKU `1000330180` are deliberately ambiguous in both shop contexts because both weight and volume are present. Count remains unproven; structured egg mass is not count.
+
+#### Location/store context
+
+Accepted first-party surface:
+
+`POST /webgate/v1/stores-facade/search`
+
+Accepted product semantics:
+
+- validated bbox → public candidate set;
+- 0 candidates → `NO_STORES`;
+- 1 → `RESOLVED`;
+- >1 → `AMBIGUOUS`;
+- conflicting duplicate store identity → `CONFLICTING_STORE_EVIDENCE`;
+- explicit choice → `MANUAL`;
+- never pick first/nearest without a separately proven rule.
+
+PR #86 merged the deterministic domain boundary. PR #87 merged the guarded default-branch acceptance workflow.
+
+Merged-main run `31642543544` on SHA `6ff8372c9e9e61b4c48c43d0d0c159fb65ffe7a1` produced:
+
+```text
+MAGNIT_SHOPCODE_LOCATION first_status=200 first_candidates=1 first_has_992301=true first_set_cookie=false second_status=200 second_candidates=1 second_has_992301=true second_set_cookie=false same_candidate_set=true conflicting_evidence=false total_requests=2
+```
+
+Therefore issue #69's technical `LOCATION_RESOLUTION` requirement is satisfied for the proven bbox/store-selection boundary.
+
+Text/locality/address → coordinates remains intentionally unproven; no hidden geocoder is introduced.
+
+### Remaining M1 exit work
+
+#### 1. Magnit production usage/right-to-operate — **NEXT (#70)**
+
+Technical feasibility is no longer the blocker. The next mandatory decision is whether and under what constraints the public Magnit surfaces may be used for recurring production acquisition.
+
+The #70 decision must define one explicit operational state such as:
+
+- production enabled under documented constraints;
+- guarded/low-frequency/manual-only;
+- disabled pending explicit authorization;
+- another evidence-backed fail-closed mode.
+
+Until #70 is accepted:
+
+- no recurring Magnit polling;
+- no comparison-preview live Magnit HTTP client;
+- ordinary CI remains live-free;
+- production runtime evidence remains no-op/fail-closed.
+
+#### 2. Final M1 acceptance pass
+
+After #70, verify the complete vertical path:
+
+`ShoppingList → ProductLocation/FulfillmentContext → ProviderEvidence → OfferSnapshot → Matching → BasketQuote → RetailerComparison`
+
+Acceptance must cover:
+
+- complete/uncertain/incomplete/unavailable outcomes;
+- package unknown and unit mismatch;
+- ambiguous matching and ambiguous store selection;
+- freshness/provenance boundaries;
+- privacy and identifier non-leakage;
+- incomplete basket cannot become a winner;
+- no hidden fixture/live fallback.
+
+#### 3. Parallel connectivity/hardening
+
+Continue without blocking M2 unnecessarily:
+
+- **#54** browser-bridge persistent-session/store-change/SPA lifecycle;
+- **#36** Kuper supported aggregator investigation;
+- Chizhik, Ozon Fresh, Samokat, Lenta and VkusVill onboarding/hardening;
+- retailer-specific structured package semantics only when source evidence proves them.
+
+#### 4. Release proof
+
+Publish and verify a successful real **`v0.1.0-rc.3`** GitHub Release event with final image promotion, SBOM/attestation and digest smoke evidence.
 
 ### M1 exit criteria
 
-- critical journey covered by automated integration/browser E2E;
-- incomplete/ambiguous/uncertain outcomes transparent;
-- deterministic explainable one-store quote totals;
-- unavailable retailer coverage explicit;
-- no hidden live retailer dependency in ordinary tests/product journey;
-- product location/privacy boundary preserved;
-- provenance/context/freshness survive internally without leaking implementation IDs;
-- package evidence remains structured source evidence through provider → snapshot → basket;
-- source-specific ambiguity/conflict never becomes a guessed quantity;
-- package dimensions remain unit-compatible and count is never inferred from mass/volume;
-- evidence-quality measurements separate transport/identity failure from missing metadata;
-- incomplete baskets cannot masquerade as complete winners;
-- production activation remains separately gated by access, location/context and source semantics.
+M1 exits only when:
 
-### Next M1 engineering focus
-
-1. **Ship #85** after exact-head CI/security and independent review; require post-merge `main` verification before calling it ACCEPTED.
-2. Then prioritize **Magnit location → `shopCode` (#69)** as the highest-leverage implementable blocker for converting explicit-store feasibility into location-aware product use.
-3. Keep **production usage-rights decision (#70)** independent and mandatory before recurring acquisition; technical feasibility is not authorization.
-4. Keep multi-dimensional package-domain extension and `Количество в упаковке` as separate evidence-driven work, not blockers for shipping current mass/volume support.
-5. **Browser bridge lifecycle hardening (#54)** for persistent sessions/store changes/SPA navigation.
-6. **Kuper supported aggregator investigation (#36)**.
-7. Continue Chizhik, Ozon Fresh, Samokat, Lenta, VkusVill and additional mandatory retailer onboarding.
-8. Prove a successful real `v0.1.0-rc.3` release event.
+- critical journey has automated API/integration/browser coverage;
+- incomplete/ambiguous/uncertain states are transparent;
+- one-store quote totals are deterministic and explainable;
+- all canonical retailers remain explicit in coverage;
+- package evidence remains source-structured through provider → snapshot → basket;
+- source ambiguity never becomes guessed quantity;
+- location/provider IDs remain provider-scoped;
+- incomplete baskets cannot masquerade as winners;
+- ordinary tests/product journey have no hidden live retailer dependency;
+- production activation states are explicit rather than implied by technical feasibility;
+- the remaining M1 production/access constraints have an accepted outcome.
 
 ## M2 — Recipes
 
 Goal: make recipes a first-class source of shopping requirements.
 
-Scope: built-in/user recipes, servings, normalized ingredient quantities, instructions, recipe → shopping-requirement conversion, editing/duplication and import experiments after the core model is stable.
+### First vertical slice
 
-Do not start M2 merely because fixture-driven M1 UI is complete. M1 evidence and production constraints must remain explicit and accepted rather than hidden.
+Start with:
+
+`Recipe → ingredients → canonical quantities → ShoppingList`
+
+Scope:
+
+- recipe identity/title;
+- servings;
+- ingredient name + explicit quantity/unit;
+- deterministic serving scaling;
+- canonical unit normalization using existing shopping quantity rules;
+- safe merging of compatible repeated ingredients;
+- provenance from shopping requirement back to recipe/ingredient;
+- recipe → ShoppingList conversion;
+- API/OpenAPI/generated-client boundary;
+- minimal responsive flow: create recipe → adjust servings → generate list → compare.
+
+Non-goals for the first slice:
+
+- AI recipe parsing;
+- arbitrary web import;
+- nutritional optimization;
+- fuzzy ingredient equivalence;
+- pantry prediction.
+
+Those can follow once the deterministic recipe model is accepted.
 
 ## M3 — Weekly Planning
 
-Goal: generate one coherent shopping-requirement set from several meals.
+Goal: combine several meals into one coherent shopping-requirement set.
 
 Scope: weekly planner, safe duplicate merging/unit conversion, pantry/exclusion controls and shopping-list review before comparison.
 
@@ -143,16 +208,16 @@ Scope: weekly planner, safe duplicate merging/unit conversion, pantry/exclusion 
 
 Goal: optimize real checkout cost rather than naive SKU sums.
 
-Scope: richer package-size/substitute optimization, fees, minimum orders, single-store convenience, future multi-store lowest-total-cost mode and confidence/freshness penalties.
+Scope: richer package/substitute optimization, fees, minimum orders, single-store convenience, future multi-store lowest-total-cost mode and confidence/freshness penalties.
 
 ## M5 — Productization
 
-Goal: reliable repeat-use product with privacy-aware accounts/preferences, analytics abstraction, feature flags, provider health monitoring and production provider activation only after access constraints are resolved.
+Goal: reliable repeat use with privacy-aware accounts/preferences, analytics abstraction, feature flags, provider health monitoring and production provider activation only after access constraints are resolved.
 
 ## M6 — Native Mobile
 
-Goal: native Android/iOS clients via Expo/React Native/TypeScript using generated API clients and shared product vocabulary/design tokens.
+Goal: Android/iOS clients using the shared API vocabulary and generated client contracts after the web/core product is stable.
 
 ## Guiding rule
 
-Do not add infrastructure or data semantics because they are convenient. Add them only when evidence makes the behavior correct, explainable and worth the operational cost.
+Do not add infrastructure or semantics because they are convenient. Add them only when evidence makes the behavior correct, explainable and worth the operational cost.
