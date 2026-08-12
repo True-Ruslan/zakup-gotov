@@ -16,6 +16,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.stream.Collectors;
 
 public final class ComparisonPreviewService {
 
@@ -33,9 +34,23 @@ public final class ComparisonPreviewService {
 
     public ComparisonPreview create(ComparisonPreviewRequest request) {
         var input = ComparisonPreviewRequestFactory.create(request);
-        var runtimeEvidence = Objects.requireNonNull(
-                evidenceSource.load(input.shoppingList(), input.productLocation()),
-                "runtime evidence must not be null");
+        var requestedRetailers = retailerRegistry.entries().stream()
+                .filter(entry -> entry.isProductionReady())
+                .map(entry -> entry.retailer().id())
+                .collect(Collectors.toUnmodifiableSet());
+        var runtimeEvidence = requestedRetailers.isEmpty()
+                ? ComparisonRuntimeEvidence.empty()
+                : Objects.requireNonNull(
+                        evidenceSource.load(input.shoppingList(), input.productLocation(), requestedRetailers),
+                        "runtime evidence must not be null");
+
+        for (var evidence : runtimeEvidence.retailers()) {
+            if (!requestedRetailers.contains(evidence.retailerId())) {
+                throw new IllegalStateException(
+                        "runtime evidence source returned unrequested retailer: "
+                                + evidence.retailerId().canonicalId());
+            }
+        }
 
         var comparisonEvidence = new EnumMap<RetailerId, RetailerComparisonEvidence>(RetailerId.class);
         var quotes = new EnumMap<RetailerId, SingleStoreBasketQuote>(RetailerId.class);

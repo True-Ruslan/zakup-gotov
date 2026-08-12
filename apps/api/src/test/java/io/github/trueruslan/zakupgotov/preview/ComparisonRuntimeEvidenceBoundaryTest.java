@@ -20,6 +20,7 @@ import java.math.BigDecimal;
 import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 import java.util.UUID;
 import org.junit.jupiter.api.Test;
 
@@ -31,7 +32,8 @@ class ComparisonRuntimeEvidenceBoundaryTest {
 
         var evidence = source.load(
                 new ShoppingList(new ShoppingListId(UUID.randomUUID())),
-                ProductLocation.localityOnly(new ProductLocationId(UUID.randomUUID()), "Москва"));
+                ProductLocation.localityOnly(new ProductLocationId(UUID.randomUUID()), "Москва"),
+                Set.of(RetailerId.PYATEROCHKA));
 
         assertThat(evidence.retailers()).isEmpty();
         assertThat(evidence.forRetailer(RetailerId.PYATEROCHKA)).isEmpty();

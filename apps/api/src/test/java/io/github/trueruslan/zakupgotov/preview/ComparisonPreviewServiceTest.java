@@ -46,14 +46,15 @@ class ComparisonPreviewServiceTest {
 
     @Test
     void assemblesMixedRetailerStatesFromOneDeterministicEvidenceInput() {
-        var source = (ComparisonRuntimeEvidenceSource) (shoppingList, productLocation) -> ComparisonRuntimeEvidence.of(List.of(
-                completeEvidence(RetailerId.PYATEROCHKA, AvailabilityStatus.AVAILABLE),
-                completeEvidence(RetailerId.PEREKRESTOK, AvailabilityStatus.UNKNOWN),
-                unmatchedEvidence(RetailerId.LENTA),
-                ambiguousEvidence(RetailerId.VKUSVILL),
-                unitMismatchEvidence(RetailerId.OZON_FRESH),
-                packageUnknownEvidence(RetailerId.MAGNIT),
-                unavailableEvidence(RetailerId.SAMOKAT)));
+        var source = (ComparisonRuntimeEvidenceSource) (shoppingList, productLocation, requestedRetailers) ->
+                ComparisonRuntimeEvidence.of(List.of(
+                        completeEvidence(RetailerId.PYATEROCHKA, AvailabilityStatus.AVAILABLE),
+                        completeEvidence(RetailerId.PEREKRESTOK, AvailabilityStatus.UNKNOWN),
+                        unmatchedEvidence(RetailerId.LENTA),
+                        ambiguousEvidence(RetailerId.VKUSVILL),
+                        unitMismatchEvidence(RetailerId.OZON_FRESH),
+                        packageUnknownEvidence(RetailerId.MAGNIT),
+                        unavailableEvidence(RetailerId.SAMOKAT)));
         var service = new ComparisonPreviewService(testRegistry(), source);
 
         var preview = service.create(request());
@@ -129,7 +130,7 @@ class ComparisonPreviewServiceTest {
                 "ctx-empty",
                 outcome,
                 List.of());
-        var source = (ComparisonRuntimeEvidenceSource) (shoppingList, productLocation) ->
+        var source = (ComparisonRuntimeEvidenceSource) (shoppingList, productLocation, requestedRetailers) ->
                 ComparisonRuntimeEvidence.of(List.of(evidence));
 
         var preview = new ComparisonPreviewService(testRegistry(), source).create(request());

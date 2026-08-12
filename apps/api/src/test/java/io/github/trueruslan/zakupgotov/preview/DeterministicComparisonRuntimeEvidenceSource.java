@@ -20,6 +20,7 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.Set;
 import java.util.UUID;
 
 /** Test-only deterministic evidence for API/browser acceptance. Performs no network I/O. */
@@ -28,18 +29,25 @@ final class DeterministicComparisonRuntimeEvidenceSource implements ComparisonRu
     private static final Instant OBSERVED_AT = Instant.parse("2026-08-12T10:00:00Z");
 
     @Override
-    public ComparisonRuntimeEvidence load(ShoppingList shoppingList, ProductLocation productLocation) {
+    public ComparisonRuntimeEvidence load(
+            ShoppingList shoppingList,
+            ProductLocation productLocation,
+            Set<RetailerId> requestedRetailers) {
         Objects.requireNonNull(shoppingList, "shoppingList must not be null");
         Objects.requireNonNull(productLocation, "productLocation must not be null");
+        Objects.requireNonNull(requestedRetailers, "requestedRetailers must not be null");
 
-        return ComparisonRuntimeEvidence.of(List.of(
+        var allEvidence = List.of(
                 completeEvidence(RetailerId.PYATEROCHKA, AvailabilityStatus.AVAILABLE),
                 completeEvidence(RetailerId.PEREKRESTOK, AvailabilityStatus.UNKNOWN),
                 packageUnknownEvidence(RetailerId.MAGNIT),
                 unmatchedEvidence(RetailerId.LENTA),
                 ambiguousEvidence(RetailerId.VKUSVILL),
                 unitMismatchEvidence(RetailerId.OZON_FRESH),
-                unavailableEvidence(RetailerId.SAMOKAT)));
+                unavailableEvidence(RetailerId.SAMOKAT));
+        return ComparisonRuntimeEvidence.of(allEvidence.stream()
+                .filter(evidence -> requestedRetailers.contains(evidence.retailerId()))
+                .toList());
     }
 
     private static RetailerRuntimeEvidence completeEvidence(
