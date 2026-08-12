@@ -44,6 +44,14 @@ public final class ComparisonPreviewService {
                         evidenceSource.load(input.shoppingList(), input.productLocation(), requestedRetailers),
                         "runtime evidence must not be null");
 
+        for (var evidence : runtimeEvidence.retailers()) {
+            if (!requestedRetailers.contains(evidence.retailerId())) {
+                throw new IllegalStateException(
+                        "runtime evidence source returned unrequested retailer: "
+                                + evidence.retailerId().canonicalId());
+            }
+        }
+
         var comparisonEvidence = new EnumMap<RetailerId, RetailerComparisonEvidence>(RetailerId.class);
         var quotes = new EnumMap<RetailerId, SingleStoreBasketQuote>(RetailerId.class);
 
