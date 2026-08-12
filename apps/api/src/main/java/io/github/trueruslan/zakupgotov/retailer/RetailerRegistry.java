@@ -24,7 +24,7 @@ public final class RetailerRegistry {
             entry(
                     RetailerId.MAGNIT,
                     RetailerCoverageState.AVAILABLE_PUBLIC_WEB,
-                    ProductionAccessStatus.UNRESOLVED),
+                    ProductionAccessStatus.BLOCKED),
             entry(
                     RetailerId.LENTA,
                     RetailerCoverageState.DISCOVERY,
