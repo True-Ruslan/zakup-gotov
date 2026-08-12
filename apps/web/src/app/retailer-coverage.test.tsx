@@ -28,6 +28,41 @@ const readyState: RetailerReadinessState = {
   },
 };
 
+const freshnessState: RetailerReadinessState = {
+  kind: "ready",
+  data: {
+    retailers: [
+      {
+        id: "pyaterochka",
+        displayName: "Пятёрочка",
+        coverage: "CONNECTED",
+        productionAccess: "READY",
+        comparisonStatus: "READY",
+        reasons: [],
+        total: { amount: 123.45, currencyCode: "RUB" },
+        freshness: {
+          basis: "OBSERVATION_ONLY",
+          observedAt: "2026-08-12T10:00:00Z",
+        },
+      },
+      {
+        id: "perekrestok",
+        displayName: "Перекрёсток",
+        coverage: "CONNECTED",
+        productionAccess: "READY",
+        comparisonStatus: "READY",
+        reasons: [],
+        total: { amount: 234.56, currencyCode: "RUB" },
+        freshness: {
+          basis: "PROVIDER_TIMESTAMP",
+          observedAt: "2026-08-12T10:05:00Z",
+          providerUpdatedAt: "2026-08-12T09:55:00Z",
+        },
+      },
+    ],
+  },
+};
+
 afterEach(() => cleanup());
 
 describe("retailer coverage section", () => {
@@ -42,6 +77,16 @@ describe("retailer coverage section", () => {
     expect(screen.getByRole("heading", { level: 3, name: "Чижик" })).toBeDefined();
     expect(screen.getByText("Интеграция в работе")).toBeDefined();
     expect(screen.queryByText(/fixture-provider|DIRECT_API|sourceReference/i)).toBeNull();
+  });
+
+  it("distinguishes observation-only and provider timestamp freshness without invented age labels", () => {
+    render(<RetailerCoverageSection state={freshnessState} />);
+
+    expect(screen.getByText("Последнее наблюдение: 2026-08-12T10:00:00Z")).toBeDefined();
+    expect(screen.getByText("Источник не сообщает отдельное время обновления.")).toBeDefined();
+    expect(screen.getByText("Последнее наблюдение: 2026-08-12T10:05:00Z")).toBeDefined();
+    expect(screen.getByText("Обновлено источником: 2026-08-12T09:55:00Z")).toBeDefined();
+    expect(screen.queryByText(/свеж|устар/i)).toBeNull();
   });
 
   it("renders an accessible service error without fabricated retailer cards", () => {
