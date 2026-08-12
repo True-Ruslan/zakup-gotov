@@ -110,15 +110,21 @@ class MagnitCorpusProbeTest {
         assertThat(observation.currentPrice()).isEmpty();
         assertThat(observation.regularPrice()).isEmpty();
         assertThat(observation.availability()).isEqualTo(MagnitCorpusProbe.Availability.UNKNOWN);
+        assertThat(observation.packageExtraction().status()).isEqualTo(MagnitPackageQuantityStatus.MISSING);
     }
 
     @Test
-    void evidenceLineIncludesOnlyApprovedFailedRequirementNames() {
+    void evidenceLineIncludesPackageDistributionAndOnlyApprovedFailedRequirementNames() {
+        var packageEvidence = new MagnitCorpusProbe.PackageEvidenceSummary(4, 1, 1, 1, 0, 1);
         var result = new MagnitCorpusProbe.CorpusResult(
-                20, 40, 19, 19, 19, 19, 19, 6, 0, 4, 3, 2, List.of("tea", "beef/mince"));
-        assertThat(result.toEvidenceLine()).endsWith("failed_count=2 failed_requirements=tea,beef/mince");
+                20, 40, 19, 19, 19, 19, 19, 6, 0, 4, 3, 2, packageEvidence, List.of("tea", "beef/mince"));
+
         assertThat(result.toEvidenceLine()).contains("near_sku_multi_price=4 near_sku_promo_marker=3");
         assertThat(result.toEvidenceLine()).contains("price_bound_promo_marker=2");
+        assertThat(result.toEvidenceLine()).contains(
+                "package_evidence_pages=4 package_found=1 package_missing=1 "
+                        + "package_ambiguous_dimensions=1 package_conflicting_values=0 package_invalid_values=1");
+        assertThat(result.toEvidenceLine()).endsWith("failed_count=2 failed_requirements=tea,beef/mince");
     }
 
     @Test
@@ -139,6 +145,17 @@ class MagnitCorpusProbeTest {
         assertThat(result.nearSkuMultiplePriceObservations()).isBetween(0, 40);
         assertThat(result.nearSkuPromoMarkerObservations()).isBetween(0, 40);
         assertThat(result.priceBoundPromoMarkerObservations()).isBetween(0, 40);
+
+        var packageEvidence = result.packageEvidence();
+        assertThat(packageEvidence.packageEvidencePages()).isBetween(0, 40);
+        assertThat(packageEvidence.packageEvidencePages())
+                .isLessThanOrEqualTo(result.firstHttp2xx() + result.secondHttp2xx());
+        assertThat(packageEvidence.found()).isBetween(0, 40);
+        assertThat(packageEvidence.missing()).isBetween(0, 40);
+        assertThat(packageEvidence.ambiguousDimensions()).isBetween(0, 40);
+        assertThat(packageEvidence.conflictingValues()).isBetween(0, 40);
+        assertThat(packageEvidence.invalidValues()).isBetween(0, 40);
+        assertThat(packageEvidence.classifiedPages()).isEqualTo(packageEvidence.packageEvidencePages());
 
         var approvedRequirements = Set.copyOf(MagnitCorpusProbe.fixedCorpus().stream()
                 .map(MagnitCorpusProbe.CorpusItem::requirement).toList());
