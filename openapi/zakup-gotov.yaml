@@ -14,6 +14,17 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/SystemInfo'
+  /api/v1/retailers:
+    get:
+      operationId: getRetailerReadiness
+      summary: Get canonical retailer coverage and comparison readiness
+      responses:
+        '200':
+          description: Canonical retailer readiness information
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RetailerReadinessResponse'
 components:
   schemas:
     SystemInfo:
@@ -30,3 +41,124 @@ components:
           type: string
           enum:
             - UP
+    RetailerReadinessResponse:
+      type: object
+      additionalProperties: false
+      required:
+        - retailers
+      properties:
+        retailers:
+          type: array
+          items:
+            $ref: '#/components/schemas/RetailerReadinessItem'
+    RetailerReadinessItem:
+      type: object
+      additionalProperties: false
+      required:
+        - id
+        - displayName
+        - coverage
+        - productionAccess
+        - comparisonStatus
+        - reasons
+      properties:
+        id:
+          $ref: '#/components/schemas/RetailerId'
+        displayName:
+          type: string
+          minLength: 1
+        coverage:
+          $ref: '#/components/schemas/RetailerCoverageStatus'
+        productionAccess:
+          $ref: '#/components/schemas/RetailerProductionAccessStatus'
+        comparisonStatus:
+          $ref: '#/components/schemas/RetailerComparisonStatus'
+        reasons:
+          type: array
+          items:
+            $ref: '#/components/schemas/RetailerComparisonReason'
+        total:
+          $ref: '#/components/schemas/BasketTotal'
+        freshness:
+          $ref: '#/components/schemas/RetailerFreshness'
+    RetailerId:
+      type: string
+      enum:
+        - pyaterochka
+        - perekrestok
+        - chizhik
+        - magnit
+        - lenta
+        - vkusvill
+        - ozon-fresh
+        - samokat
+    RetailerCoverageStatus:
+      type: string
+      enum:
+        - CONNECTED
+        - DISCOVERY
+        - DEGRADED
+        - BLOCKED
+    RetailerProductionAccessStatus:
+      type: string
+      enum:
+        - READY
+        - PENDING
+        - BLOCKED
+    RetailerComparisonStatus:
+      type: string
+      enum:
+        - READY
+        - UNCERTAIN
+        - INCOMPLETE
+        - UNAVAILABLE
+    RetailerComparisonReason:
+      type: string
+      enum:
+        - COVERAGE_DISCOVERY
+        - COVERAGE_DEGRADED
+        - COVERAGE_BLOCKED
+        - PRODUCTION_ACCESS_PENDING
+        - PRODUCTION_ACCESS_BLOCKED
+        - DATA_NOT_AVAILABLE
+        - SOURCE_UNAVAILABLE
+        - ITEM_UNMATCHED
+        - ITEM_AMBIGUOUS
+        - ITEM_UNAVAILABLE
+        - PACKAGE_QUANTITY_UNKNOWN
+        - QUANTITY_UNIT_MISMATCH
+        - AVAILABILITY_UNKNOWN
+    BasketTotal:
+      type: object
+      additionalProperties: false
+      required:
+        - amount
+        - currencyCode
+      properties:
+        amount:
+          type: number
+          minimum: 0
+        currencyCode:
+          type: string
+          minLength: 3
+          maxLength: 3
+    RetailerFreshness:
+      type: object
+      additionalProperties: false
+      required:
+        - basis
+        - observedAt
+      properties:
+        basis:
+          $ref: '#/components/schemas/RetailerFreshnessBasis'
+        observedAt:
+          type: string
+          format: date-time
+        providerUpdatedAt:
+          type: string
+          format: date-time
+    RetailerFreshnessBasis:
+      type: string
+      enum:
+        - OBSERVATION_ONLY
+        - PROVIDER_TIMESTAMP
