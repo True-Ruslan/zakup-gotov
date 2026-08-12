@@ -47,6 +47,19 @@ class RetailerComparisonStructuralInvariantTest {
     }
 
     @Test
+    void rejectsUncertainViewWithNonAvailabilityReason() {
+        assertThatThrownBy(() -> view(
+                        RetailerCoverageStatus.CONNECTED,
+                        RetailerProductionAccessStatus.READY,
+                        RetailerComparisonStatus.UNCERTAIN,
+                        List.of(RetailerComparisonReason.ITEM_UNMATCHED),
+                        Optional.of(TOTAL),
+                        Optional.of(OBSERVATION_FRESHNESS)))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("AVAILABILITY_UNKNOWN");
+    }
+
+    @Test
     void rejectsIncompleteViewWithAggregateTotalOrFreshness() {
         assertThatThrownBy(() -> view(
                         RetailerCoverageStatus.CONNECTED,
@@ -60,6 +73,19 @@ class RetailerComparisonStructuralInvariantTest {
     }
 
     @Test
+    void rejectsIncompleteViewWithUnavailableReason() {
+        assertThatThrownBy(() -> view(
+                        RetailerCoverageStatus.CONNECTED,
+                        RetailerProductionAccessStatus.READY,
+                        RetailerComparisonStatus.INCOMPLETE,
+                        List.of(RetailerComparisonReason.DATA_NOT_AVAILABLE),
+                        Optional.empty(),
+                        Optional.empty()))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("item-level");
+    }
+
+    @Test
     void rejectsUnavailableViewWithAggregateTotalOrFreshness() {
         assertThatThrownBy(() -> view(
                         RetailerCoverageStatus.CONNECTED,
@@ -70,6 +96,42 @@ class RetailerComparisonStructuralInvariantTest {
                         Optional.of(OBSERVATION_FRESHNESS)))
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessageContaining("UNAVAILABLE");
+    }
+
+    @Test
+    void rejectsUnavailableViewWithItemLevelReason() {
+        assertThatThrownBy(() -> view(
+                        RetailerCoverageStatus.CONNECTED,
+                        RetailerProductionAccessStatus.READY,
+                        RetailerComparisonStatus.UNAVAILABLE,
+                        List.of(RetailerComparisonReason.ITEM_UNMATCHED),
+                        Optional.empty(),
+                        Optional.empty()))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("UNAVAILABLE reason");
+    }
+
+    @Test
+    void rejectsUnavailableReasonThatDoesNotMatchCoverageOrAccessGate() {
+        assertThatThrownBy(() -> view(
+                        RetailerCoverageStatus.DISCOVERY,
+                        RetailerProductionAccessStatus.PENDING,
+                        RetailerComparisonStatus.UNAVAILABLE,
+                        List.of(RetailerComparisonReason.PRODUCTION_ACCESS_PENDING),
+                        Optional.empty(),
+                        Optional.empty()))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("COVERAGE_DISCOVERY");
+
+        assertThatThrownBy(() -> view(
+                        RetailerCoverageStatus.CONNECTED,
+                        RetailerProductionAccessStatus.BLOCKED,
+                        RetailerComparisonStatus.UNAVAILABLE,
+                        List.of(RetailerComparisonReason.DATA_NOT_AVAILABLE),
+                        Optional.empty(),
+                        Optional.empty()))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("PRODUCTION_ACCESS_BLOCKED");
     }
 
     @Test
