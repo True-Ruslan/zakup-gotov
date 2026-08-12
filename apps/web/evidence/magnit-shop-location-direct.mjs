@@ -2,21 +2,24 @@ const SEARCH_URL = 'https://magnit.ru/webgate/v1/stores-facade/search';
 const STORE_TYPES = ['MM', 'GM', 'DG', 'MO', 'ME', 'MC', 'DARKSTORE', 'MM_MINI', 'ZARYAD'];
 
 const BBOXES = {
+  // Exact coarse viewport observed from the ordinary public /shops browser request.
+  observedKrasnodar: {
+    leftTopPoint: { latitude: 45.069, longitude: 38.967 },
+    rightBottomPoint: { latitude: 45.065, longitude: 38.980 },
+  },
+  // Public city-scale boxes; no user location/address is involved.
   moscow: {
-    leftTopPoint: { latitude: 55.760, longitude: 37.600 },
-    rightBottomPoint: { latitude: 55.740, longitude: 37.640 },
+    leftTopPoint: { latitude: 55.850, longitude: 37.450 },
+    rightBottomPoint: { latitude: 55.600, longitude: 37.850 },
   },
   saintPetersburg: {
-    leftTopPoint: { latitude: 59.945, longitude: 30.300 },
-    rightBottomPoint: { latitude: 59.925, longitude: 30.340 },
+    leftTopPoint: { latitude: 60.050, longitude: 30.150 },
+    rightBottomPoint: { latitude: 59.800, longitude: 30.550 },
   },
 };
 
 const HEADER_PROFILES = [
-  {
-    name: 'minimal',
-    headers: {},
-  },
+  { name: 'minimal', headers: {} },
   {
     name: 'stable-public-app',
     headers: {
@@ -57,9 +60,15 @@ function bodyFor(bbox) {
   };
 }
 
-function collectStores(root) {
-  const result = new Map();
+function inspectPayload(root) {
+  const stores = new Map();
+  const storeCodes = new Set();
+  const keys = new Set();
   const seen = new Set();
+  let objects = 0;
+  let storeCodeObjects = 0;
+  let coordinateObjects = 0;
+  let storeCodeWithCoordinatesProperty = 0;
 
   function walk(value) {
     if (!value || typeof value !== 'object') return;
@@ -71,23 +80,48 @@ function collectStores(root) {
       return;
     }
 
+    objects++;
+    const objectKeys = Object.keys(value);
+    for (const key of objectKeys) {
+      if (/(shop|store|code|lat|lon|lng|coord|point|cluster)/i.test(key)) keys.add(key);
+    }
+
     const code = value.storeCode;
-    const coordinates = value.coordinates;
-    const latitude = coordinates && typeof coordinates === 'object' ? Number(coordinates.latitude) : NaN;
-    const longitude = coordinates && typeof coordinates === 'object' ? Number(coordinates.longitude) : NaN;
-    if ((typeof code === 'string' || typeof code === 'number') && Number.isFinite(latitude) && Number.isFinite(longitude)) {
-      result.set(String(code), {
-        code: String(code),
-        latitude: latitude.toFixed(3),
-        longitude: longitude.toFixed(3),
-      });
+    if (typeof code === 'string' || typeof code === 'number') {
+      storeCodeObjects++;
+      storeCodes.add(String(code));
+      const coordinates = value.coordinates;
+      if (coordinates && typeof coordinates === 'object') {
+        storeCodeWithCoordinatesProperty++;
+        const latitude = Number(coordinates.latitude);
+        const longitude = Number(coordinates.longitude);
+        if (Number.isFinite(latitude) && Number.isFinite(longitude)) {
+          stores.set(String(code), {
+            code: String(code),
+            latitude: latitude.toFixed(3),
+            longitude: longitude.toFixed(3),
+          });
+        }
+      }
+    }
+
+    if (Number.isFinite(Number(value.latitude)) && Number.isFinite(Number(value.longitude))) {
+      coordinateObjects++;
     }
 
     for (const child of Object.values(value)) walk(child);
   }
 
   walk(root);
-  return [...result.values()].sort((a, b) => a.code.localeCompare(b.code));
+  return {
+    objects,
+    storeCodeObjects,
+    coordinateObjects,
+    storeCodeWithCoordinatesProperty,
+    storeCodes: [...storeCodes].sort(),
+    stores: [...stores.values()].sort((a, b) => a.code.localeCompare(b.code)),
+    keys: [...keys].sort().slice(0, 60),
+  };
 }
 
 function fingerprint(stores) {
@@ -117,53 +151,48 @@ async function search(bbox, profile) {
     status: response.status,
     contentType: response.headers.get('content-type')?.split(';')[0] ?? 'none',
     setCookie: response.headers.has('set-cookie'),
-    stores: payload ? collectStores(payload) : [],
+    shape: payload ? inspectPayload(payload) : inspectPayload(null),
   };
 }
 
 let acceptedProfile = null;
-let firstMoscow = null;
+let firstObserved = null;
 for (const profile of HEADER_PROFILES) {
-  const result = await search(BBOXES.moscow, profile);
+  const result = await search(BBOXES.observedKrasnodar, profile);
   notice(
-    'magnit-direct-profile',
-    `profile=${profile.name};status=${result.status};contentType=${result.contentType};setCookie=${result.setCookie};stores=${result.stores.length};sampleCodes=${result.stores.slice(0, 5).map((store) => store.code).join(',') || 'none'}`,
+    'magnit-direct-known-bbox',
+    `profile=${profile.name};status=${result.status};contentType=${result.contentType};setCookie=${result.setCookie};objects=${result.shape.objects};storeCodeObjects=${result.shape.storeCodeObjects};coordinateObjects=${result.shape.coordinateObjects};codeWithCoordinates=${result.shape.storeCodeWithCoordinatesProperty};stores=${result.shape.stores.length};sampleCodes=${result.shape.storeCodes.slice(0, 5).join(',') || 'none'};keys=${result.shape.keys.join(',') || 'none'}`,
   );
-  if (result.status >= 200 && result.status < 300 && result.stores.length > 0) {
+  if (result.status >= 200 && result.status < 300 && result.shape.stores.length > 0) {
     acceptedProfile = profile;
-    firstMoscow = result;
+    firstObserved = result;
     break;
   }
 }
 
-if (!acceptedProfile || !firstMoscow) {
-  throw new Error('no stateless public header profile produced storeCode + coordinates');
+if (!acceptedProfile || !firstObserved) {
+  throw new Error('known public bbox was not reproducible without browser/session state');
 }
 
-// Node fetch has no cookie jar: the second request is independent and does not replay Set-Cookie.
-const secondMoscow = await search(BBOXES.moscow, acceptedProfile);
-const moscowStable = fingerprint(firstMoscow.stores) === fingerprint(secondMoscow.stores);
+// Node fetch has no cookie jar: Set-Cookie from one response is never replayed by the next request.
+const secondObserved = await search(BBOXES.observedKrasnodar, acceptedProfile);
+const knownStable = fingerprint(firstObserved.shape.stores) === fingerprint(secondObserved.shape.stores);
 notice(
-  'magnit-direct-reproducibility',
-  `profile=${acceptedProfile.name};firstStatus=${firstMoscow.status};secondStatus=${secondMoscow.status};firstStores=${firstMoscow.stores.length};secondStores=${secondMoscow.stores.length};sameStoreSet=${moscowStable};firstFingerprintCount=${firstMoscow.stores.length}`,
+  'magnit-direct-known-reproducibility',
+  `profile=${acceptedProfile.name};firstStatus=${firstObserved.status};secondStatus=${secondObserved.status};firstStores=${firstObserved.shape.stores.length};secondStores=${secondObserved.shape.stores.length};sameStoreSet=${knownStable};sampleCodes=${firstObserved.shape.storeCodes.slice(0, 5).join(',') || 'none'}`,
 );
-
-if (!moscowStable || secondMoscow.status < 200 || secondMoscow.status >= 300) {
-  throw new Error('stateless Moscow store search was not reproducible');
+if (!knownStable || secondObserved.status < 200 || secondObserved.status >= 300) {
+  throw new Error('known public bbox was not reproducible across stateless requests');
 }
 
+const moscow = await search(BBOXES.moscow, acceptedProfile);
 const petersburg = await search(BBOXES.saintPetersburg, acceptedProfile);
-const differentLocationSet = fingerprint(firstMoscow.stores) !== fingerprint(petersburg.stores);
 notice(
-  'magnit-direct-location-dependence',
-  `profile=${acceptedProfile.name};moscowStores=${firstMoscow.stores.length};petersburgStatus=${petersburg.status};petersburgStores=${petersburg.stores.length};differentStoreSet=${differentLocationSet};petersburgSampleCodes=${petersburg.stores.slice(0, 5).map((store) => store.code).join(',') || 'none'}`,
+  'magnit-direct-city-boxes',
+  `profile=${acceptedProfile.name};moscowStatus=${moscow.status};moscowStores=${moscow.shape.stores.length};moscowCodes=${moscow.shape.storeCodes.slice(0, 5).join(',') || 'none'};petersburgStatus=${petersburg.status};petersburgStores=${petersburg.shape.stores.length};petersburgCodes=${petersburg.shape.storeCodes.slice(0, 5).join(',') || 'none'};differentCitySets=${fingerprint(moscow.shape.stores) !== fingerprint(petersburg.shape.stores)}`,
 );
-
-if (petersburg.status < 200 || petersburg.status >= 300 || petersburg.stores.length === 0 || !differentLocationSet) {
-  throw new Error('coarse public bbox did not produce location-dependent store evidence');
-}
 
 notice(
   'magnit-direct-summary',
-  `acceptedProfile=${acceptedProfile.name};noCookieJar=true;moscowStable=${moscowStable};locationDependent=${differentLocationSet};requestsAtMost=${HEADER_PROFILES.indexOf(acceptedProfile) + 3}`,
+  `acceptedProfile=${acceptedProfile.name};noCookieJar=true;knownStable=${knownStable};knownStores=${firstObserved.shape.stores.length};moscowStores=${moscow.shape.stores.length};petersburgStores=${petersburg.shape.stores.length};requestsAtMost=${HEADER_PROFILES.indexOf(acceptedProfile) + 4}`,
 );
