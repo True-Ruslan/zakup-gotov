@@ -12,15 +12,22 @@ import org.junit.jupiter.api.Test;
 class MagnitCorpusPackageEvidenceTest {
 
     @Test
-    void identityValidPageCarriesAcceptedPackageExtraction() {
+    void identityValidPageCarriesSkuBoundJsonLdPackageExtraction() {
         var observation = MagnitCorpusProbe.parseProductPage("""
-                <html><body>
-                  <h1>Макароны Makfa 450г 79,99 ₽ Артикул 3042670099</h1>
-                  <h2>Характеристики</h2>
-                  <div>Вес, кг 0.45</div>
-                  <div>Артикул 3042670099</div>
-                  <h2>Условия хранения</h2>
-                </body></html>
+                <html>
+                  <head>
+                    <script type="application/ld+json">
+                      {"@type":"Product","sku":"3042670099","weight":"0.45"}
+                    </script>
+                  </head>
+                  <body>
+                    <h1>Макароны Makfa 450г 79,99 ₽ Артикул 3042670099</h1>
+                    <h2>Характеристики</h2>
+                    <div>Бренд Makfa</div>
+                    <div>Артикул 3042670099</div>
+                    <h2>Условия хранения</h2>
+                  </body>
+                </html>
                 """, "3042670099");
 
         assertThat(observation.skuEvidence()).isTrue();
@@ -32,10 +39,16 @@ class MagnitCorpusPackageEvidenceTest {
     @Test
     void missingExpectedSkuCarriesNoAttributablePackageEvidence() {
         var observation = MagnitCorpusProbe.parseProductPage("""
-                <html><body>
-                  <h1>Другой товар 79,99 ₽ Артикул 1111111111</h1>
-                  <h2>Характеристики</h2><div>Вес, кг 0.45</div>
-                </body></html>
+                <html>
+                  <head>
+                    <script type="application/ld+json">
+                      {"@type":"Product","sku":"3042670099","weight":"0.45"}
+                    </script>
+                  </head>
+                  <body>
+                    <h1>Другой товар 79,99 ₽ Артикул 1111111111</h1>
+                  </body>
+                </html>
                 """, "3042670099");
 
         assertThat(observation.skuEvidence()).isFalse();
