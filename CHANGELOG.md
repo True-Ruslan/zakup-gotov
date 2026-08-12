@@ -19,6 +19,8 @@ All notable project changes are recorded here. Zakup Gotov is pre-release; entri
 - M0 → M1 GO decision recording completion of technical discovery and approval to begin M1 Shopping Core.
 - Explicit Magnit follow-up issues for safe location → `shopCode` resolution (#69) and production catalog usage-rights verification (#70).
 - M1 canonical retailer registry covering Pyaterochka, Perekrestok, Chizhik, Magnit, Lenta, VkusVill, Ozon Fresh and Samokat with explicit technical coverage and independent production-access status.
+- M1 canonical quantity primitives: positive decimal quantities, `kg → g`, `l → ml`, piece quantities and stable normalized `BigDecimal` equality.
+- M1 shopping-list aggregate with UUID list/item identity, stable insertion order, immutable item views, whitespace-only requirement normalization and explicit add/replace/remove semantics.
 
 ### Changed
 
@@ -29,7 +31,10 @@ All notable project changes are recorded here. Zakup Gotov is pre-release; entri
 - Retailer onboarding remains transport-neutral; direct API failure changes the acquisition mode under investigation rather than removing the retailer from scope.
 - Technical retailer connectivity and production-access readiness are modeled as separate decisions so an accepted feasibility path cannot silently enable production acquisition.
 - Kuper remains acquisition-provider/aggregator provenance rather than a retailer/banner identity in the canonical retailer registry.
-- `docs/README.md`, `docs/PROJECT_STATE.md`, `docs/ROADMAP.md`, the feasibility matrix and Magnit evidence documents were synchronized around the M0 completion decision.
+- Shopping requirements canonicalize measurement dimensions before matching while deliberately leaving package/container selection to later matching/basket optimization.
+- Requirement text normalization is intentionally limited to whitespace in the shopping domain; synonyms, aliases, categories and semantic canonicalization remain matching responsibilities.
+- Automatic duplicate-item merging is not performed by the M1 shopping-list aggregate; recipe/weekly-plan consolidation remains later scope.
+- `docs/PROJECT_STATE.md` and `docs/ROADMAP.md` now mark the retailer registry and shopping-list/quantity slices complete and move the active M1 focus to provider/path orchestration.
 
 ### Fixed
 
