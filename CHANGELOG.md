@@ -44,6 +44,9 @@ All notable project changes are recorded here. Zakup Gotov is pre-release; entri
 - Explicit Magnit package-extraction states `FOUND`, `MISSING`, `AMBIGUOUS_DIMENSIONS`, `CONFLICTING_VALUES` and `INVALID_VALUE` so source ambiguity never becomes a guessed basket quantity.
 - Magnit provider/snapshot regression proving a `FOUND` characteristic can populate #81 structured package evidence while multi-dimensional characteristics remain package-unknown.
 - Evidence note documenting official Magnit weight-only, volume-only, multi-dimensional and count-selector examples plus unchanged #69/#70 production gates.
+- Magnit fixed-corpus package-evidence instrumentation that classifies exact-field extraction across the existing 20-product × 2-shop explicit/manual research corpus.
+- Structural `PackageEvidenceSummary` with `FOUND`, `MISSING`, `AMBIGUOUS_DIMENSIONS`, `CONFLICTING_VALUES` and `INVALID_VALUE` counters whose sum must equal the eligible package-evidence page count.
+- Aggregate Magnit evidence-line counters for eligible package pages and each package-extraction status without logging HTML, page fragments or arbitrary provider data.
 
 ### Changed
 
@@ -60,13 +63,15 @@ All notable project changes are recorded here. Zakup Gotov is pre-release; entri
 - Deterministic comparison fixtures attach package quantity at the provider observation boundary before snapshotting, mirroring the production evidence flow without live retailer access.
 - Magnit v1 structured package semantics accept only exact weight/volume characteristics; simultaneous dimensions or conflicting/invalid values remain unknown rather than using category/title heuristics.
 - Magnit `Количество в упаковке` remains deferred pending separate source and multi-dimensional domain evidence.
+- Magnit fixed-corpus package metrics classify only HTTP 2xx observations with expected-SKU identity evidence, so transport failures and wrong-product pages cannot dilute metadata quality as false `MISSING` cases.
+- The guarded Magnit live corpus remains exactly 20 fixed products × 2 explicit shop contexts behind `-Dzakup.live.magnit.corpus=true`; no minimum `FOUND` threshold is invented before measurement evidence exists.
 - `UNKNOWN` availability propagates into `AVAILABILITY_UNKNOWN` line state and an `UNCERTAIN` basket rather than a confirmed complete basket.
 - Incomplete single-store baskets expose no aggregate total, preventing partial-price comparisons from masquerading as complete basket prices.
 - Technical retailer connectivity no longer leaks directly into the product/API contract: public readiness uses stable coverage/access/comparison states and finite product-safe reason codes instead of provider IDs, acquisition modes or source references.
 - The home page now makes the stateless comparison preview the primary M1 action instead of the previous readiness-only surface.
 - The critical browser journey is driven through the generated OpenAPI client and the same product-safe comparison vocabulary as the core/read model.
-- Production comparison evidence remains deliberately no-op/fail-closed; deterministic source extraction does not activate recurring retailer polling.
-- Active M1 focus moves to Magnit corpus package-evidence measurement plus retailer connectivity/lifecycle and production-access constraints after #82 ships.
+- Production comparison evidence remains deliberately no-op/fail-closed; deterministic source extraction and corpus instrumentation do not activate recurring retailer polling.
+- Active M1 focus moves to the first explicit/manual Magnit package-status corpus measurement plus retailer connectivity/lifecycle and production-access constraints after #83 ships.
 
 ### Fixed
 
@@ -89,6 +94,7 @@ All notable project changes are recorded here. Zakup Gotov is pre-release; entri
 - Critical-journey Playwright item-gap assertions are scoped to the relevant retailer card with exact text matching, avoiding collisions between item labels and explanatory retailer reason copy.
 - Runtime evidence rejects an explicit package-quantity set when it differs from the structured quantities preserved by its snapshots, preventing two package-evidence sources from silently diverging.
 - Magnit package extraction ignores title/slug/description/script/style numbers and fails closed on weight+volume or conflicting supported characteristics.
+- Magnit fixed-corpus package reporting excludes non-2xx and wrong-identity observations instead of misclassifying transport/identity failures as missing package metadata.
 
 ## [0.1.0-rc.2] — 2026-08-09
 
