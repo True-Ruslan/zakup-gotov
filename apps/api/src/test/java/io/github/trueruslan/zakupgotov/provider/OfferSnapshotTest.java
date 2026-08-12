@@ -28,6 +28,7 @@ class OfferSnapshotTest {
         assertThat(snapshot.sourceMode()).isEqualTo(AcquisitionMode.AGGREGATOR);
         assertThat(snapshot.fulfillmentContextId()).isEqualTo("store-42");
         assertThat(snapshot.sku()).isEqualTo("sku-milk-1");
+        assertThat(snapshot.productName()).isEqualTo("Молоко 3,2%");
         assertThat(snapshot.price()).isEqualByComparingTo("99.90");
         assertThat(snapshot.currencyCode()).isEqualTo("RUB");
         assertThat(snapshot.availability()).isEqualTo(AvailabilityStatus.AVAILABLE);
@@ -66,6 +67,7 @@ class OfferSnapshotTest {
         assertThat(first.id()).isNotEqualTo(second.id());
         assertThat(first.retailerId()).isEqualTo(second.retailerId());
         assertThat(first.sku()).isEqualTo(second.sku());
+        assertThat(first.productName()).isEqualTo(second.productName());
         assertThat(first.freshness()).isEqualTo(second.freshness());
     }
 
@@ -97,6 +99,7 @@ class OfferSnapshotTest {
                 AcquisitionMode.AGGREGATOR,
                 "store-42",
                 "sku-milk-1",
+                "Молоко 3,2%",
                 new BigDecimal("99.90"),
                 "RUB",
                 availability,

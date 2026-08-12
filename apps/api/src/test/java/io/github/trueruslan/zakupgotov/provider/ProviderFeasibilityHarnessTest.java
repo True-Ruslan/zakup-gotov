@@ -28,6 +28,7 @@ class ProviderFeasibilityHarnessTest {
         assertThat(offers.getFirst().sourceProviderId()).isEqualTo("provider-a");
         assertThat(offers.getFirst().sourceMode()).isEqualTo(AcquisitionMode.DIRECT_API);
         assertThat(offers.getFirst().fulfillmentContextId()).isEqualTo("store-42");
+        assertThat(offers.getFirst().productName()).isEqualTo("Молоко 3,2%");
     }
 
     @Test
@@ -139,6 +140,7 @@ class ProviderFeasibilityHarnessTest {
                 mode,
                 fulfillmentContextId,
                 "sku-milk-1",
+                "Молоко 3,2%",
                 new BigDecimal("99.90"),
                 "RUB",
                 AvailabilityStatus.AVAILABLE,

@@ -79,6 +79,7 @@ class ProviderProvenanceValidationTest {
                 mode,
                 "store-42",
                 "sku-milk-1",
+                "Молоко 3,2%",
                 new BigDecimal("99.90"),
                 "RUB",
                 AvailabilityStatus.AVAILABLE,

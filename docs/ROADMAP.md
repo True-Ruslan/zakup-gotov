@@ -72,33 +72,34 @@ Goal: compare a manually entered grocery list across connected retailers while p
    - live adapters remain outside ordinary CI.
 4. **Location / fulfillment-context boundary — COMPLETE (PR #75)**
    - opaque provider-neutral `ProductLocationId`;
-   - `ProductLocation` with locality and optional redacted `SensitiveAddress`;
-   - explicit `reveal()` for sensitive address use, default string/log representation `[REDACTED]`;
-   - ArchUnit prevents `location` production code from depending on provider/retailer packages;
-   - typed `FulfillmentContextBinding` and `FulfillmentContextSet` link only opaque location identity to provider-scoped contexts;
-   - manual and resolved context-selection modes are explicit without claiming universal automatic resolution;
-   - duplicate provider contexts and cross-location bindings fail closed;
-   - provider orchestrator consumes typed context sets, not raw provider maps or exact addresses.
+   - redacted `SensitiveAddress` and no provider IDs in product-location types;
+   - typed provider-scoped fulfillment bindings;
+   - manual/resolved context provenance;
+   - provider orchestration receives typed contexts, never exact addresses.
 5. **Price and availability snapshots — COMPLETE (PR #76)**
-   - immutable `OfferSnapshotId` / `OfferSnapshot` boundary derived only from validated `ObservedOffer`;
-   - exact preservation of retailer/source-provider/acquisition-mode/fulfillment-context/SKU/price/currency/availability/source-reference provenance;
-   - `FreshnessEvidence` separates observation time from optional trusted provider-side update time;
-   - provider update time may equal but never exceed observation time;
-   - observation-only snapshots do not invent provider freshness;
-   - explicit availability including `UNKNOWN` survives unchanged;
-   - no provider-specific stale threshold hard-coded;
-   - fixture-first tests with no live retailer dependency.
-6. **Deterministic product-matching baseline — NEXT**
-   - exact/normalized matching first;
-   - deterministic text normalization owned by the matching layer rather than shopping/provider models;
-   - explicit matched/ambiguous/unmatched states;
-   - explainable reasons/confidence;
-   - no silent winner when equivalent candidates remain;
-   - AI matching optional later, never required for baseline correctness.
-7. **Complete single-store basket comparison**
-   - package/quantity selection baseline;
-   - deterministic explainable ranking;
-   - incomplete baskets never presented as complete cheapest baskets.
+   - immutable snapshot identity derived only from validated observations;
+   - exact provenance/price/availability preservation;
+   - observation time separate from optional trusted provider-side update time;
+   - explicit `UNKNOWN` availability;
+   - no hard-coded stale threshold or live dependency.
+6. **Deterministic product-matching baseline — COMPLETE (PR #77)**
+   - observed `productName` required and preserved through `ObservedOffer → OfferSnapshot`;
+   - matching-only Unicode NFKC/case/`ё→е`/separator normalization;
+   - no synonyms, stemming, token reordering, substring/fuzzy/edit-distance, transliteration, embeddings or LLM baseline;
+   - explicit retailer + fulfillment-context `MatchScope`;
+   - exact matching before normalized matching;
+   - explicit `MATCHED`, `AMBIGUOUS`, `UNMATCHED` states with deterministic strength/reason evidence;
+   - multiple equivalent candidates remain ambiguous; price, availability, freshness, acquisition mode and SKU never break semantic ties;
+   - stable immutable candidate evidence;
+   - architecture rule prevents upstream provider/shopping/retailer dependence on matching.
+7. **Complete single-store basket comparison — NEXT**
+   - compose matching outcomes for every requirement in one retailer/context;
+   - deterministic package/quantity selection using canonical requirement quantities;
+   - explicit complete/incomplete/ambiguous basket state;
+   - preserve `UNKNOWN` stock uncertainty instead of guessing;
+   - calculate explainable totals from selected package offers only;
+   - do not rank incomplete baskets as complete winners;
+   - delivery/minimum-order cost only when supported evidence exists.
 8. **Failure/coverage/freshness UX**
    - unavailable retailer coverage;
    - partial provider failures;

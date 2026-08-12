@@ -11,7 +11,7 @@ Visibility: Public
 Current phase: **M1 — Shopping Core**  
 M0 status: **technical discovery COMPLETE**  
 M0→M1 decision: **GO** — [`superpowers/specs/2026-08-12-m0-to-m1-go-decision.md`](superpowers/specs/2026-08-12-m0-to-m1-go-decision.md)  
-Current focus: **deterministic product-matching baseline over immutable offer snapshots**
+Current focus: **complete single-store basket comparison with deterministic package/quantity selection**
 
 ## Product connectivity invariant
 
@@ -40,68 +40,51 @@ M0 completion is a **technical feasibility decision**, not blanket production-da
 
 ### Slice 1 — canonical retailer registry — COMPLETE
 
-PR #72 established:
-
-- canonical retailer/banner IDs for Pyaterochka, Perekrestok, Chizhik, Magnit, Lenta, VkusVill, Ozon Fresh and Samokat;
-- explicit `RetailerCoverageState`;
-- independent `ProductionAccessStatus` so technical feasibility cannot silently become production activation;
-- immutable entries, stable product order and fail-fast registry completeness;
-- Kuper remains acquisition-provider/aggregator provenance rather than retailer identity.
+PR #72 established canonical retailer/banner IDs for Pyaterochka, Perekrestok, Chizhik, Magnit, Lenta, VkusVill, Ozon Fresh and Samokat; explicit technical coverage state; independent production-access readiness; fail-fast registry completeness; and Kuper as provider/aggregator provenance rather than retailer identity.
 
 ### Slice 2 — shopping-list core + canonical quantities — COMPLETE
 
-PR #73 established:
-
-- positive decimal `Quantity` values;
-- `kg → g`, `l → ml`, pieces unchanged;
-- stable UUID list/item identity and insertion order;
-- whitespace-only requirement normalization;
-- explicit add/replace/remove semantics with duplicate/unknown IDs rejected;
-- immutable item views;
-- package/container selection and duplicate-name merging intentionally deferred to later matching/planning layers.
+PR #73 established positive decimal quantities; `kg → g`, `l → ml`, pieces unchanged; stable UUID list/item identity and insertion order; whitespace-only requirement normalization; explicit add/replace/remove semantics; immutable item views; and deferred package/container selection.
 
 ### Slice 3 — provenance-aware provider/path orchestration — COMPLETE
 
-PR #74 established:
-
-- `ObservedOffer` preserves `retailerId`, `sourceProviderId` and `sourceMode` independently from fulfillment context, SKU, price, availability, observation time and source reference;
-- `AcquisitionMode`: `DIRECT_API`, `AGGREGATOR`, `PUBLIC_WEB`, `BROWSER_BRIDGE`;
-- `RetailerProvider` declares retailer, source-provider and acquisition mode explicitly;
-- deterministic fixture-only priority `DIRECT_API → AGGREGATOR → PUBLIC_WEB → BROWSER_BRIDGE` with stable source-provider tie-break;
-- explicit attempt states for missing capabilities, missing context, expected path failure and success;
-- fallback only on `ProviderPathUnavailableException`;
-- successful empty search does not silently mix a lower-priority source;
-- unexpected provider defects propagate;
-- trust validation rejects retailer/source-provider/source-mode/fulfillment-context mismatch.
+PR #74 established explicit `retailerId`, `sourceProviderId`, acquisition mode and fulfillment context; deterministic fixture-only path priority `DIRECT_API → AGGREGATOR → PUBLIC_WEB → BROWSER_BRIDGE`; explicit attempt outcomes; fallback only on expected path-unavailable failures; and fail-closed provenance validation.
 
 ### Slice 4 — product location / fulfillment-context boundary — COMPLETE
 
-PR #75 established:
-
-- opaque provider-neutral `ProductLocationId`;
-- `ProductLocation` with normalized locality and optional `SensitiveAddress`;
-- explicit `SensitiveAddress.reveal()` with `[REDACTED]` default string representation;
-- ArchUnit prohibition on production `location → provider/retailer` dependencies;
-- typed `FulfillmentContextBinding` / `FulfillmentContextSet` with `MANUAL` / `RESOLVED` selection provenance;
-- duplicate source-provider and cross-product-location binding rejection;
-- `ProviderPathOrchestrator` consumes only typed fulfillment contexts and never receives precise addresses;
-- existing priority, fallback, capability and provenance-validation behavior remains unchanged.
+PR #75 established opaque provider-neutral `ProductLocationId`; redacted `SensitiveAddress`; typed `FulfillmentContextBinding` / `FulfillmentContextSet`; explicit `MANUAL` / `RESOLVED` context provenance; and an orchestration boundary that never receives precise addresses.
 
 ### Slice 5 — price / availability snapshots — COMPLETE
 
-PR #76 establishes the comparison-safe snapshot boundary:
+PR #76 established:
 
-- `ObservedOffer` remains the normalized provider trust-boundary record rather than being overloaded with snapshot semantics;
-- `FreshnessEvidence` distinguishes Zakup Gotov observation time from optional trusted provider-side update time;
-- observation-only freshness never invents a provider timestamp;
-- provider-side update time may equal but never exceed observation time;
-- `OfferSnapshot` has independent UUID identity and can be created only from an already-valid `ObservedOffer` through explicit factories;
-- snapshot creation preserves retailer, source provider, acquisition mode, fulfillment context, SKU, price, currency, availability, observation time and source reference exactly;
-- `AVAILABLE`, `UNAVAILABLE` and `UNKNOWN` survive unchanged;
-- no provider-specific stale threshold is hard-coded in the snapshot model;
-- no persistence, REST API, matching, basket ranking or live retailer acquisition was introduced.
+- `ObservedOffer` remains the normalized provider trust-boundary record;
+- `FreshnessEvidence` separates Zakup Gotov observation time from optional trusted provider-side update time;
+- provider update time may equal but never exceed observation time;
+- immutable `OfferSnapshot` identity derives only from validated `ObservedOffer`;
+- retailer/source-provider/acquisition-mode/fulfillment-context/SKU/price/currency/availability/source-reference evidence survives exactly;
+- `AVAILABLE`, `UNAVAILABLE` and `UNKNOWN` remain distinct;
+- no provider-specific stale threshold, persistence, REST/UI or live acquisition was added.
 
-The slice was delivered through two explicit RED→GREEN cycles and full Maven verification. The functional snapshot head also passed the complete repository CI/security gate before documentation synchronization.
+### Slice 6 — deterministic product matching — COMPLETE
+
+PR #77 establishes the first semantic matching baseline required before basket construction:
+
+- provider `ObservedOffer` now requires a nonblank observed `productName`; there is no compatibility constructor that permits label-less observations;
+- boundary whitespace is normalized at ingestion, while matching semantics never leak into provider/shopping models;
+- `OfferSnapshot` preserves the validated product label exactly;
+- matching owns a package-local deterministic normalizer: Unicode NFKC, `Locale.ROOT` lowercase, `ё → е`, punctuation/symbols as collapsed separators;
+- the normalizer deliberately does **not** add synonyms, stemming, token reordering, transliteration, substring/edit-distance matching, embeddings or LLM behavior;
+- `MatchScope` requires exactly one retailer and one fulfillment context; foreign candidates fail closed rather than being silently filtered;
+- result states are explicit and structurally validated: `MATCHED`, `AMBIGUOUS`, `UNMATCHED` with `EXACT`, `NORMALIZED`, `NONE` strength and concrete reasons;
+- exact text always outranks normalized text;
+- multiple semantically equivalent candidates remain `AMBIGUOUS`; price, availability, freshness, acquisition mode and SKU ordering never act as hidden semantic tie-breakers;
+- candidate input order is retained and result candidate lists are immutable;
+- ArchUnit prevents production `provider`, `shopping` and `retailer` packages from depending back on `matching`;
+- all implementation cycles and the architecture contract pass full Maven `verify` with no live retailer traffic.
+
+Design: [`superpowers/specs/2026-08-12-m1-deterministic-matching-design.md`](superpowers/specs/2026-08-12-m1-deterministic-matching-design.md).  
+Implementation plan/evidence: [`superpowers/plans/2026-08-12-m1-deterministic-matching.md`](superpowers/plans/2026-08-12-m1-deterministic-matching.md).
 
 ## Accepted retailer paths
 
@@ -142,27 +125,28 @@ Evidence:
 
 1. shopping/basket logic runs deterministically over fixtures;
 2. retailer coverage remains explicit and unavailable paths are never silently omitted;
-3. product location remains provider-neutral;
-4. precise addresses are sensitive and redacted by default;
-5. provider-specific store/fulfillment IDs remain inside provider-scoped contexts;
-6. retailer, source-provider, acquisition mode and fulfillment-context provenance remain distinct;
-7. `UNKNOWN` availability is preserved;
-8. observation time is not misrepresented as provider-side freshness;
-9. snapshots can only derive from validated provider observations;
+3. product location remains provider-neutral and precise addresses are redacted by default;
+4. provider-specific store/fulfillment IDs remain inside provider-scoped contexts;
+5. retailer, source-provider, acquisition mode and fulfillment-context provenance remain distinct;
+6. `UNKNOWN` availability is preserved;
+7. observation time is not misrepresented as provider-side freshness;
+8. snapshots derive only from validated provider observations;
+9. semantic matching never silently turns ambiguity into a winner;
 10. production activation respects recorded usage-rights state;
 11. universal retailer connectivity continues for every registry entry.
 
 ## Immediate next work
 
-1. **Deterministic product-matching baseline — NEXT**
-   - normalize requirement and candidate text deterministically;
-   - establish exact/normalized match before fuzzy or AI-assisted matching;
-   - preserve explicit `MATCHED`, `AMBIGUOUS` and `UNMATCHED` outcomes;
-   - keep confidence/reasons explainable and deterministic;
-   - avoid silently choosing a candidate when multiple equivalent candidates remain;
-   - operate entirely on fixtures/snapshots with no live retailer dependency.
-2. Complete single-store basket comparison.
-3. Coverage/failure/freshness UX and critical browser E2E.
+1. **Complete single-store basket comparison — NEXT**
+   - match every shopping requirement against one retailer/context snapshot set;
+   - define deterministic package/quantity selection against canonical requirement quantities;
+   - keep complete vs incomplete basket state explicit;
+   - define how `AVAILABLE`, `UNAVAILABLE` and `UNKNOWN` affect basket eligibility without inventing stock certainty;
+   - compute deterministic totals only from selected package offers;
+   - never present an incomplete/ambiguous basket as the cheapest complete basket;
+   - keep delivery fees/minimum-order rules out until supported evidence exists.
+2. Failure/coverage/freshness UX.
+3. Critical-journey browser E2E.
 
 ## Parallel open work
 
