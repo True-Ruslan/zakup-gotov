@@ -1,9 +1,11 @@
 package io.github.trueruslan.zakupgotov.provider;
 
 import io.github.trueruslan.zakupgotov.retailer.RetailerId;
+import io.github.trueruslan.zakupgotov.shopping.Quantity;
 import java.math.BigDecimal;
 import java.time.Instant;
 import java.util.Objects;
+import java.util.Optional;
 
 public final class OfferSnapshot {
 
@@ -19,6 +21,7 @@ public final class OfferSnapshot {
     private final AvailabilityStatus availability;
     private final FreshnessEvidence freshness;
     private final String sourceReference;
+    private final Optional<Quantity> packageQuantity;
 
     private OfferSnapshot(
             OfferSnapshotId id,
@@ -41,6 +44,7 @@ public final class OfferSnapshot {
         this.currencyCode = observation.currencyCode();
         this.availability = observation.availability();
         this.sourceReference = observation.sourceReference();
+        this.packageQuantity = observation.packageQuantity();
     }
 
     public static OfferSnapshot observationOnly(
@@ -110,5 +114,9 @@ public final class OfferSnapshot {
 
     public String sourceReference() {
         return sourceReference;
+    }
+
+    public Optional<Quantity> packageQuantity() {
+        return packageQuantity;
     }
 }
