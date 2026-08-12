@@ -36,6 +36,10 @@ All notable project changes are recorded here. Zakup Gotov is pre-release; entri
 - Responsive M1 comparison form/results UI with repeatable shopping rows, typed quantities, accessible error states and a bounded server-side comparison timeout.
 - Desktop/mobile Playwright critical-journey coverage that submits a real product request shape, keeps all eight retailer results visible and verifies that internal provider identifiers do not leak.
 - Preview architecture guard preventing upstream shopping/location/provider/matching/basket/comparison/retailer production packages from depending back on `preview`, and preventing production preview code from depending on fixture/test-support namespaces.
+- Optional source-validated canonical package quantity on `ObservedOffer`, preserved unchanged through immutable `OfferSnapshot` creation.
+- Snapshot-driven `PackageQuantitySet.fromSnapshots(...)` projection that creates basket bindings only for explicit structured package evidence.
+- Runtime package-evidence derivation from snapshots so comparison fixtures and future provider paths carry one provenance-preserving source of package truth.
+- Regression coverage proving presentation names such as `Молоко 3,2%, 970мл` and `Вода 1,5л` do not create package evidence.
 
 ### Changed
 
@@ -46,14 +50,17 @@ All notable project changes are recorded here. Zakup Gotov is pre-release; entri
 - `ObservedOffer` remains the provider trust boundary; `OfferSnapshot` remains the immutable comparison record.
 - Observation time and provider-side update time remain distinct.
 - Matching never breaks semantic ambiguity using price, availability, freshness, acquisition mode or SKU ordering.
-- Package size/quantity is modeled as explicit basket evidence and is **not** inferred from `productName` or assumed to be one unit per SKU.
+- Package size/quantity is modeled as explicit structured evidence and is **not** inferred from `productName`, title, URL or other presentation text, nor assumed to be one unit per SKU.
+- Existing provider integrations remain source-compatible and package-unknown unless they explicitly supply a proven structured package quantity.
+- Runtime comparison package bindings now derive from immutable snapshot evidence instead of being independently injected downstream.
+- Deterministic comparison fixtures attach package quantity at the provider observation boundary before snapshotting, mirroring the production evidence flow without live retailer access.
 - `UNKNOWN` availability propagates into `AVAILABILITY_UNKNOWN` line state and an `UNCERTAIN` basket rather than a confirmed complete basket.
 - Incomplete single-store baskets expose no aggregate total, preventing partial-price comparisons from masquerading as complete basket prices.
 - Technical retailer connectivity no longer leaks directly into the product/API contract: public readiness uses stable coverage/access/comparison states and finite product-safe reason codes instead of provider IDs, acquisition modes or source references.
 - The home page now makes the stateless comparison preview the primary M1 action instead of the previous readiness-only surface.
 - The critical browser journey is driven through the generated OpenAPI client and the same product-safe comparison vocabulary as the core/read model.
 - Production comparison evidence remains deliberately no-op/fail-closed in this slice; passing deterministic acceptance does not claim live production retailer acquisition.
-- Active M1 focus moves from building the shopping-list comparison journey to trusted structured package evidence, retailer connectivity/lifecycle hardening and production-access constraints after #80 ships.
+- Active M1 focus is the first evidence-backed source-specific package extractor plus retailer connectivity/lifecycle and production-access constraints.
 
 ### Fixed
 
@@ -74,6 +81,7 @@ All notable project changes are recorded here. Zakup Gotov is pre-release; entri
 - Incomplete/unavailable product comparison states cannot expose a misleading aggregate total or freshness summary.
 - Responsive Playwright coverage distinguishes product service-unavailable alerts from framework route announcements while preserving accessible alert semantics.
 - Critical-journey Playwright item-gap assertions are scoped to the relevant retailer card with exact text matching, avoiding collisions between item labels and explanatory retailer reason copy.
+- Runtime evidence rejects an explicit package-quantity set when it differs from the structured quantities preserved by its snapshots, preventing two package-evidence sources from silently diverging.
 
 ## [0.1.0-rc.2] — 2026-08-09
 
