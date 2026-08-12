@@ -35,6 +35,7 @@ Goal: compare a manually entered grocery list across connected retailers while p
 - retailer/source-provider/acquisition-mode/fulfillment context remain distinct;
 - `UNKNOWN` availability remains first-class;
 - observation time is not provider-update time;
+- freshness evidence basis must remain explicit and structurally valid;
 - package quantity is explicit evidence, never inferred from product names;
 - production activation respects usage-rights state;
 - ordinary M1 tests make no live retailer requests.
@@ -63,18 +64,23 @@ Goal: compare a manually entered grocery list across connected retailers while p
    - incomplete baskets expose no aggregate total;
    - mixed selected currencies fail closed;
    - architecture rule prevents upstream provider/shopping/matching/retailer dependence on basket.
-8. **Failure / coverage / freshness product + API + UX boundary — IMPLEMENTED (#79; shipping gate pending)**
+8. **Failure / coverage / freshness product + API + UX boundary — IMPLEMENTED + REVIEW HARDENED (#79; shipping gate pending)**
    - product-facing retailer comparison/readiness model;
    - all eight canonical retailers remain visible in stable registry order;
    - technical coverage and production-access readiness map independently;
    - explicit `READY`, `UNCERTAIN`, `INCOMPLETE`, `UNAVAILABLE` comparison states and finite product-safe reasons;
+   - public records reject impossible status/coverage/access/total/freshness combinations;
+   - reason codes are structurally compatible with comparison status and coverage/access precedence;
    - provider-path failures translate to stable product reasons without provider ID/acquisition/source leakage;
    - basket complete/uncertain/incomplete semantics remain fail-closed;
    - conservative observation/provider timestamp aggregation without invented stale thresholds;
+   - freshness basis/provider timestamp consistency is enforced by construction;
    - `GET /api/v1/retailers` REST contract;
    - OpenAPI + generated TypeScript client synchronization;
    - dynamic M1 Next.js status surface using `API_BASE_URL` server-side;
-   - API failure renders accessible service-unavailable state without fake retailer cards/prices;
+   - web distinguishes observation-only evidence from trusted provider-side update time without inventing freshness verdicts;
+   - server readiness requests have a bounded 3-second abort timeout;
+   - API failure or timeout renders accessible service-unavailable state without fake retailer cards/prices;
    - responsive desktop/mobile browser acceptance protects focus visibility and horizontal layout.
 9. **Critical product journey — NEXT after #79 ships**
    - enter/edit a manual shopping list through a stable API/product boundary;
@@ -98,6 +104,7 @@ The core can consume trusted package-quantity evidence, but accepted retailer ad
 - no test/user path requires hidden live retailer access;
 - product location/privacy boundary preserved;
 - provider provenance, fulfillment context and freshness survive into comparison;
+- freshness evidence basis is visible without invented stale/fresh policy;
 - incomplete baskets cannot masquerade as complete winners.
 
 ## M2 — Recipes
