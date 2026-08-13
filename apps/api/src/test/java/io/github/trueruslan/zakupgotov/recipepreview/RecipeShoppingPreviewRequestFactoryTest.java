@@ -25,14 +25,14 @@ class RecipeShoppingPreviewRequestFactoryTest {
         var input = new RecipeShoppingPreviewRequestFactory(ids).create(new RecipeShoppingPreviewRequest(
                 "  Курица   с овощами  ", 2, 4,
                 List.of(new RecipeShoppingPreviewIngredientRequest("  морковь  ",
-                        new RecipeShoppingPreviewQuantityRequest(new BigDecimal("0.3"), QuantityUnit.KILOGRAM))));
+                        new RecipeShoppingPreviewQuantityRequest(new BigDecimal("0.3"), QuantityUnit.KILOGRAM)))));
         assertThat(input.recipe().id()).isEqualTo(new RecipeId(RECIPE_ID));
         assertThat(input.recipe().title().value()).isEqualTo("Курица с овощами");
         assertThat(input.recipe().ingredients().getFirst().id()).isEqualTo(new RecipeIngredientId(INGREDIENT_ID));
         assertThat(input.recipe().ingredients().getFirst().quantity()).isEqualTo(new Quantity(new BigDecimal("300"), QuantityUnit.GRAM));
         assertThat(input.targetServings().value()).isEqualTo(4);
         assertThat(input.shoppingListId()).isEqualTo(new ShoppingListId(LIST_ID));
-        assertThat(ids.calls).tainsExactly("recipe", "ingredient", "list");
+        assertThat(ids.calls).containsExactly("recipe", "ingredient", "list");
     }
 
     @Test void accumulatesTopLevelErrorsBeforeAllocatingIds() {
@@ -44,7 +44,7 @@ class RecipeShoppingPreviewRequestFactoryTest {
                                 error("title", "must not be blank"),
                                 error("baseServings", "must be greater than 0"),
                                 error("targetServings", "must be greater than 0"),
-                              error("ingredients", "must contain at least one ingredient")));
+                                error("ingredients", "must contain at least one ingredient")));
         assertThat(ids.calls).isEmpty();
     }
 
@@ -66,9 +66,10 @@ class RecipeShoppingPreviewRequestFactoryTest {
                                 error("title", "must not be blank"),
                                 error("baseServings", "must not be null"),
                                 error("targetServings", "must not be null"),
-                              error("ingredients", "must not be null")));
+                                error("ingredients", "must not be null")));
         assertThat(ids.calls).isEmpty();
     }
+
 
     @Test void rejectsTitleLongerThan240CharactersBeforeAllocatingIds() {
         var ids = new QueuedIds();
