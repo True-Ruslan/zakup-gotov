@@ -102,6 +102,39 @@ class RecipeShoppingPreviewRequestFactoryTest {
         assertThat(ids.calls).isEmpty();
     }
 
+
+    @Test void accumulatesNestedIngredientErrorsBeforeAllocatingIds() {
+        var ids = new QueuedIds();
+        var factory = new RecipeShoppingPreviewRequestFactory(ids);
+        var ingredients = new ArrayList<RecipeShoppingPreviewIngredientRequest>();
+        ingredients.add(null);
+        ingredients.add(new RecipeShoppingPreviewIngredientRequest(
+                " ",
+                new RecipeShoppingPreviewQuantityRequest(BigDecimal.ZERO, null)));
+        ingredients.add(new RecipeShoppingPreviewIngredientRequest(
+                "x".repeat(241),
+                new RecipeShoppingPreviewQuantityRequest(new BigDecimal("-2"), QuantityUnit.GRAM)));
+        ingredients.add(new RecipeShoppingPreviewIngredientRequest("milk", null));
+        ingredients.add(new RecipeShoppingPreviewIngredientRequest(
+                null,
+                new RecipeShoppingPreviewQuantityRequest(null, QuantityUnit.LITER)));
+
+        assertThatThrownBy(() -> factory.create(new RecipeShoppingPreviewRequest(
+                "Recipe", 2, 3, ingredients)))
+                .isInstanceOfSatisfying(InvalidRecipeShoppingPreviewRequestException.class, exception ->
+                        assertThat(exception.errors()).containsExactly(
+                                error("ingredients[0]", "must not be null"),
+                                error("ingredients[1].requirement", "must not be blank"),
+                                error("ingredients[1].quantity.amount", "must be greater than 0"),
+                                error("ingredients[1].quantity.unit", "must not be null"),
+                                error("ingredients[2].requirement", "must not exceed 240 characters"),
+                                error("ingredients[2].quantity.amount", "must be greater than 0"),
+                                error("ingredients[3].quantity", "must not be null"),
+                                error("ingredients[4].requirement", "must not be blank"),
+                                error("ingredients[4].quantity.amount", "must not be null")));
+        assertThat(ids.calls).isEmpty();
+    }
+
     private static RecipeShoppingPreviewValidationError error(String field, String message) {
         return new RecipeShoppingPreviewValidationError(field, message);
     }
