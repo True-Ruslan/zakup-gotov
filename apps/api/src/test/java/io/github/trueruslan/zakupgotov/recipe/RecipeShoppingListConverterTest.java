@@ -1,6 +1,7 @@
 package io.github.trueruslan.zakupgotov.recipe;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import io.github.trueruslan.zakupgotov.shopping.Quantity;
 import io.github.trueruslan.zakupgotov.shopping.QuantityUnit;
@@ -104,6 +105,59 @@ class RecipeShoppingListConverterTest {
                 .isEqualTo(second.shoppingList().items().getFirst().quantity());
         assertThat(first.shoppingList().items().getFirst().quantity().amount())
                 .isEqualByComparingTo(new BigDecimal("33.33333333333333333333333333333333"));
+    }
+
+    @Test
+    void derivesItemIdentityFromListRequirementAndCanonicalUnitRatherThanPositionOrAmount() {
+        var flourKg = recipe(2, ingredient("81d23cd8-cd6f-4692-8a0f-a49e05c779cc", "Flour", "0.5", QuantityUnit.KILOGRAM));
+        var flourG = recipe(4, ingredient("11388874-5a42-4863-b5cf-3c210fa70ddd", "Flour", "500", QuantityUnit.GRAM));
+        var milk = recipe(2, ingredient("e982cbf4-9a04-4dca-b16e-cbb0bad92023", "Milk", "500", QuantityUnit.MILLILITER));
+
+        var flourAtBase = converter.convert(flourKg, new RecipeServings(2), LIST_ID).shoppingList().items().getFirst().id();
+        var flourAtDifferentServings = converter.convert(flourKg, new RecipeServings(4), LIST_ID).shoppingList().items().getFirst().id();
+        var flourCanonicalRepresentation = converter.convert(flourG, new RecipeServings(4), LIST_ID).shoppingList().items().getFirst().id();
+        var milkId = converter.convert(milk, new RecipeServings(2), LIST_ID).shoppingList().items().getFirst().id();
+        var otherListId = converter.convert(
+                        flourKg,
+                        new RecipeServings(2),
+                        new ShoppingListId(UUID.fromString("b0d7c4a7-e9b2-446e-b01e-d12fd5d81f6a")))
+                .shoppingList().items().getFirst().id();
+
+        assertThat(flourAtDifferentServings).isEqualTo(flourAtBase);
+        assertThat(flourCanonicalRepresentation).isEqualTo(flourAtBase);
+        assertThat(milkId).isNotEqualTo(flourAtBase);
+        assertThat(otherListId).isNotEqualTo(flourAtBase);
+    }
+
+    @Test
+    void recordsCompleteOrderedProvenanceForMergedAndNonMergedIngredients() {
+        var milkFirst = ingredient("81d23cd8-cd6f-4692-8a0f-a49e05c779cc", "Milk", "500", QuantityUnit.MILLILITER);
+        var flour = ingredient("11388874-5a42-4863-b5cf-3c210fa70ddd", "Flour", "200", QuantityUnit.GRAM);
+        var milkSecond = ingredient("e982cbf4-9a04-4dca-b16e-cbb0bad92023", "Milk", "0.5", QuantityUnit.LITER);
+        var recipe = recipe(1, milkFirst, flour, milkSecond);
+
+        var result = converter.convert(recipe, new RecipeServings(1), LIST_ID);
+        var milkItem = result.shoppingList().items().get(0);
+        var flourItem = result.shoppingList().items().get(1);
+
+        assertThat(result.provenance()).hasSize(2);
+        assertThat(result.provenance().get(milkItem.id())).containsExactly(
+                new RecipeIngredientRef(RECIPE_ID, milkFirst.id()),
+                new RecipeIngredientRef(RECIPE_ID, milkSecond.id()));
+        assertThat(result.provenance().get(flourItem.id())).containsExactly(
+                new RecipeIngredientRef(RECIPE_ID, flour.id()));
+    }
+
+    @Test
+    void exposesProvenanceAsDeeplyImmutableOutput() {
+        var ingredient = ingredient("81d23cd8-cd6f-4692-8a0f-a49e05c779cc", "Flour", "200", QuantityUnit.GRAM);
+        var result = converter.convert(recipe(1, ingredient), new RecipeServings(1), LIST_ID);
+        var itemId = result.shoppingList().items().getFirst().id();
+
+        assertThatThrownBy(() -> result.provenance().clear())
+                .isInstanceOf(UnsupportedOperationException.class);
+        assertThatThrownBy(() -> result.provenance().get(itemId).add(new RecipeIngredientRef(RECIPE_ID, ingredient.id())))
+                .isInstanceOf(UnsupportedOperationException.class);
     }
 
     private static Recipe recipe(int servings, RecipeIngredient... ingredients) {
