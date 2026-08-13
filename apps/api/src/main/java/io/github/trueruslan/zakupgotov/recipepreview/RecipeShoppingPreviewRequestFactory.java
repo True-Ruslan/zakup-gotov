@@ -24,20 +24,32 @@ public final class RecipeShoppingPreviewRequestFactory {
         }
 
         var errors = new ArrayList<RecipeShoppingPreviewValidationError>();
-        var title = request.title().strip().replaceAll("\\s+", " ");
-        if (title.isBlank()) {
+        var title = request.title() == null
+                ? null
+                : request.title().strip().replaceAll("\\s+", " ");
+        if (title == null || title.isBlank()) {
             errors.add(new RecipeShoppingPreviewValidationError("title", "must not be blank"));
         }
-        if (request.baseServings() <= 0) {
+
+        if (request.baseServings() == null) {
+            errors.add(new RecipeShoppingPreviewValidationError("baseServings", "must not be null"));
+        } else if (request.baseServings() <= 0) {
             errors.add(new RecipeShoppingPreviewValidationError("baseServings", "must be greater than 0"));
         }
-        if (request.targetServings() <= 0) {
+
+        if (request.targetServings() == null) {
+            errors.add(new RecipeShoppingPreviewValidationError("targetServings", "must not be null"));
+        } else if (request.targetServings() <= 0) {
             errors.add(new RecipeShoppingPreviewValidationError("targetServings", "must be greater than 0"));
         }
-        if (request.ingredients().isEmpty()) {
+
+        if (request.ingredients() == null) {
+            errors.add(new RecipeShoppingPreviewValidationError("ingredients", "must not be null"));
+        } else if (request.ingredients().isEmpty()) {
             errors.add(new RecipeShoppingPreviewValidationError(
                     "ingredients", "must contain at least one ingredient"));
         }
+
         if (!errors.isEmpty()) {
             throw new InvalidRecipeShoppingPreviewRequestException(errors);
         }
