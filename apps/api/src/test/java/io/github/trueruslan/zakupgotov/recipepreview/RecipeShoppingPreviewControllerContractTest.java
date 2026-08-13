@@ -45,7 +45,7 @@ class RecipeShoppingPreviewControllerContractTest {
 
         mvc.perform(post("/api/v1/recipe-shopping-previews")
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content("""{"title":" ","baseServings":0,"targetServings":-1,"ingredients":[]}"""))
+                        .content("{\"title\":\" \",\"baseServings\":0,\"targetServings\":-1,\"ingredients\":[]}"))
                 .andExpect(status().isBadRequest())
                 .andExpect(content().contentTypeCompatibleWith(MediaType.APPLICATION_PROBLEM_JSON))
                 .andExpect(jsonPath("$.code").value("INVALID_RECIPE_SHOPPING_PREVIEW"))
