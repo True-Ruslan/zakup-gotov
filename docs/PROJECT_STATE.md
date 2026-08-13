@@ -12,7 +12,8 @@ Current phase: **M2 — Recipes**
 M0 status: **technical discovery COMPLETE**  
 M1 status: **Shopping Core COMPLETE / ACCEPTED**  
 M1→M2 decision: **GO** — [`m1-shopping-core-acceptance-2026-08-13.md`](m1-shopping-core-acceptance-2026-08-13.md)  
-Current focus: **ship M2.1 deterministic Recipe → ShoppingList domain slice (#94 / #93), then design the application/API boundary**
+M2.1 status: **Recipe domain + Recipe → ShoppingList COMPLETE / ACCEPTED (#94 / #93)**  
+Current focus: **design M2.2 Recipe application/API boundary**
 
 ## Permanent connectivity rule
 
@@ -41,42 +42,9 @@ Final acceptance: [`m1-shopping-core-acceptance-2026-08-13.md`](m1-shopping-core
 
 Accepted final hardening baseline: `779d0b219a13e0bf82263a1e655fb732553ed5fe`.
 
-### Accepted implementation sequence
+Accepted M1 sequence: #72 retailer registry, #73 shopping list/quantities, #74 provider orchestration, #75 location/fulfillment, #76 snapshots, #77 matching, #78 single-store quote, #79 coverage/freshness boundary, #80 stateless critical journey, #81 structured package evidence, #82/#83/#85 Magnit package semantics/corpus/JSON-LD, #86/#87/#69 Magnit location resolution, #89/#70 Magnit production-access decision, and #91/#90 pre-acquisition production-access enforcement/final acceptance.
 
-1. **Retailer registry / coverage state — #72** — canonical retailer identities with separate technical and production-access states.
-2. **Shopping list / canonical quantities — #73** — stable identity, explicit mutations, canonical `kg → g`, `l → ml`.
-3. **Provider/path orchestration — #74** — retailer/provider/acquisition/fulfillment provenance and fail-closed path selection.
-4. **Location / fulfillment context — #75** — provider-neutral product location, sensitive-address redaction and provider-scoped bindings.
-5. **Price / availability snapshots — #76** — immutable snapshots, observation/provider-freshness distinction, first-class `UNKNOWN`.
-6. **Deterministic matching — #77** — exact-before-normalized, explicit matched/ambiguous/unmatched outcomes.
-7. **Single-store basket quote — #78** — whole-package arithmetic, `COMPLETE / UNCERTAIN / INCOMPLETE`, no misleading incomplete total.
-8. **Failure / coverage / freshness boundary — #79** — every canonical retailer remains visible with product-safe reasons.
-9. **Stateless critical journey — #80** — comparison-preview API, generated client, responsive UI and desktop/mobile Playwright.
-10. **Structured package-evidence plumbing — #81** — `ObservedOffer → OfferSnapshot → PackageQuantitySet`; presentation text is non-authoritative.
-11. **Magnit exact characteristic semantics — #82** — exact `Вес, кг` / `Объем, л`, ambiguity/conflict/invalid fail closed.
-12. **Magnit fixed-corpus instrumentation — #83** — transport/identity failure separated from metadata quality.
-13. **Magnit SKU-bound JSON-LD package evidence — #85** — exact `Product.sku`, proven weight/volume fields, no extra request/browser.
-14. **Magnit bbox → `shopCode` boundary — #86** — deterministic public store-search contract and fail-closed resolution.
-15. **Magnit merged-main LOCATION_RESOLUTION proof — #87 / #69** — exact default-branch stateless two-request reproduction.
-16. **Magnit production right-to-operate decision — #89 / #70** — technical coverage remains `AVAILABLE_PUBLIC_WEB`; recurring production reuse is product-policy `BLOCKED` pending affirmative permission/licensed or supported terms.
-17. **Pre-acquisition production-access gate — #91 / #90** — evidence sources receive only immutable production-ready retailer IDs; empty scope means no source invocation; out-of-scope evidence fails closed.
-
-### Final M1 acceptance properties
-
-- all eight canonical retailers remain visible;
-- `READY / UNCERTAIN / INCOMPLETE / UNAVAILABLE` remain distinct;
-- unmatched/ambiguous/package-unknown/unit-mismatch cases fail safely;
-- incomplete baskets expose no misleading complete total;
-- `UNKNOWN` availability remains uncertain;
-- freshness and provenance boundaries remain explicit;
-- addresses/provider/store implementation identifiers do not leak into product-facing preview;
-- technical connectivity and production access are independent;
-- production access is enforced **before** runtime evidence acquisition;
-- blocked/pending/discovery retailers cannot enter acquisition scope;
-- production preview cannot fall back to deterministic fixtures or hidden live retailer traffic;
-- ordinary CI remains retailer-network-free.
-
-The acceptance decision is **GO to M2 Recipes for deterministic product/core development**. It does not claim production retailer completeness.
+M1 guarantees that all eight retailers remain explicit, uncertainty/ambiguity/incomplete states fail safely, incomplete baskets do not expose misleading totals, technical coverage is independent from production access, and runtime acquisition is scoped by production-ready retailer IDs before an evidence source can run.
 
 ## Magnit status at M1 exit
 
@@ -97,19 +65,9 @@ Milk SKU `1000013732` and kefir SKU `1000330180` remain deliberately ambiguous i
 
 ### Technical location/store context
 
-Accepted first-party contract:
+Accepted first-party contract: `POST /webgate/v1/stores-facade/search`.
 
-`POST /webgate/v1/stores-facade/search`
-
-Accepted rules:
-
-- validated bbox → candidate set;
-- 0 → `NO_STORES`;
-- exactly 1 → `RESOLVED`;
-- >1 → `AMBIGUOUS`;
-- conflicting duplicate identity → `CONFLICTING_STORE_EVIDENCE`;
-- explicit choice → `MANUAL`;
-- no implicit first/nearest-store heuristic.
+Accepted rules: validated bbox → candidate set; 0 → `NO_STORES`; exactly 1 → `RESOLVED`; >1 → `AMBIGUOUS`; conflicting duplicate identity → `CONFLICTING_STORE_EVIDENCE`; explicit choice → `MANUAL`; no implicit first/nearest heuristic.
 
 Merged-main run `31642543544` on SHA `6ff8372c9e9e61b4c48c43d0d0c159fb65ffe7a1` proved public `shopCode=992301` across two direct stateless requests with identical candidate sets and no session/auth/redirect dependence.
 
@@ -126,22 +84,28 @@ Current product state:
 - comparison status: **`UNAVAILABLE`**;
 - public reason: **`PRODUCTION_ACCESS_BLOCKED`**.
 
-`BLOCKED` is a Zakup Gotov operating policy because an affirmative right to operate the intended recurring production catalog-acquisition/reuse model has not been established. It is not a claim that Magnit expressly prohibits every automated HTTP request and is not a legal adjudication.
-
-No production Spring/HTTP Magnit acquisition is activated.
+`BLOCKED` is a Zakup Gotov operating policy because an affirmative right to operate the intended recurring production catalog-acquisition/reuse model has not been established. It is not a claim that Magnit expressly prohibits every automated HTTP request and is not a legal adjudication. No production Spring/HTTP Magnit acquisition is activated.
 
 ## M2 — Recipes — CURRENT
 
-### M2.1 — Recipe domain and Recipe → ShoppingList — IMPLEMENTED / TESTED / SHIPPING (#94 / #93)
+### M2.1 — Recipe domain and Recipe → ShoppingList — COMPLETE / ACCEPTED (#94 / #93)
 
 Approved design: [`superpowers/specs/2026-08-13-m2-1-recipe-domain-design.md`](superpowers/specs/2026-08-13-m2-1-recipe-domain-design.md).  
-Implementation plan: [`superpowers/plans/2026-08-13-m2-1-recipe-domain.md`](superpowers/plans/2026-08-13-m2-1-recipe-domain.md).
+Implementation plan: [`superpowers/plans/2026-08-13-m2-1-recipe-domain.md`](superpowers/plans/2026-08-13-m2-1-recipe-domain.md).  
+Shipping/acceptance evidence: [`superpowers/plans/2026-08-13-m2-1-recipe-domain-shipping.md`](superpowers/plans/2026-08-13-m2-1-recipe-domain-shipping.md).
 
-Current reviewed implementation head before shipping docs: `734ed53712b4327039eabfb358548828aa1a1dbe`.
+Accepted squash merge: `423eb14f7c565bbe264257a92df89a6b42d0d158` (`feat(m2): add deterministic recipe domain (#94)`).
 
-Implemented behavior:
+Post-merge acceptance proof on exact `main=423eb14f7c565bbe264257a92df89a6b42d0d158`:
 
-- separate top-level `recipe` domain with `RecipeId`, `RecipeIngredientId`, normalized `RecipeTitle`, positive-integer `RecipeServings`, immutable ordered `RecipeIngredient` list and duplicate-ID rejection;
+- 8 push-triggered workflow runs total;
+- 8/8 completed with `conclusion=success`;
+- failures: 0;
+- issue #93 closed `completed` after this proof.
+
+Accepted behavior:
+
+- separate top-level `recipe` domain with `RecipeId`, `RecipeIngredientId`, normalized `RecipeTitle`, positive-integer `RecipeServings`, immutable ordered ingredients and duplicate-ID rejection;
 - each ingredient reuses existing `ShoppingRequirement` and `Quantity`; Recipe introduces no duplicate unit/canonicalization model;
 - pure `RecipeShoppingListConverter` with no Spring, persistence, network, clock or retailer dependency;
 - serving scaling sums each compatible merge group before applying `targetServings / baseServings`;
@@ -150,50 +114,42 @@ Implemented behavior:
 - case differences, synonyms and physical-dimension mismatches do not merge;
 - output group order follows first ingredient occurrence;
 - generated `ShoppingItemId` is deterministic and list-scoped from `ShoppingListId + requirement text + canonical unit`, independent of amount/target servings;
-- kg/g and l/ml representations converge through the existing `Quantity` canonicalization before identity/merge decisions;
-- provenance is returned separately as `ShoppingItemId → ordered List<RecipeIngredientRef(RecipeId, RecipeIngredientId)>` and is deep-immutable;
+- kg/g and l/ml input representations converge through existing `Quantity` canonicalization;
+- provenance is separate deep-immutable `ShoppingItemId → ordered List<RecipeIngredientRef(RecipeId, RecipeIngredientId)>`;
 - artificial generated-ID collisions across different merge keys fail closed;
 - Shopping Core production types remain recipe-agnostic and unchanged.
 
-TDD/verification state:
+Verification evidence before merge:
 
-- value-object RED → GREEN complete;
-- immutable aggregate RED → GREEN complete;
-- scaling/merge RED → GREEN complete;
-- deterministic identity/provenance RED → GREEN complete;
-- collision fail-closed RED → GREEN complete;
-- conversion/lineage validation RED → GREEN complete;
-- full API `verify` PASS on `734ed537…`, including Spring Modulith architecture verification;
-- exact implementation head has 9/9 PR workflow groups `success`;
-- independent review verdict: **Looks good**, no P0/P1/P2; review threads empty.
+- all planned RED → GREEN cycles completed;
+- full API `verify` PASS, including Spring Modulith architecture verification;
+- reviewed implementation head `734ed53712b4327039eabfb358548828aa1a1dbe` passed 9/9 PR workflow groups;
+- code+docs head `250d00f10b1c51fee0826356dfb95f8e7b853c50` passed 9/9;
+- final shipping marker head `512be04a2a0147d9787465481388e6847a20d69d` passed 9/9;
+- independent review: **Looks good**, no P0/P1/P2; review threads empty.
 
-This status is **not yet ACCEPTED**. Acceptance requires the final shipping-doc head to pass the same exact-head gate, squash merge, and green post-merge `main` verification.
+M2.1 intentionally did **not** add REST/OpenAPI/generated-client contracts, persistence, recipe UI, AI/NLP import, fuzzy ingredient equivalence, nutrition optimization, pantry prediction, fractional servings, or multi-recipe aggregation.
 
-### M2.1 non-goals preserved
+### M2.2 — Recipe application/API boundary — NEXT DESIGN TARGET
 
-Not added in this slice:
-
-- REST/OpenAPI/generated-client contracts;
-- persistence/repository layer;
-- recipe web UI;
-- AI/NLP recipe parsing or arbitrary web import;
-- fuzzy/case-insensitive ingredient equivalence;
-- nutrition/calorie optimization;
-- pantry prediction;
-- fractional servings input;
-- multi-recipe aggregation.
-
-### Next product slice after M2.1 acceptance
-
-Design the application/API boundary:
+Target path:
 
 `Recipe request → Recipe domain → RecipeShoppingListConversion → comparison input`
 
-That follow-up owns REST/OpenAPI/generated-client semantics. A responsive create/edit/servings flow should only be layered on top after the application contract is accepted.
+The next design must decide:
+
+- stateless request/response contract versus persisted recipe lifecycle;
+- ownership/generation of `ShoppingListId` at the application boundary;
+- public provenance representation without leaking implementation details;
+- OpenAPI/generated TypeScript client schema;
+- validation/error vocabulary consistent with existing fail-closed request handling;
+- one composed comparison endpoint versus an explicit two-step flow.
+
+Persistence and UI are not assumed; they require their own product/design justification.
 
 ## Parallel mandatory work
 
-These continue without blocking deterministic M2 domain work unless new evidence invalidates accepted core assumptions:
+Continue without blocking deterministic M2 work unless new evidence invalidates accepted core assumptions:
 
 - **#54** browser-bridge persistent-session/store-change/SPA lifecycle hardening;
 - **#36** Kuper supported aggregator access investigation;
@@ -213,21 +169,17 @@ These continue without blocking deterministic M2 domain work unless new evidence
 7. Observation time is not misrepresented as provider freshness.
 8. Matching ambiguity never becomes a hidden winner.
 9. Package quantity is explicit structured evidence and is never guessed from presentation text.
-10. Basket package bindings derive from immutable snapshot evidence.
-11. Source ambiguity/conflict remains fail-closed.
-12. Mass, volume and count are not interchangeable.
-13. Incomplete baskets never expose misleading complete-basket totals.
-14. Production activation respects independent right-to-operate status.
-15. Production-access policy scopes acquisition before source invocation.
-16. Evidence outside requested retailer scope is a contract violation.
-17. Ordinary CI/browser acceptance makes no live retailer requests.
-18. Production preview evidence does not fall back to deterministic fixtures.
-19. Unknown JSON request fields fail closed.
-20. Universal retailer connectivity remains mandatory.
-21. Public technical accessibility is never treated as production authorization by itself.
-22. Recipe semantics reuse Shopping Core quantity/requirement normalization instead of duplicating it.
-23. Recipe provenance remains outside Shopping Core types.
-24. Recipe exact-safe merging never introduces fuzzy/AI equivalence implicitly.
+10. Mass, volume and count are not interchangeable.
+11. Incomplete baskets never expose misleading complete-basket totals.
+12. Production-access policy scopes acquisition before source invocation.
+13. Evidence outside requested retailer scope is a contract violation.
+14. Ordinary CI/browser acceptance makes no live retailer requests.
+15. Production preview evidence does not fall back to deterministic fixtures.
+16. Universal retailer connectivity remains mandatory.
+17. Public technical accessibility is never treated as production authorization by itself.
+18. Recipe semantics reuse Shopping Core quantity/requirement normalization instead of duplicating it.
+19. Recipe provenance remains outside Shopping Core types.
+20. Recipe exact-safe merging never introduces fuzzy/AI equivalence implicitly.
 
 ## Platform baseline
 
