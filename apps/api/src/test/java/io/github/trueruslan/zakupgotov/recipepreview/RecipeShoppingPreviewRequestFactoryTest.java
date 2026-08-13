@@ -16,79 +16,69 @@ import java.util.UUID;
 import org.junit.jupiter.api.Test;
 
 class RecipeShoppingPreviewRequestFactoryTest {
-
     private static final UUID RECIPE_ID = UUID.fromString("fc715c4b-17a0-4f69-8cb0-5cf8c4e44893");
     private static final UUID INGREDIENT_ID = UUID.fromString("dc7cd921-d07c-4c91-9079-3c9c1a947759");
     private static final UUID LIST_ID = UUID.fromString("ed46a060-72f2-464b-b5c4-bb98d96db8d8");
 
-    @Test
-    void normalizesCanonicalizesAndAllocatesServerOwnedIds() {
+    @Test void normalizesCanonicalizesAndAllocatesServerOwnedIds() {
         var ids = new QueuedIds();
-        var factory = new RecipeShoppingPreviewRequestFactory(ids);
-
-        var input = factory.create(new RecipeShoppingPreviewRequest(
+        var input = new RecipeShoppingPreviewRequestFactory(ids).create(new RecipeShoppingPreviewRequest(
                 "  Курица   с овощами  ", 2, 4,
-                List.of(new RecipeShoppingPreviewIngredientRequest(
-                        "  морковь  ",
+                List.of(new RecipeShoppingPreviewIngredientRequest("  морковь  ",
                         new RecipeShoppingPreviewQuantityRequest(new BigDecimal("0.3"), QuantityUnit.KILOGRAM)))));
-
         assertThat(input.recipe().id()).isEqualTo(new RecipeId(RECIPE_ID));
         assertThat(input.recipe().title().value()).isEqualTo("Курица с овощами");
         assertThat(input.recipe().ingredients().getFirst().id()).isEqualTo(new RecipeIngredientId(INGREDIENT_ID));
-        assertThat(input.recipe().ingredients().getFirst().quantity())
-                .isEqualTo(new Quantity(new BigDecimal("300"), QuantityUnit.GRAM));
+        assertThat(input.recipe().ingredients().getFirst().quantity()).isEqualTo(new Quantity(new BigDecimal("300"), QuantityUnit.GRAM));
         assertThat(input.targetServings().value()).isEqualTo(4);
         assertThat(input.shoppingListId()).isEqualTo(new ShoppingListId(LIST_ID));
         assertThat(ids.calls).containsExactly("recipe", "ingredient", "list");
     }
 
-    @Test
-    void accumulatesTopLevelErrorsBeforeAllocatingIds() {
+    @Test void accumulatesTopLevelErrorsBeforeAllocatingIds() {
         var ids = new QueuedIds();
         var factory = new RecipeShoppingPreviewRequestFactory(ids);
-
         assertThatThrownBy(() -> factory.create(new RecipeShoppingPreviewRequest(" ", 0, -1, List.of())))
                 .isInstanceOfSatisfying(InvalidRecipeShoppingPreviewRequestException.class, exception ->
                         assertThat(exception.errors()).containsExactly(
-                                new RecipeShoppingPreviewValidationError("title", "must not be blank"),
-                                new RecipeShoppingPreviewValidationError("baseServings", "must be greater than 0"),
-                                new RecipeShoppingPreviewValidationError("targetServings", "must be greater than 0"),
-                                new RecipeShoppingPreviewValidationError("ingredients", "must contain at least one ingredient")));
+                                error("title", "must not be blank"),
+                                error("baseServings", "must be greater than 0"),
+                                error("targetServings", "must be greater than 0"),
+                                error("ingredients", "must contain at least one ingredient")));
         assertThat(ids.calls).isEmpty();
     }
 
-    @Test
-    void rejectsNullRequestWithoutAllocatingIds() {
+    @Test void rejectsNullRequestWithoutAllocatingIds() {
         var ids = new QueuedIds();
         var factory = new RecipeShoppingPreviewRequestFactory(ids);
-
         assertThatThrownBy(() -> factory.create(null))
                 .isInstanceOfSatisfying(InvalidRecipeShoppingPreviewRequestException.class, exception ->
-                        assertThat(exception.errors()).containsExactly(
-                                new RecipeShoppingPreviewValidationError("$request", "must not be null")));
+                        assertThat(exception.errors()).containsExactly(error("$request", "must not be null")));
         assertThat(ids.calls).isEmpty();
+    }
+
+    @Test void accumulatesNullTopLevelFieldsBeforeAllocatingIds() {
+        var ids = new QueuedIds();
+        var factory = new RecipeShoppingPreviewRequestFactory(ids);
+        assertThatThrownBy(() -> factory.create(new RecipeShoppingPreviewRequest(null, null, null, null)))
+                .isInstanceOfSatisfying(InvalidRecipeShoppingPreviewRequestException.class, exception ->
+                        assertThat(exception.errors()).containsExactly(
+                                error("title", "must not be blank"),
+                                error("baseServings", "must not be null"),
+                                error("targetServings", "must not be null"),
+                                error("ingredients", "must not be null")));
+        assertThat(ids.calls).isEmpty();
+    }
+
+    private static RecipeShoppingPreviewValidationError error(String field, String message) {
+        return new RecipeShoppingPreviewValidationError(field, message);
     }
 
     private static final class QueuedIds implements RecipeShoppingPreviewIdGenerator {
         private final ArrayDeque<UUID> ingredientIds = new ArrayDeque<>(List.of(INGREDIENT_ID));
         private final ArrayList<String> calls = new ArrayList<>();
-
-        @Override
-        public RecipeId nextRecipeId() {
-            calls.add("recipe");
-            return new RecipeId(RECIPE_ID);
-        }
-
-        @Override
-        public RecipeIngredientId nextIngredientId() {
-            calls.add("ingredient");
-            return new RecipeIngredientId(ingredientIds.removeFirst());
-        }
-
-        @Override
-        public ShoppingListId nextShoppingListId() {
-            calls.add("list");
-            return new ShoppingListId(LIST_ID);
-        }
+        @Override public RecipeId nextRecipeId() { calls.add("recipe"); return new RecipeId(RECIPE_ID); }
+        @Override public RecipeIngredientId nextIngredientId() { calls.add("ingredient"); return new RecipeIngredientId(ingredientIds.removeFirst()); }
+        @Override public ShoppingListId nextShoppingListId() { calls.add("list"); return new ShoppingListId(LIST_ID); }
     }
 }
