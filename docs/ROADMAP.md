@@ -74,59 +74,70 @@ This does not claim production retailer completeness. Retailer connectivity/acce
 
 Goal: make recipes a first-class deterministic source of shopping requirements without weakening accepted Shopping Core invariants.
 
-### M2.1 — Recipe domain and Recipe → ShoppingList — NEXT
+### M2.1 — Recipe domain and Recipe → ShoppingList — IMPLEMENTED / TESTED / SHIPPING (#94 / #93)
 
-First vertical slice:
+Approved design: [`superpowers/specs/2026-08-13-m2-1-recipe-domain-design.md`](superpowers/specs/2026-08-13-m2-1-recipe-domain-design.md).  
+Implementation plan: [`superpowers/plans/2026-08-13-m2-1-recipe-domain.md`](superpowers/plans/2026-08-13-m2-1-recipe-domain.md).
 
-`Recipe → explicit ingredients → canonical quantities → ShoppingList`
+#### Delivered candidate behavior
 
-#### Domain scope
+- immutable `Recipe` aggregate with stable recipe/ingredient UUID identities;
+- normalized non-blank title and positive integer base/target servings;
+- ingredients reuse accepted `ShoppingRequirement` + `Quantity` semantics;
+- pure Recipe → ShoppingList converter without Spring/network/database/clock dependencies;
+- group amounts summed before serving scaling;
+- exact terminating decimal division and deterministic `MathContext.DECIMAL128` fallback for non-terminating ratios;
+- exact-safe merge only by normalized requirement + canonical unit;
+- no case folding, synonym matching, fuzzy matching, category inference or AI equivalence;
+- deterministic output order by first merge-group occurrence;
+- deterministic list-scoped `ShoppingItemId` independent of quantity/target servings;
+- deep-immutable ordered `RecipeId + RecipeIngredientId` provenance outside Shopping Core;
+- generated-ID collision across different merge keys fails closed;
+- Shopping Core production types remain recipe-agnostic.
 
-- stable `RecipeId`;
-- recipe title;
-- base servings;
-- stable ingredient identity inside a recipe;
-- ingredient display/requirement text;
-- explicit quantity + unit;
-- deterministic serving scaling;
-- reuse Shopping Core quantity canonicalization;
-- safe deterministic merging only when ingredient requirements are explicitly equivalent and units are compatible;
-- provenance from generated shopping requirement back to recipe + ingredient;
-- recipe → ShoppingList conversion.
+#### Verification candidate
 
-#### Required behavior
+Reviewed implementation head `734ed53712b4327039eabfb358548828aa1a1dbe` has:
 
-- scaling from base servings to requested servings uses deterministic decimal arithmetic;
-- incompatible units are never implicitly converted;
-- zero/negative servings and quantities fail at the domain boundary;
-- blank titles/ingredient text fail at construction;
-- recipe ingredient ordering is stable;
-- generated ShoppingList item identity/provenance is deterministic for the conversion request;
-- merging cannot use fuzzy matching, category inference or AI;
-- the converter depends on accepted shopping-domain primitives rather than duplicating quantity semantics.
+- all M2.1 RED→GREEN domain/converter gates complete;
+- full API `verify` PASS, including Spring Modulith architecture verification;
+- 9/9 PR workflow groups success;
+- independent review verdict **Looks good**, no P0/P1/P2.
 
-#### Delivery sequence
+M2.1 is not accepted until the final shipping-doc head passes the same gates, is squash-merged, and post-merge `main` is green.
 
-1. design/spec with exact identity, scaling, merge and provenance rules;
-2. TDD domain aggregate + ingredient model;
-3. TDD serving scaler and Recipe → ShoppingList converter;
-4. architecture guards;
-5. after domain acceptance: API/OpenAPI/generated-client boundary;
-6. responsive UI: create/edit recipe → choose servings → generate shopping list → comparison journey.
+#### Explicit non-goals preserved
 
-#### Initial non-goals
-
-- AI recipe parsing;
-- arbitrary recipe-web import;
-- fuzzy ingredient equivalence;
+- REST/OpenAPI/generated-client contract;
+- persistence;
+- recipe UI;
+- AI/NLP or arbitrary web import;
+- fuzzy/case-insensitive ingredient equivalence;
 - nutritional optimization;
 - pantry prediction;
-- image recognition;
-- recommendation/ranking of recipes.
+- fractional servings;
+- multi-recipe aggregation.
+
+### M2.2 — Recipe application/API boundary — NEXT AFTER M2.1 ACCEPTANCE
+
+Target path:
+
+`Recipe request → Recipe domain → RecipeShoppingListConversion → comparison input`
+
+Required design questions for the next slice:
+
+- stateless request/response contract versus persisted recipe identity lifecycle;
+- where caller-provided/generated `ShoppingListId` lives at application boundary;
+- how provenance is represented in public API without leaking internal implementation details;
+- OpenAPI/generated TypeScript client schema;
+- validation/error vocabulary consistent with existing fail-closed request handling;
+- whether comparison composition is one endpoint or an explicit two-step application flow.
+
+Do not add persistence or UI by default; decide them from product need after the application contract is designed.
 
 ### M2 exit direction
 
-After the first vertical slice is accepted, extend toward reusable recipe persistence/API UX and then recipe aggregation needed by M3 Weekly Planning. Do not introduce fuzzy/AI ingestion until deterministic recipe semantics are stable and tested.
+After M2.1 and the application/API boundary are accepted, extend toward reusable recipe persistence/API UX and then recipe aggregation needed by M3 Weekly Planning. Do not introduce fuzzy/AI ingestion until deterministic recipe semantics are stable and tested.
 
 ## Parallel connectivity / operational work
 
