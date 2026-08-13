@@ -17,6 +17,16 @@ import java.util.UUID;
 
 public final class RecipeShoppingListConverter {
 
+    private final RecipeShoppingItemIdDeriver itemIdDeriver;
+
+    public RecipeShoppingListConverter() {
+        this(RecipeShoppingListConverter::deriveDefaultItemId);
+    }
+
+    RecipeShoppingListConverter(RecipeShoppingItemIdDeriver itemIdDeriver) {
+        this.itemIdDeriver = Objects.requireNonNull(itemIdDeriver, "itemIdDeriver must not be null");
+    }
+
     public RecipeShoppingListConversion convert(
             Recipe recipe,
             RecipeServings targetServings,
@@ -34,6 +44,7 @@ public final class RecipeShoppingListConverter {
 
         var shoppingList = new ShoppingList(shoppingListId);
         var provenance = new LinkedHashMap<ShoppingItemId, java.util.List<RecipeIngredientRef>>();
+        var itemKeys = new LinkedHashMap<ShoppingItemId, MergeKey>();
         for (var entry : groups.entrySet()) {
             var key = entry.getKey();
             var accumulator = entry.getValue();
@@ -42,7 +53,13 @@ public final class RecipeShoppingListConverter {
                     targetServings.value(),
                     recipe.baseServings().value());
             var quantity = new Quantity(scaledAmount, key.unit());
-            var itemId = deriveItemId(shoppingListId, key);
+            var itemId = Objects.requireNonNull(
+                    itemIdDeriver.derive(shoppingListId, key.requirement(), key.unit()),
+                    "derived item id must not be null");
+            var previousKey = itemKeys.putIfAbsent(itemId, key);
+            if (previousKey != null && !previousKey.equals(key)) {
+                throw new IllegalStateException("generated shopping item id collision");
+            }
             shoppingList.add(new ShoppingItem(itemId, key.requirement(), quantity));
             provenance.put(itemId, accumulator.refs());
         }
@@ -59,12 +76,15 @@ public final class RecipeShoppingListConverter {
         }
     }
 
-    private static ShoppingItemId deriveItemId(ShoppingListId shoppingListId, MergeKey key) {
+    private static ShoppingItemId deriveDefaultItemId(
+            ShoppingListId shoppingListId,
+            ShoppingRequirement requirement,
+            QuantityUnit unit) {
         var payload = shoppingListId.value()
                 + "\n"
-                + key.requirement().text()
+                + requirement.text()
                 + "\n"
-                + key.unit().name();
+                + unit.name();
         return new ShoppingItemId(UUID.nameUUIDFromBytes(payload.getBytes(StandardCharsets.UTF_8)));
     }
 
