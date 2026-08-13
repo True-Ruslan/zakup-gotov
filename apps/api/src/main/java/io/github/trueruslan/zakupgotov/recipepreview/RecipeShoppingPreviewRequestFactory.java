@@ -29,6 +29,8 @@ public final class RecipeShoppingPreviewRequestFactory {
                 : request.title().strip().replaceAll("\\s+", " ");
         if (title == null || title.isBlank()) {
             errors.add(new RecipeShoppingPreviewValidationError("title", "must not be blank"));
+        } else if (title.length() > 240) {
+            errors.add(new RecipeShoppingPreviewValidationError("title", "must not exceed 240 characters"));
         }
 
         if (request.baseServings() == null) {
@@ -48,6 +50,9 @@ public final class RecipeShoppingPreviewRequestFactory {
         } else if (request.ingredients().isEmpty()) {
             errors.add(new RecipeShoppingPreviewValidationError(
                     "ingredients", "must contain at least one ingredient"));
+        } else if (request.ingredients().size() > 100) {
+            errors.add(new RecipeShoppingPreviewValidationError(
+                    "ingredients", "must not exceed 100 ingredients"));
         }
 
         if (!errors.isEmpty()) {
