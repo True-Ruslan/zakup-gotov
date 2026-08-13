@@ -6,6 +6,17 @@ All notable project changes are recorded here. Zakup Gotov is pre-release; entri
 
 ### Added
 
+#### Recipes
+
+- Separate immutable `recipe` domain for M2.1 with UUID-backed recipe/ingredient identity, normalized titles, positive integer servings and ordered explicit ingredients.
+- Deterministic `Recipe → ShoppingList` conversion reusing accepted `ShoppingRequirement` and `Quantity` semantics instead of duplicating quantity/unit normalization.
+- Serving scaling that sums compatible canonical quantities before applying the serving ratio; terminating division remains exact and non-terminating ratios use deterministic `MathContext.DECIMAL128` without `double`/`float`.
+- Exact-safe ingredient grouping by normalized requirement + canonical unit only; case differences, synonyms, fuzzy equivalence and physical-dimension mismatches remain separate requirements.
+- Deterministic list-scoped `ShoppingItemId` derivation from `ShoppingListId + requirement + canonical unit`, independent of amount and requested servings.
+- Deep-immutable ordered provenance `ShoppingItemId → RecipeIngredientRef(RecipeId, RecipeIngredientId)` kept outside Shopping Core types.
+- Fail-closed generated-ID collision detection through a package-private deterministic-ID seam covered by regression tests.
+- M2.1 design and implementation plan documenting the domain/conversion boundary and explicit non-goals.
+
 #### Product and shopping core
 
 - Canonical eight-retailer registry with independent technical-connectivity and production-access states.
@@ -54,6 +65,9 @@ All notable project changes are recorded here. Zakup Gotov is pre-release; entri
 - Project phase advanced from M0 Product & Integration Discovery to M1 Shopping Core and, after final acceptance, to **M2 Recipes**.
 - M1 Shopping Core is **COMPLETE / ACCEPTED** on the post-merge pre-acquisition-gate baseline `779d0b219a13e0bf82263a1e655fb732553ed5fe`.
 - The M1→M2 decision is **GO for deterministic product/core development**; it does not claim every retailer is production-ready.
+- M2.1 now has an implemented/tested shipping candidate for `Recipe → explicit ingredients → canonical quantities → ShoppingList`; REST/OpenAPI/client/UI/persistence remain separate follow-up work until the domain slice is accepted.
+- Recipe → ShoppingList merging is intentionally stricter than product matching: only exact normalized requirements with the same canonical unit merge; no case-folding/synonym/AI equivalence is introduced.
+- Recipe provenance remains conversion metadata rather than an optional Recipe field added to neutral `ShoppingItem`.
 - Retailer onboarding remains transport-neutral and universal; a failed direct path changes acquisition mode rather than retailer scope.
 - `ObservedOffer` is the provider trust boundary and `OfferSnapshot` the immutable comparison record.
 - Observation time and provider-side update time remain distinct.
@@ -68,10 +82,13 @@ All notable project changes are recorded here. Zakup Gotov is pre-release; entri
 - Magnit remains technically `AVAILABLE_PUBLIC_WEB`, while production access is **`BLOCKED` by Zakup Gotov product policy (#70)** pending affirmative permission or licensed/supported terms.
 - Product-facing Magnit readiness is `CONNECTED + BLOCKED + UNAVAILABLE` with reason `PRODUCTION_ACCESS_BLOCKED`, without totals or freshness evidence.
 - Production-access policy is now enforced before acquisition rather than relying only on post-load filtering.
-- The next primary product slice is deterministic `Recipe → explicit ingredients → canonical quantities → ShoppingList`.
 
 ### Fixed
 
+- Recipe aggregate rejects missing fields, empty ingredient lists, null ingredients and duplicate ingredient IDs instead of producing a partially valid recipe.
+- Recipe conversion rejects missing inputs and invalid provenance identities.
+- Recipe generated-item identity collision across different merge keys fails closed rather than relying on overwrite/order behavior.
+- Recipe provenance maps and nested lineage lists are defensively copied and immutable.
 - Provider offer validation rejects provenance/context mismatches before comparison logic.
 - Precise addresses are excluded from default string representations and provider routing.
 - Snapshot freshness rejects provider timestamps after observation time.
