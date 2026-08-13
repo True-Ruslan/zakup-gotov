@@ -33,7 +33,7 @@ class RecipeShoppingPreviewRequestFactoryTest {
                         new RecipeShoppingPreviewQuantityRequest(new BigDecimal("0.3"), QuantityUnit.KILOGRAM)))));
 
         assertThat(input.recipe().id()).isEqualTo(new RecipeId(RECIPE_ID));
-        assertThat(input.recipe().title().text()).isEqualTo("Курица с овощами");
+        assertThat(input.recipe().title().value()).isEqualTo("Курица с овощами");
         assertThat(input.recipe().ingredients().getFirst().id()).isEqualTo(new RecipeIngredientId(INGREDIENT_ID));
         assertThat(input.recipe().ingredients().getFirst().quantity())
                 .isEqualTo(new Quantity(new BigDecimal("300"), QuantityUnit.GRAM));
