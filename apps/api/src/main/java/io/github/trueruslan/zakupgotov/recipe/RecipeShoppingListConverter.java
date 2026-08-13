@@ -10,8 +10,8 @@ import io.github.trueruslan.zakupgotov.shopping.ShoppingRequirement;
 import java.math.BigDecimal;
 import java.math.MathContext;
 import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
 import java.util.LinkedHashMap;
-import java.util.Map;
 import java.util.Objects;
 import java.util.UUID;
 
@@ -25,28 +25,29 @@ public final class RecipeShoppingListConverter {
         Objects.requireNonNull(targetServings, "targetServings must not be null");
         Objects.requireNonNull(shoppingListId, "shoppingListId must not be null");
 
-        var groups = new LinkedHashMap<MergeKey, BigDecimal>();
+        var groups = new LinkedHashMap<MergeKey, GroupAccumulator>();
         for (var ingredient : recipe.ingredients()) {
             var key = new MergeKey(ingredient.requirement(), ingredient.quantity().unit());
-            groups.merge(key, ingredient.quantity().amount(), BigDecimal::add);
+            groups.computeIfAbsent(key, ignored -> new GroupAccumulator())
+                    .add(ingredient.quantity().amount(), new RecipeIngredientRef(recipe.id(), ingredient.id()));
         }
 
         var shoppingList = new ShoppingList(shoppingListId);
-        var index = 0;
+        var provenance = new LinkedHashMap<ShoppingItemId, java.util.List<RecipeIngredientRef>>();
         for (var entry : groups.entrySet()) {
             var key = entry.getKey();
+            var accumulator = entry.getValue();
             var scaledAmount = scale(
-                    entry.getValue(),
+                    accumulator.totalAmount(),
                     targetServings.value(),
                     recipe.baseServings().value());
             var quantity = new Quantity(scaledAmount, key.unit());
-            shoppingList.add(new ShoppingItem(
-                    temporaryItemId(shoppingListId, index++),
-                    key.requirement(),
-                    quantity));
+            var itemId = deriveItemId(shoppingListId, key);
+            shoppingList.add(new ShoppingItem(itemId, key.requirement(), quantity));
+            provenance.put(itemId, accumulator.refs());
         }
 
-        return new RecipeShoppingListConversion(shoppingList, Map.of());
+        return new RecipeShoppingListConversion(shoppingList, provenance);
     }
 
     private static BigDecimal scale(BigDecimal summedBaseAmount, int targetServings, int baseServings) {
@@ -58,10 +59,32 @@ public final class RecipeShoppingListConverter {
         }
     }
 
-    private static ShoppingItemId temporaryItemId(ShoppingListId shoppingListId, int index) {
-        var payload = shoppingListId.value() + ":" + index;
+    private static ShoppingItemId deriveItemId(ShoppingListId shoppingListId, MergeKey key) {
+        var payload = shoppingListId.value()
+                + "\n"
+                + key.requirement().text()
+                + "\n"
+                + key.unit().name();
         return new ShoppingItemId(UUID.nameUUIDFromBytes(payload.getBytes(StandardCharsets.UTF_8)));
     }
 
     private record MergeKey(ShoppingRequirement requirement, QuantityUnit unit) {}
+
+    private static final class GroupAccumulator {
+        private BigDecimal totalAmount = BigDecimal.ZERO;
+        private final ArrayList<RecipeIngredientRef> refs = new ArrayList<>();
+
+        void add(BigDecimal amount, RecipeIngredientRef ref) {
+            totalAmount = totalAmount.add(amount);
+            refs.add(ref);
+        }
+
+        BigDecimal totalAmount() {
+            return totalAmount;
+        }
+
+        java.util.List<RecipeIngredientRef> refs() {
+            return refs;
+        }
+    }
 }
