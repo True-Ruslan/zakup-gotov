@@ -7,6 +7,7 @@ import io.github.trueruslan.zakupgotov.recipe.RecipeTitle;
 import io.github.trueruslan.zakupgotov.shopping.Quantity;
 import io.github.trueruslan.zakupgotov.shopping.ShoppingRequirement;
 import java.util.ArrayList;
+import java.util.List;
 import java.util.Objects;
 
 public final class RecipeShoppingPreviewRequestFactory {
@@ -17,6 +18,11 @@ public final class RecipeShoppingPreviewRequestFactory {
     }
 
     public RecipeShoppingPreviewInput create(RecipeShoppingPreviewRequest request) {
+        if (request == null) {
+            throw new InvalidRecipeShoppingPreviewRequestException(
+                    List.of(new RecipeShoppingPreviewValidationError("$request", "must not be null")));
+        }
+
         var errors = new ArrayList<RecipeShoppingPreviewValidationError>();
         var title = request.title().strip().replaceAll("\\s+", " ");
         if (title.isBlank()) {
