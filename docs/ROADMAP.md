@@ -24,67 +24,48 @@ Acceptance decision: [`m1-shopping-core-acceptance-2026-08-13.md`](m1-shopping-c
 
 Accepted final hardening baseline: `779d0b219a13e0bf82263a1e655fb732553ed5fe`.
 
-### Accepted sequence
+Accepted sequence: #72 retailer registry, #73 shopping list/quantities, #74 provider/path orchestration, #75 location/fulfillment, #76 snapshots, #77 matching, #78 basket quote, #79 failure/coverage/freshness boundary, #80 critical journey, #81 package plumbing, #82/#83/#85 Magnit package evidence, #86/#87/#69 Magnit location resolution, #89/#70 production-access decision, and #91/#90 pre-acquisition production-access enforcement/final acceptance.
 
-1. Retailer registry + independent technical/access states — #72
-2. Shopping-list aggregate + canonical quantities — #73
-3. Provider/path orchestration — #74
-4. Location / fulfillment context — #75
-5. Price / availability snapshots — #76
-6. Deterministic product matching — #77
-7. Single-store basket quote — #78
-8. Failure / coverage / freshness product boundary — #79
-9. Stateless critical comparison journey — #80
-10. Structured package-evidence plumbing — #81
-11. Magnit exact structured package semantics — #82
-12. Magnit fixed-corpus instrumentation — #83
-13. Magnit SKU-bound JSON-LD package evidence — #85
-14. Magnit deterministic bbox → `shopCode` boundary — #86
-15. Magnit merged-main location-resolution live proof — #87 / #69
-16. Magnit production-access decision (`BLOCKED`) — #89 / #70
-17. Pre-acquisition production-access enforcement — #91 / #90
+### M1 exit guarantees
 
-### Exit properties
-
-M1 now proves:
-
-- all eight canonical retailers remain explicit and ordered;
+- all eight canonical retailers remain explicit;
 - complete / uncertain / incomplete / unavailable states are distinct;
 - unmatched, ambiguous, package-unknown and unit-mismatch paths fail safely;
 - `UNKNOWN` availability stays uncertain;
-- package evidence remains structured and source-bound through provider → snapshot → basket;
-- mass / volume / count are not interchangeable;
-- incomplete baskets cannot expose misleading complete totals or become hidden winners;
-- precise addresses and provider/store implementation IDs remain outside product-facing comparison output;
+- incomplete baskets cannot expose misleading complete totals or hidden winners;
 - technical connectivity and production access remain independent;
 - production access scopes acquisition **before** runtime evidence loading;
 - blocked/pending/discovery retailers cannot enter evidence-source request scope;
-- empty production-ready scope prevents source invocation entirely;
 - evidence outside requested retailer scope is a contract violation;
-- production preview remains no-op/live-free under the current registry;
 - ordinary CI remains retailer-network-free.
 
-### M1 GO decision
-
-**GO to M2 Recipes for deterministic product/core development.**
-
-This does not claim production retailer completeness. Retailer connectivity/access/release work continues in parallel and remains mandatory.
+**GO to M2 Recipes for deterministic product/core development.** This does not claim production retailer completeness.
 
 ## M2 — Recipes — CURRENT
 
 Goal: make recipes a first-class deterministic source of shopping requirements without weakening accepted Shopping Core invariants.
 
-### M2.1 — Recipe domain and Recipe → ShoppingList — IMPLEMENTED / TESTED / SHIPPING (#94 / #93)
+### M2.1 — Recipe domain and Recipe → ShoppingList — COMPLETE / ACCEPTED (#94 / #93)
 
 Approved design: [`superpowers/specs/2026-08-13-m2-1-recipe-domain-design.md`](superpowers/specs/2026-08-13-m2-1-recipe-domain-design.md).  
-Implementation plan: [`superpowers/plans/2026-08-13-m2-1-recipe-domain.md`](superpowers/plans/2026-08-13-m2-1-recipe-domain.md).
+Implementation plan: [`superpowers/plans/2026-08-13-m2-1-recipe-domain.md`](superpowers/plans/2026-08-13-m2-1-recipe-domain.md).  
+Shipping/acceptance evidence: [`superpowers/plans/2026-08-13-m2-1-recipe-domain-shipping.md`](superpowers/plans/2026-08-13-m2-1-recipe-domain-shipping.md).
 
-#### Delivered candidate behavior
+Accepted squash merge: `423eb14f7c565bbe264257a92df89a6b42d0d158`.
+
+Post-merge proof on exact `main`:
+
+- 8 push workflow runs total;
+- 8/8 completed `success`;
+- 0 failures;
+- #93 closed `completed`.
+
+#### Accepted behavior
 
 - immutable `Recipe` aggregate with stable recipe/ingredient UUID identities;
-- normalized non-blank title and positive integer base/target servings;
-- ingredients reuse accepted `ShoppingRequirement` + `Quantity` semantics;
-- pure Recipe → ShoppingList converter without Spring/network/database/clock dependencies;
+- normalized non-blank title and positive integer servings;
+- ingredients reuse existing `ShoppingRequirement` + `Quantity` semantics;
+- pure Recipe → ShoppingList conversion without Spring/network/database/clock dependencies;
 - group amounts summed before serving scaling;
 - exact terminating decimal division and deterministic `MathContext.DECIMAL128` fallback for non-terminating ratios;
 - exact-safe merge only by normalized requirement + canonical unit;
@@ -95,16 +76,15 @@ Implementation plan: [`superpowers/plans/2026-08-13-m2-1-recipe-domain.md`](supe
 - generated-ID collision across different merge keys fails closed;
 - Shopping Core production types remain recipe-agnostic.
 
-#### Verification candidate
+#### Verification
 
-Reviewed implementation head `734ed53712b4327039eabfb358548828aa1a1dbe` has:
-
-- all M2.1 RED→GREEN domain/converter gates complete;
-- full API `verify` PASS, including Spring Modulith architecture verification;
-- 9/9 PR workflow groups success;
-- independent review verdict **Looks good**, no P0/P1/P2.
-
-M2.1 is not accepted until the final shipping-doc head passes the same gates, is squash-merged, and post-merge `main` is green.
+- all planned M2.1 RED→GREEN cycles complete;
+- full API `verify` PASS including Spring Modulith architecture verification;
+- reviewed implementation head `734ed53712b4327039eabfb358548828aa1a1dbe`: 9/9 PR groups success;
+- code+docs head `250d00f10b1c51fee0826356dfb95f8e7b853c50`: 9/9 success;
+- final shipping head `512be04a2a0147d9787465481388e6847a20d69d`: 9/9 success;
+- independent review: **Looks good**, no P0/P1/P2;
+- merged `main=423eb14f7c565bbe264257a92df89a6b42d0d158`: 8/8 push workflows success.
 
 #### Explicit non-goals preserved
 
@@ -118,26 +98,28 @@ M2.1 is not accepted until the final shipping-doc head passes the same gates, is
 - fractional servings;
 - multi-recipe aggregation.
 
-### M2.2 — Recipe application/API boundary — NEXT AFTER M2.1 ACCEPTANCE
+### M2.2 — Recipe application/API boundary — NEXT: DESIGN
 
 Target path:
 
 `Recipe request → Recipe domain → RecipeShoppingListConversion → comparison input`
 
-Required design questions for the next slice:
+Design questions to resolve before implementation:
 
-- stateless request/response contract versus persisted recipe identity lifecycle;
-- where caller-provided/generated `ShoppingListId` lives at application boundary;
-- how provenance is represented in public API without leaking internal implementation details;
-- OpenAPI/generated TypeScript client schema;
-- validation/error vocabulary consistent with existing fail-closed request handling;
-- whether comparison composition is one endpoint or an explicit two-step application flow.
+- **lifecycle:** stateless request/response versus persisted recipe identity;
+- **list identity:** server-generated versus caller-provided `ShoppingListId`;
+- **provenance:** public representation without exposing internal implementation details;
+- **contract:** OpenAPI/generated TypeScript client schemas;
+- **validation:** reuse existing fail-closed request/error vocabulary;
+- **composition:** one endpoint that proceeds to comparison versus an explicit two-step recipe→list then list→comparison flow.
 
-Do not add persistence or UI by default; decide them from product need after the application contract is designed.
+Recommended default direction for design exploration: preserve the project's stateless, hypothesis-friendly posture first; avoid persistence until reusable saved recipes are a demonstrated requirement. This is a design recommendation, not yet an accepted implementation decision.
+
+Do not add persistence or UI by default; decide them from product need after the application contract is approved.
 
 ### M2 exit direction
 
-After M2.1 and the application/API boundary are accepted, extend toward reusable recipe persistence/API UX and then recipe aggregation needed by M3 Weekly Planning. Do not introduce fuzzy/AI ingestion until deterministic recipe semantics are stable and tested.
+After the application/API boundary is accepted, extend toward the minimal usable recipe flow and then recipe aggregation needed by M3 Weekly Planning. Do not introduce fuzzy/AI ingestion until deterministic recipe semantics remain stable through the application boundary.
 
 ## Parallel connectivity / operational work
 
