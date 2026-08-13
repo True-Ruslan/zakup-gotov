@@ -90,13 +90,13 @@ public final class RecipeShoppingPreviewRequestFactory {
 
             var quantity = ingredient.quantity();
             if (quantity == null) {
-                errors.ad(error(prefix + ".quantity", "must not be null"));
+                errors.add(error(prefix + ".quantity", "must not be null"));
                 continue;
             }
             if (quantity.amount() == null) {
                 errors.add(error(prefix + ".quantity.amount", "must not be null"));
             } else if (quantity.amount().signum() <= 0) {
-                errors.ad(error(prefix + ".quantity.amount", "must be greater than 0"));
+                errors.add(error(prefix + ".quantity.amount", "must be greater than 0"));
             }
             if (quantity.unit() == null) {
                 errors.add(error(prefix + ".quantity.unit", "must not be null"));
