@@ -25,14 +25,14 @@ class RecipeShoppingPreviewRequestFactoryTest {
         var input = new RecipeShoppingPreviewRequestFactory(ids).create(new RecipeShoppingPreviewRequest(
                 "  Курица   с овощами  ", 2, 4,
                 List.of(new RecipeShoppingPreviewIngredientRequest("  морковь  ",
-                        new RecipeShoppingPreviewQuantityRequest(new BigDecimal("0.3"), QuantityUnit.KILOGRAM)))));
+                        new RecipeShoppingPreviewQuantityRequest(new BigDecimal("0.3"), QuantityUnit.KILOGRAM))));
         assertThat(input.recipe().id()).isEqualTo(new RecipeId(RECIPE_ID));
         assertThat(input.recipe().title().value()).isEqualTo("Курица с овощами");
         assertThat(input.recipe().ingredients().getFirst().id()).isEqualTo(new RecipeIngredientId(INGREDIENT_ID));
         assertThat(input.recipe().ingredients().getFirst().quantity()).isEqualTo(new Quantity(new BigDecimal("300"), QuantityUnit.GRAM));
         assertThat(input.targetServings().value()).isEqualTo(4);
         assertThat(input.shoppingListId()).isEqualTo(new ShoppingListId(LIST_ID));
-        assertThat(ids.calls).containsExactly("recipe", "ingredient", "list");
+        assertThat(ids.calls).tainsExactly("recipe", "ingredient", "list");
     }
 
     @Test void accumulatesTopLevelErrorsBeforeAllocatingIds() {
@@ -44,7 +44,7 @@ class RecipeShoppingPreviewRequestFactoryTest {
                                 error("title", "must not be blank"),
                                 error("baseServings", "must be greater than 0"),
                                 error("targetServings", "must be greater than 0"),
-                                error("ingredients", "must contain at least one ingredient")));
+                              error("ingredients", "must contain at least one ingredient")));
         assertThat(ids.calls).isEmpty();
     }
 
@@ -66,7 +66,38 @@ class RecipeShoppingPreviewRequestFactoryTest {
                                 error("title", "must not be blank"),
                                 error("baseServings", "must not be null"),
                                 error("targetServings", "must not be null"),
-                                error("ingredients", "must not be null")));
+                              error("ingredients", "must not be null")));
+        assertThat(ids.calls).isEmpty();
+    }
+
+    @Test void rejectsTitleLongerThan240CharactersBeforeAllocatingIds() {
+        var ids = new QueuedIds();
+        var factory = new RecipeShoppingPreviewRequestFactory(ids);
+        var ingredient = new RecipeShoppingPreviewIngredientRequest(
+                "milk",
+                new RecipeShoppingPreviewQuantityRequest(BigDecimal.ONE, QuantityUnit.LITER));
+
+        assertThatThrownBy(() -> factory.create(new RecipeShoppingPreviewRequest(
+                "x".repeat(241), 1, 1, List.of(ingredient))))
+                .isInstanceOfSatisfying(InvalidRecipeShoppingPreviewRequestException.class, exception ->
+                        assertThat(exception.errors()).containsExactly(
+                                error("title", "must not exceed 240 characters")));
+        assertThat(ids.calls).isEmpty();
+    }
+
+    @Test void rejectsMoreThan100IngredientsBeforeAllocatingIds() {
+        var ids = new QueuedIds();
+        var factory = new RecipeShoppingPreviewRequestFactory(ids);
+        var ingredient = new RecipeShoppingPreviewIngredientRequest(
+                "item",
+                new RecipeShoppingPreviewQuantityRequest(BigDecimal.ONE, QuantityUnit.PIECE));
+        var ingredients = java.util.Collections.nCopies(101, ingredient);
+
+        assertThatThrownBy(() -> factory.create(new RecipeShoppingPreviewRequest(
+                "Recipe", 1, 1, ingredients)))
+                .isInstanceOfSatisfying(InvalidRecipeShoppingPreviewRequestException.class, exception ->
+                        assertThat(exception.errors()).containsExactly(
+                                error("ingredients", "must not exceed 100 ingredients")));
         assertThat(ids.calls).isEmpty();
     }
 
