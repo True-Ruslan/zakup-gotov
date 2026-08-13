@@ -57,6 +57,18 @@ class RecipeShoppingPreviewRequestFactoryTest {
         assertThat(ids.calls).isEmpty();
     }
 
+    @Test
+    void rejectsNullRequestWithoutAllocatingIds() {
+        var ids = new QueuedIds();
+        var factory = new RecipeShoppingPreviewRequestFactory(ids);
+
+        assertThatThrownBy(() -> factory.create(null))
+                .isInstanceOfSatisfying(InvalidRecipeShoppingPreviewRequestException.class, exception ->
+                        assertThat(exception.errors()).containsExactly(
+                                new RecipeShoppingPreviewValidationError("$request", "must not be null")));
+        assertThat(ids.calls).isEmpty();
+    }
+
     private static final class QueuedIds implements RecipeShoppingPreviewIdGenerator {
         private final ArrayDeque<UUID> ingredientIds = new ArrayDeque<>(List.of(INGREDIENT_ID));
         private final ArrayList<String> calls = new ArrayList<>();
