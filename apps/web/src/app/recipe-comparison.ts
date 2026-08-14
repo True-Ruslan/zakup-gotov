@@ -44,9 +44,13 @@ export async function createRecipeComparisonPreview(
       return { kind: "ready", data };
     }
     if (response.status === 400 && error) {
+      const errors = error.errors as RecipeComparisonPreviewValidationError[];
       return {
         kind: "invalid",
-        errors: error.errors.map(({ field, message }) => ({ field, message })),
+        errors: errors.map((validationError) => ({
+          field: validationError.field,
+          message: validationError.message,
+        })),
       };
     }
     return { kind: "unavailable" };
