@@ -19,12 +19,8 @@ function normalizeText(value) {
 }
 
 function canonicalQuantity(quantity) {
-  if (quantity.unit === "KILOGRAM") {
-    return { amount: quantity.amount * 1000, unit: "GRAM" };
-  }
-  if (quantity.unit === "LITER") {
-    return { amount: quantity.amount * 1000, unit: "MILLILITER" };
-  }
+  if (quantity.unit === "KILOGRAM") return { amount: quantity.amount * 1000, unit: "GRAM" };
+  if (quantity.unit === "LITER") return { amount: quantity.amount * 1000, unit: "MILLILITER" };
   return { amount: quantity.amount, unit: quantity.unit };
 }
 
@@ -40,11 +36,7 @@ function readJson(request) {
       }
     });
     request.on("end", () => {
-      try {
-        resolve(JSON.parse(body));
-      } catch (error) {
-        reject(error);
-      }
+      try { resolve(JSON.parse(body)); } catch (error) { reject(error); }
     });
     request.on("error", reject);
   });
@@ -56,27 +48,19 @@ function writeJson(response, status, payload) {
 }
 
 function requestedItem(item) {
-  return {
-    id: item.id,
-    requirement: item.requirement,
-    quantity: canonicalQuantity(item.quantity),
-  };
+  return { id: item.id, requirement: item.requirement, quantity: canonicalQuantity(item.quantity) };
 }
 
 function selection(item, productName, packageQuantity, packagePrice) {
   const requested = canonicalQuantity(item.quantity);
-  const packageCount =
-    requested.unit === packageQuantity.unit
-      ? Math.max(1, Math.ceil(requested.amount / packageQuantity.amount))
-      : 1;
+  const packageCount = requested.unit === packageQuantity.unit
+    ? Math.max(1, Math.ceil(requested.amount / packageQuantity.amount))
+    : 1;
   return {
     productName,
     packageQuantity,
     packageCount,
-    coveredQuantity: {
-      amount: packageQuantity.amount * packageCount,
-      unit: packageQuantity.unit,
-    },
+    coveredQuantity: { amount: packageQuantity.amount * packageCount, unit: packageQuantity.unit },
     lineTotal: packagePrice * packageCount,
     currencyCode: "RUB",
   };
@@ -93,12 +77,12 @@ function itemResult(item, status, options = {}) {
   };
 }
 
-function unavailable(id, reason, coverage = "CONNECTED", productionAccess = "READY") {
+function unavailable(id, reason) {
   return {
     id,
     displayName: retailerNames[id],
-    coverage,
-    productionAccess,
+    coverage: "CONNECTED",
+    productionAccess: "READY",
     comparisonStatus: "UNAVAILABLE",
     reasons: [reason],
     items: [],
@@ -107,21 +91,11 @@ function unavailable(id, reason, coverage = "CONNECTED", productionAccess = "REA
 
 function buildPreview(request) {
   const [milk, eggs] = request.items;
-  const milkSelection = selection(
-    milk,
-    "Молоко",
-    { amount: 1000, unit: "MILLILITER" },
-    100,
-  );
-  const eggsSelection = selection(
-    eggs,
-    "Яйца",
-    { amount: 10, unit: "PIECE" },
-    120,
-  );
+  const milkSelection = selection(milk, "Молоко", { amount: 1000, unit: "MILLILITER" }, 100);
+  const eggsSelection = selection(eggs, "Яйца", { amount: 10, unit: "PIECE" }, 120);
 
   return {
-    locality: request.locality.trim(),
+    locality: normalizeText(request.locality),
     items: request.items.map(requestedItem),
     retailers: [
       {
@@ -131,18 +105,9 @@ function buildPreview(request) {
         productionAccess: "READY",
         comparisonStatus: "READY",
         reasons: [],
-        total: {
-          amount: milkSelection.lineTotal + eggsSelection.lineTotal,
-          currencyCode: "RUB",
-        },
-        freshness: {
-          basis: "OBSERVATION_ONLY",
-          observedAt: "2026-08-12T10:00:00Z",
-        },
-        items: [
-          itemResult(milk, "FULFILLED", { selection: milkSelection }),
-          itemResult(eggs, "FULFILLED", { selection: eggsSelection }),
-        ],
+        total: { amount: milkSelection.lineTotal + eggsSelection.lineTotal, currencyCode: "RUB" },
+        freshness: { basis: "OBSERVATION_ONLY", observedAt: "2026-08-12T10:00:00Z" },
+        items: [itemResult(milk, "FULFILLED", { selection: milkSelection }), itemResult(eggs, "FULFILLED", { selection: eggsSelection })],
       },
       {
         id: "perekrestok",
@@ -151,22 +116,11 @@ function buildPreview(request) {
         productionAccess: "READY",
         comparisonStatus: "UNCERTAIN",
         reasons: ["AVAILABILITY_UNKNOWN"],
-        total: {
-          amount: milkSelection.lineTotal + eggsSelection.lineTotal + 10,
-          currencyCode: "RUB",
-        },
-        freshness: {
-          basis: "PROVIDER_TIMESTAMP",
-          observedAt: "2026-08-12T10:00:00Z",
-          providerUpdatedAt: "2026-08-12T09:55:00Z",
-        },
+        total: { amount: milkSelection.lineTotal + eggsSelection.lineTotal + 10, currencyCode: "RUB" },
+        freshness: { basis: "PROVIDER_TIMESTAMP", observedAt: "2026-08-12T10:00:00Z", providerUpdatedAt: "2026-08-12T09:55:00Z" },
         items: [
-          itemResult(milk, "AVAILABILITY_UNKNOWN", {
-            selection: { ...milkSelection, lineTotal: milkSelection.lineTotal + 5 },
-          }),
-          itemResult(eggs, "FULFILLED", {
-            selection: { ...eggsSelection, lineTotal: eggsSelection.lineTotal + 5 },
-          }),
+          itemResult(milk, "AVAILABILITY_UNKNOWN", { selection: { ...milkSelection, lineTotal: milkSelection.lineTotal + 5 } }),
+          itemResult(eggs, "FULFILLED", { selection: { ...eggsSelection, lineTotal: eggsSelection.lineTotal + 5 } }),
         ],
       },
       unavailable("chizhik", "DATA_NOT_AVAILABLE"),
@@ -178,9 +132,7 @@ function buildPreview(request) {
         comparisonStatus: "INCOMPLETE",
         reasons: ["PACKAGE_QUANTITY_UNKNOWN"],
         items: [
-          itemResult(milk, "PACKAGE_QUANTITY_UNKNOWN", {
-            candidateProductNames: ["Молоко"],
-          }),
+          itemResult(milk, "PACKAGE_QUANTITY_UNKNOWN", { candidateProductNames: ["Молоко"] }),
           itemResult(eggs, "FULFILLED", { selection: eggsSelection }),
         ],
       },
@@ -200,11 +152,7 @@ function buildPreview(request) {
         productionAccess: "READY",
         comparisonStatus: "INCOMPLETE",
         reasons: ["ITEM_AMBIGUOUS"],
-        items: [
-          itemResult(milk, "AMBIGUOUS", {
-            candidateProductNames: ["Молоко", "Молоко"],
-          }),
-        ],
+        items: [itemResult(milk, "AMBIGUOUS", { candidateProductNames: ["Молоко", "Молоко"] })],
       },
       {
         id: "ozon-fresh",
@@ -213,11 +161,7 @@ function buildPreview(request) {
         productionAccess: "READY",
         comparisonStatus: "INCOMPLETE",
         reasons: ["QUANTITY_UNIT_MISMATCH"],
-        items: [
-          itemResult(milk, "QUANTITY_UNIT_MISMATCH", {
-            candidateProductNames: ["Молоко"],
-          }),
-        ],
+        items: [itemResult(milk, "QUANTITY_UNIT_MISMATCH", { candidateProductNames: ["Молоко"] })],
       },
       unavailable("samokat", "SOURCE_UNAVAILABLE"),
     ],
@@ -231,15 +175,11 @@ function fixedUuid(prefix, index = 1) {
 function buildRecipeComparisonPreview(request) {
   const recipe = request.recipe;
   const scale = recipe.targetServings / recipe.baseServings;
-  const recipeId = fixedUuid("1");
-  const shoppingListId = fixedUuid("3");
-
   const sourceIngredients = recipe.ingredients.map((ingredient, index) => ({
     id: fixedUuid("2", index + 1),
     requirement: normalizeText(ingredient.requirement),
     quantity: canonicalQuantity(ingredient.quantity),
   }));
-
   const groups = new Map();
   for (const ingredient of sourceIngredients) {
     const key = `${ingredient.requirement}\u0000${ingredient.quantity.unit}`;
@@ -256,41 +196,75 @@ function buildRecipeComparisonPreview(request) {
       });
     }
   }
-
-  const shoppingItems = Array.from(groups.values()).map((item, index) => ({
-    id: fixedUuid("4", index + 1),
-    ...item,
-  }));
-
+  const shoppingItems = Array.from(groups.values()).map((item, index) => ({ id: fixedUuid("4", index + 1), ...item }));
   return {
     recipeShoppingPreview: {
       recipe: {
-        id: recipeId,
+        id: fixedUuid("1"),
         title: normalizeText(recipe.title),
         baseServings: recipe.baseServings,
         targetServings: recipe.targetServings,
         ingredients: sourceIngredients,
       },
-      shoppingList: {
-        id: shoppingListId,
-        items: shoppingItems,
-      },
+      shoppingList: { id: fixedUuid("3"), items: shoppingItems },
     },
-    comparisonPreview: buildPreview({
-      locality: request.locality,
-      items: shoppingItems,
-    }),
+    comparisonPreview: buildPreview({ locality: request.locality, items: shoppingItems }),
   };
 }
 
-function invalidComparison(response, message = "deterministic acceptance requires two items") {
-  writeJson(response, 400, {
-    type: "https://zakup-gotov.dev/problems/invalid-comparison-preview",
-    title: "Invalid comparison preview request",
-    status: 400,
-    code: "INVALID_COMPARISON_PREVIEW",
-    errors: [{ field: "items", message }],
+function buildWeeklyPlanComparisonPreview(request) {
+  const occurrences = [];
+  const groups = new Map();
+
+  request.weeklyPlan.occurrences.forEach((occurrence, occurrenceIndex) => {
+    const occurrenceId = fixedUuid("5", occurrenceIndex + 1);
+    const recipeId = fixedUuid("6", occurrenceIndex + 1);
+    const scale = occurrence.targetServings / occurrence.recipe.baseServings;
+    const ingredients = occurrence.recipe.ingredients.map((ingredient, ingredientIndex) => {
+      const canonical = canonicalQuantity(ingredient.quantity);
+      const ingredientId = fixedUuid("7", occurrenceIndex * 100 + ingredientIndex + 1);
+      const requirement = normalizeText(ingredient.requirement);
+      const key = `${requirement}\u0000${canonical.unit}`;
+      const existing = groups.get(key);
+      const source = { occurrenceId, recipeId, recipeIngredientId: ingredientId };
+      if (existing) {
+        existing.quantity.amount += canonical.amount * scale;
+        existing.sources.push(source);
+      } else {
+        groups.set(key, {
+          requirement,
+          quantity: { amount: canonical.amount * scale, unit: canonical.unit },
+          sources: [source],
+        });
+      }
+      return { id: ingredientId, requirement, quantity: canonical };
+    });
+
+    occurrences.push({
+      id: occurrenceId,
+      day: occurrence.day,
+      targetServings: occurrence.targetServings,
+      recipe: {
+        id: recipeId,
+        title: normalizeText(occurrence.recipe.title),
+        baseServings: occurrence.recipe.baseServings,
+        ingredients,
+      },
+    });
   });
+
+  const shoppingItems = Array.from(groups.values()).map((item, index) => ({
+    id: fixedUuid("8", index + 1),
+    ...item,
+  }));
+
+  return {
+    weeklyPlanShoppingPreview: {
+      weeklyPlan: { id: fixedUuid("9"), occurrences },
+      shoppingList: { id: fixedUuid("a"), items: shoppingItems },
+    },
+    comparisonPreview: buildPreview({ locality: request.locality, items: shoppingItems }),
+  };
 }
 
 function invalidRecipeComparison(response, field, message) {
@@ -303,13 +277,22 @@ function invalidRecipeComparison(response, field, message) {
   });
 }
 
+function invalidWeeklyPlanComparison(response, field, message) {
+  writeJson(response, 400, {
+    type: "https://zakup-gotov.dev/problems/invalid-weekly-plan-comparison-preview",
+    title: "Invalid weekly plan comparison preview request",
+    status: 400,
+    code: "INVALID_WEEKLY_PLAN_COMPARISON_PREVIEW",
+    errors: [{ field, message }],
+  });
+}
+
 const server = http.createServer(async (request, response) => {
   if (request.method === "GET" && request.url === "/health") {
     response.writeHead(204);
     response.end();
     return;
   }
-
   if (request.method !== "POST") {
     writeJson(response, 404, { error: "not found" });
     return;
@@ -318,21 +301,31 @@ const server = http.createServer(async (request, response) => {
   try {
     const body = await readJson(request);
 
+    if (request.url === "/api/v1/weekly-plan-comparison-previews") {
+      if (body.locality === "Недоступно") {
+        writeJson(response, 503, { error: "deterministic unavailable scenario" });
+        return;
+      }
+      if (!body.weeklyPlan || !Array.isArray(body.weeklyPlan.occurrences) || body.weeklyPlan.occurrences.length < 1) {
+        invalidWeeklyPlanComparison(response, "weeklyPlan.occurrences", "deterministic acceptance requires occurrences");
+        return;
+      }
+      const result = buildWeeklyPlanComparisonPreview(body);
+      if (result.weeklyPlanShoppingPreview.shoppingList.items.length < 2) {
+        invalidWeeklyPlanComparison(response, "weeklyPlan.occurrences", "deterministic acceptance requires two shopping requirements");
+        return;
+      }
+      writeJson(response, 200, result);
+      return;
+    }
+
     if (request.url === "/api/v1/recipe-comparison-previews") {
       if (body.locality === "Недоступно") {
         writeJson(response, 503, { error: "deterministic unavailable scenario" });
         return;
       }
-      if (
-        !body.recipe ||
-        !Array.isArray(body.recipe.ingredients) ||
-        body.recipe.ingredients.length < 2
-      ) {
-        invalidRecipeComparison(
-          response,
-          "recipe.ingredients",
-          "deterministic acceptance requires two ingredients",
-        );
+      if (!body.recipe || !Array.isArray(body.recipe.ingredients) || body.recipe.ingredients.length < 2) {
+        invalidRecipeComparison(response, "recipe.ingredients", "deterministic acceptance requires two ingredients");
         return;
       }
       writeJson(response, 200, buildRecipeComparisonPreview(body));
@@ -345,7 +338,13 @@ const server = http.createServer(async (request, response) => {
         return;
       }
       if (!Array.isArray(body.items) || body.items.length < 2) {
-        invalidComparison(response);
+        writeJson(response, 400, {
+          type: "https://zakup-gotov.dev/problems/invalid-comparison-preview",
+          title: "Invalid comparison preview request",
+          status: 400,
+          code: "INVALID_COMPARISON_PREVIEW",
+          errors: [{ field: "items", message: "deterministic acceptance requires two items" }],
+        });
         return;
       }
       writeJson(response, 200, buildPreview(body));
@@ -355,10 +354,10 @@ const server = http.createServer(async (request, response) => {
     writeJson(response, 404, { error: "not found" });
   } catch {
     writeJson(response, 400, {
-      type: "https://zakup-gotov.dev/problems/invalid-recipe-comparison-preview",
-      title: "Invalid recipe comparison preview request",
+      type: "https://zakup-gotov.dev/problems/invalid-weekly-plan-comparison-preview",
+      title: "Invalid weekly plan comparison preview request",
       status: 400,
-      code: "INVALID_RECIPE_COMPARISON_PREVIEW",
+      code: "INVALID_WEEKLY_PLAN_COMPARISON_PREVIEW",
       errors: [{ field: "$request", message: "malformed JSON request" }],
     });
   }
