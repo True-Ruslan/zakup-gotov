@@ -151,28 +151,41 @@ Ordinary CI and browser tests remain retailer-network-free. M3.3 adds no provide
 
 ## Error contract
 
+Transport binding and application semantic validation are intentionally separate.
+
 ### Nested WeeklyPlan semantic failures
 
-Errors produced while constructing the accepted M3.2 weekly shopping preview remain the existing M3.2 problem contract:
+After the composed JSON has bound successfully, errors emitted while constructing the accepted M3.2 weekly shopping preview remain the existing M3.2 problem contract:
 
 - code: `INVALID_WEEKLY_PLAN_SHOPPING_PREVIEW`;
 - status: `400`;
 - existing M3.2 validation paths/messages remain authoritative.
 
-M3.3 must not relabel these as generic composition errors.
+M3.3 must not relabel successfully bound M3.2 semantic validation failures as generic composition errors.
 
 ### Locality/comparison semantic failures
 
-Errors produced by the accepted comparison request/application boundary remain the existing comparison problem contract:
+After successful request binding and M3.2 projection, errors produced by the accepted comparison request/application boundary remain the existing comparison problem contract:
 
 - code: `INVALID_COMPARISON_PREVIEW`;
 - status: `400`.
 
 This includes blank/over-limit locality and any accepted comparison-request semantic validation.
 
-### Malformed composed wrapper JSON
+### Composed JSON binding failures
 
-Unreadable JSON, unknown fields at the M3.3 wrapper level and other binding failures specific to the composed request return a sanitized M3.3 problem:
+The M3.3 controller owns transport binding for the entire composed request. Any unreadable or binding failure anywhere in that JSON returns one sanitized M3.3 wrapper problem. This includes:
+
+- malformed JSON;
+- an empty/missing request body;
+- JSON literal `null`;
+- unknown fields at the M3.3 wrapper level;
+- unknown fields nested under `weeklyPlan`, occurrences, Recipes, ingredients or quantities;
+- invalid enum tokens such as an unknown day/unit;
+- fractional JSON supplied for integer serving fields;
+- other Jackson binding failures before application semantic validation begins.
+
+Problem contract:
 
 - type: `https://zakup-gotov.dev/problems/invalid-weekly-plan-comparison-preview`;
 - title: `Invalid weekly plan comparison preview request`;
@@ -181,7 +194,7 @@ Unreadable JSON, unknown fields at the M3.3 wrapper level and other binding fail
 - one safe `$request` error;
 - no Jackson class names, parser details, stack traces or internal exception messages.
 
-Unknown fields nested inside `weeklyPlan`, occurrences, Recipes or quantities remain governed by the accepted M3.2 binding/problem behavior.
+The existing M3.2 problem contract applies only to M3.2 **semantic validation exceptions after successful composed-request binding**, not to Jackson binding failures encountered by the M3.3 controller.
 
 Internal composition invariant failures remain server errors and are never mapped to one of the user-validation problem contracts.
 
@@ -277,9 +290,9 @@ Explicit tests inject structurally possible drift and require failure for:
 MockMvc/controller tests prove:
 
 - `200` composed success response;
-- M3.2 semantic problem propagation;
+- M3.2 semantic problem propagation after successful JSON binding;
 - comparison/locality semantic problem propagation;
-- malformed/unknown wrapper JSON becomes sanitized `INVALID_WEEKLY_PLAN_COMPARISON_PREVIEW`;
+- malformed, missing, JSON-`null`, unknown wrapper/nested fields, invalid enum tokens and fractional integer-serving JSON become sanitized `INVALID_WEEKLY_PLAN_COMPARISON_PREVIEW`;
 - internal invariant failures are not converted to `400`.
 
 ### Cycle 4 — OpenAPI/client RED → GREEN
