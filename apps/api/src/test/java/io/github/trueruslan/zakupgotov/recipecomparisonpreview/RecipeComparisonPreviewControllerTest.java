@@ -79,7 +79,7 @@ class RecipeComparisonPreviewControllerTest {
     }
 
     @Test
-    void rejectsNullWrapperAsSanitizedClientError() throws Exception {
+    void treatsNullWrapperAsUnreadableBody() throws Exception {
         mvc().perform(post("/api/v1/recipe-comparison-previews")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("null"))
@@ -88,7 +88,7 @@ class RecipeComparisonPreviewControllerTest {
                 .andExpect(jsonPath("$.code").value("INVALID_RECIPE_COMPARISON_PREVIEW"))
                 .andExpect(jsonPath("$.errors.length()").value(1))
                 .andExpect(jsonPath("$.errors[0].field").value("$request"))
-                .andExpect(jsonPath("$.errors[0].message").value("must not be null"));
+                .andExpect(jsonPath("$.errors[0].message").value("malformed JSON request"));
     }
 
     private static org.springframework.test.web.servlet.MockMvc mvc() {
