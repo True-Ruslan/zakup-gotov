@@ -172,7 +172,7 @@ class WeeklyPlanComparisonPreviewControllerTest {
     }
 
     private static String requestWithOccurrence(String occurrenceFields) {
-        return "{\"locality\":\"Москва\",\"weeklyPlan\":{\"occurrences\":[{" + occurrenceFields + "]}}";
+        return "{\"locality\":\"Москва\",\"weeklyPlan\":{\"occurrences\":[{" + occurrenceFields + "}]}}";
     }
 
     private static String validRecipe() {
