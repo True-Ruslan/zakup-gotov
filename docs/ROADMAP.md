@@ -98,24 +98,25 @@ Post-merge proof on exact `main`:
 - fractional servings;
 - multi-recipe aggregation.
 
-### M2.2 — Stateless Recipe application/API boundary — IMPLEMENTED / TESTED / SHIPPING (#97 / #96)
+### M2.2 — Stateless Recipe application/API boundary — COMPLETE / ACCEPTED (#97 / #96)
 
 Authoritative design: [`superpowers/specs/2026-08-13-m2-2-recipe-shopping-preview-design-v2.md`](superpowers/specs/2026-08-13-m2-2-recipe-shopping-preview-design-v2.md).  
-Execution plan: [`superpowers/plans/2026-08-13-m2-2-recipe-shopping-preview-v2.md`](superpowers/plans/2026-08-13-m2-2-recipe-shopping-preview-v2.md).
+Execution plan: [`superpowers/plans/2026-08-13-m2-2-recipe-shopping-preview-v2.md`](superpowers/plans/2026-08-13-m2-2-recipe-shopping-preview-v2.md).  
+Shipping/acceptance evidence: [`superpowers/plans/2026-08-14-m2-2-recipe-shopping-preview-shipping.md`](superpowers/plans/2026-08-14-m2-2-recipe-shopping-preview-shipping.md).
 
-Approved and implemented direction:
+Accepted direction:
 
 `POST /api/v1/recipe-shopping-previews`
 
 `Recipe request → application validation/server-owned transient IDs → Recipe domain → RecipeShoppingListConverter → canonical ShoppingList projection`
 
-#### Implemented scope
+#### Accepted scope
 
 - stateless lifecycle; no saved Recipe persistence/CRUD;
 - server-generated Recipe, ingredient and ShoppingList identities;
 - request: normalized title, positive integer base/target servings, 1..100 explicit ingredient requirements/quantities;
 - input quantities reuse Shopping Core units; output uses canonical Shopping Core quantities;
-- strict JSON integer binding for servings; fractional ingredient quantities remain allowed;
+- strict recipe-scoped JSON integer binding for servings; fractional ingredient quantities remain allowed;
 - conversion semantics remain exclusively owned by accepted M2.1 `RecipeShoppingListConverter`;
 - self-contained response provenance through ordered `sourceIngredientIds` resolving within the returned recipe;
 - fail-closed projection invariants for mismatched list identity and missing/orphan/cross-recipe provenance;
@@ -124,13 +125,18 @@ Approved and implemented direction:
 - application architecture guards preventing provider/retailer/matching/basket/comparison/database coupling;
 - no retailer traffic, location lookup, persistence, Recipe→Comparison orchestration, Recipe UI or fuzzy/AI matching.
 
-#### Verification state
+#### Acceptance verification
 
-A fully implemented code checkpoint `b451dacbec41e3d7bd75ce4580f76fb6f86d5cae` passed **13/13 PR checks across all 9 normal workflow groups**, including API/full Maven verification, generated-contract verification, Web + desktop/mobile Playwright regression, retailer bridge, CodeQL, dependency review, container security, release contract and release bundle.
+- TDD evidence records clean RED→GREEN cycles for architecture, mapping/IDs, null/limit/nested validation, service/projection, fail-closed provenance invariants, HTTP error contracts, strict servings binding and OpenAPI/generated-client synchronization;
+- full API `verify` preserved the Spring Boot/Modulith and PostgreSQL 18/Testcontainers/Flyway integration baseline without inventing Recipe persistence;
+- final exact PR head `318a48c569d0d001a4c27b5792e1681f7884e518` passed all 9 normal PR workflow groups;
+- Web CI responsive Chromium Playwright E2E and Retailer Bridge Chromium E2E both passed on that exact head;
+- final independent review: **Looks good**, no P0/P1/P2/P3; review threads empty;
+- accepted squash merge: `8f0c1d8d31cfc1673656780a7989512d38788aff`;
+- exact merged `main=8f0c1d8d31cfc1673656780a7989512d38788aff`: 8/8 push workflows success, 0 failures;
+- #96 closed `completed`.
 
-Read-only review then found one low-risk design drift: malformed-body handling was in the controller instead of the approved controller-scoped advice. The correction keeps the controller thin and centralizes both known request-failure paths in the advice. Because that correction and these documentation changes move the PR head, M2.2 remains **not accepted** until the final exact head is green, independent review has no unresolved P0/P1/P2, the PR is squash-merged, and normal post-merge `main` workflows pass.
-
-### M2.3 — Composed Recipe → Comparison flow — NEXT AFTER M2.2 ACCEPTANCE
+### M2.3 — Composed Recipe → Comparison flow — CURRENT NEXT DESIGN TARGET
 
 Target deterministic path:
 
@@ -138,11 +144,13 @@ Target deterministic path:
 
 Goals:
 
-- compose the two accepted stateless boundaries without duplicating recipe or comparison semantics;
-- preserve self-contained recipe provenance while keeping retailer/provider internals out of the Recipe API;
-- preserve existing production-access gating and fail-closed comparison states;
-- add contract/application tests before introducing UI;
-- keep retailer traffic absent from ordinary CI.
+- compose the two accepted stateless capabilities without duplicating recipe or comparison semantics;
+- preserve Recipe/ingredient provenance through the composed application result rather than losing item identity at a public two-step HTTP handoff;
+- keep server-owned transient identity, provider and fulfillment internals behind appropriate boundaries;
+- preserve production-access gating before any evidence source invocation;
+- preserve complete / uncertain / incomplete / unavailable comparison semantics, including no aggregate total for incomplete baskets;
+- add application/contract/architecture tests RED-first before introducing UI;
+- keep ordinary CI retailer-network-free.
 
 After the composed flow is accepted, implement the first real responsive Recipe UI using frontend component TDD and desktop/mobile Playwright RED-first.
 
@@ -150,7 +158,7 @@ Do **not** add persistence, saved recipes or fuzzy/AI ingestion merely because M
 
 ### M2 exit direction
 
-After the stateless application boundary and composed comparison flow are accepted, extend toward the minimal usable Recipe UI and then deterministic multi-recipe aggregation needed by M3 Weekly Planning. Do not introduce fuzzy/AI ingestion until deterministic recipe semantics remain stable through these application boundaries.
+After the composed comparison flow is accepted, extend toward the minimal usable Recipe UI and then deterministic multi-recipe aggregation needed by M3 Weekly Planning. Do not introduce fuzzy/AI ingestion until deterministic recipe semantics remain stable through these application boundaries.
 
 ## Parallel connectivity / operational work
 
