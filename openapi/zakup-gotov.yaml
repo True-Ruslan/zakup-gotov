@@ -48,6 +48,29 @@ paths:
             application/problem+json:
               schema:
                 $ref: '#/components/schemas/InvalidComparisonPreviewProblem'
+  /api/v1/recipe-shopping-previews:
+    post:
+      operationId: createRecipeShoppingPreview
+      summary: Convert a transient recipe request into a canonical shopping-list preview
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RecipeShoppingPreviewRequest'
+      responses:
+        '200':
+          description: Canonical Recipe to ShoppingList conversion preview with ingredient provenance
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RecipeShoppingPreviewResponse'
+        '400':
+          description: Invalid recipe shopping preview request
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/InvalidRecipeShoppingPreviewProblem'
 components:
   schemas:
     SystemInfo:
@@ -150,6 +173,54 @@ components:
           exclusiveMinimum: 0
         unit:
           $ref: '#/components/schemas/QuantityInputUnit'
+    RecipeShoppingPreviewRequest:
+      type: object
+      additionalProperties: false
+      required:
+        - title
+        - baseServings
+        - targetServings
+        - ingredients
+      properties:
+        title:
+          type: string
+          minLength: 1
+          maxLength: 240
+        baseServings:
+          type: integer
+          minimum: 1
+        targetServings:
+          type: integer
+          minimum: 1
+        ingredients:
+          type: array
+          minItems: 1
+          maxItems: 100
+          items:
+            $ref: '#/components/schemas/RecipeShoppingPreviewIngredientInput'
+    RecipeShoppingPreviewIngredientInput:
+      type: object
+      additionalProperties: false
+      required:
+        - requirement
+        - quantity
+      properties:
+        requirement:
+          type: string
+          minLength: 1
+          maxLength: 240
+        quantity:
+          type: object
+          additionalProperties: false
+          required:
+            - amount
+            - unit
+          properties:
+            amount:
+              type: number
+              exclusiveMinimum: 0
+            unit:
+              $ref: '#/components/schemas/QuantityInputUnit'
     QuantityInputUnit:
       type: string
       enum:
@@ -176,6 +247,104 @@ components:
         - PIECE
         - GRAM
         - MILLILITER
+    RecipeShoppingPreviewResponse:
+      type: object
+      additionalProperties: false
+      required:
+        - recipe
+        - shoppingList
+      properties:
+        recipe:
+          $ref: '#/components/schemas/RecipeShoppingPreviewRecipe'
+        shoppingList:
+          $ref: '#/components/schemas/RecipeShoppingPreviewShoppingList'
+    RecipeShoppingPreviewRecipe:
+      type: object
+      additionalProperties: false
+      required:
+        - id
+        - title
+        - baseServings
+        - targetServings
+        - ingredients
+      properties:
+        id:
+          type: string
+          format: uuid
+        title:
+          type: string
+          minLength: 1
+          maxLength: 240
+        baseServings:
+          type: integer
+          minimum: 1
+        targetServings:
+          type: integer
+          minimum: 1
+        ingredients:
+          type: array
+          minItems: 1
+          maxItems: 100
+          items:
+            $ref: '#/components/schemas/RecipeShoppingPreviewRecipeIngredient'
+    RecipeShoppingPreviewRecipeIngredient:
+      type: object
+      additionalProperties: false
+      required:
+        - id
+        - requirement
+        - quantity
+      properties:
+        id:
+          type: string
+          format: uuid
+        requirement:
+          type: string
+          minLength: 1
+          maxLength: 240
+        quantity:
+          $ref: '#/components/schemas/CanonicalQuantity'
+    RecipeShoppingPreviewShoppingList:
+      type: object
+      additionalProperties: false
+      required:
+        - id
+        - items
+      properties:
+        id:
+          type: string
+          format: uuid
+        items:
+          type: array
+          minItems: 1
+          maxItems: 100
+          items:
+            $ref: '#/components/schemas/RecipeShoppingPreviewShoppingItem'
+    RecipeShoppingPreviewShoppingItem:
+      type: object
+      additionalProperties: false
+      required:
+        - id
+        - requirement
+        - quantity
+        - sourceIngredientIds
+      properties:
+        id:
+          type: string
+          format: uuid
+        requirement:
+          type: string
+          minLength: 1
+          maxLength: 240
+        quantity:
+          $ref: '#/components/schemas/CanonicalQuantity'
+        sourceIngredientIds:
+          type: array
+          minItems: 1
+          maxItems: 100
+          items:
+            type: string
+            format: uuid
     ComparisonPreviewResponse:
       type: object
       additionalProperties: false
@@ -345,6 +514,46 @@ components:
           items:
             $ref: '#/components/schemas/ComparisonPreviewValidationError'
     ComparisonPreviewValidationError:
+      type: object
+      additionalProperties: false
+      required:
+        - field
+        - message
+      properties:
+        field:
+          type: string
+          minLength: 1
+        message:
+          type: string
+          minLength: 1
+    InvalidRecipeShoppingPreviewProblem:
+      type: object
+      additionalProperties: false
+      required:
+        - type
+        - title
+        - status
+        - code
+        - errors
+      properties:
+        type:
+          type: string
+          const: https://zakup-gotov.dev/problems/invalid-recipe-shopping-preview
+        title:
+          type: string
+          const: Invalid recipe shopping preview request
+        status:
+          type: integer
+          const: 400
+        code:
+          type: string
+          const: INVALID_RECIPE_SHOPPING_PREVIEW
+        errors:
+          type: array
+          minItems: 1
+          items:
+            $ref: '#/components/schemas/RecipeShoppingPreviewValidationError'
+    RecipeShoppingPreviewValidationError:
       type: object
       additionalProperties: false
       required:

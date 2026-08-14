@@ -1,6 +1,6 @@
 # Roadmap
 
-Updated: 2026-08-13
+Updated: 2026-08-14
 
 The roadmap is evidence-driven. Milestones change when integration evidence, product behavior or production constraints contradict an earlier assumption.
 
@@ -98,28 +98,59 @@ Post-merge proof on exact `main`:
 - fractional servings;
 - multi-recipe aggregation.
 
-### M2.2 — Recipe application/API boundary — NEXT: DESIGN
+### M2.2 — Stateless Recipe application/API boundary — IMPLEMENTED / TESTED / SHIPPING (#97 / #96)
 
-Target path:
+Authoritative design: [`superpowers/specs/2026-08-13-m2-2-recipe-shopping-preview-design-v2.md`](superpowers/specs/2026-08-13-m2-2-recipe-shopping-preview-design-v2.md).  
+Execution plan: [`superpowers/plans/2026-08-13-m2-2-recipe-shopping-preview-v2.md`](superpowers/plans/2026-08-13-m2-2-recipe-shopping-preview-v2.md).
 
-`Recipe request → Recipe domain → RecipeShoppingListConversion → comparison input`
+Approved and implemented direction:
 
-Design questions to resolve before implementation:
+`POST /api/v1/recipe-shopping-previews`
 
-- **lifecycle:** stateless request/response versus persisted recipe identity;
-- **list identity:** server-generated versus caller-provided `ShoppingListId`;
-- **provenance:** public representation without exposing internal implementation details;
-- **contract:** OpenAPI/generated TypeScript client schemas;
-- **validation:** reuse existing fail-closed request/error vocabulary;
-- **composition:** one endpoint that proceeds to comparison versus an explicit two-step recipe→list then list→comparison flow.
+`Recipe request → application validation/server-owned transient IDs → Recipe domain → RecipeShoppingListConverter → canonical ShoppingList projection`
 
-Recommended default direction for design exploration: preserve the project's stateless, hypothesis-friendly posture first; avoid persistence until reusable saved recipes are a demonstrated requirement. This is a design recommendation, not yet an accepted implementation decision.
+#### Implemented scope
 
-Do not add persistence or UI by default; decide them from product need after the application contract is approved.
+- stateless lifecycle; no saved Recipe persistence/CRUD;
+- server-generated Recipe, ingredient and ShoppingList identities;
+- request: normalized title, positive integer base/target servings, 1..100 explicit ingredient requirements/quantities;
+- input quantities reuse Shopping Core units; output uses canonical Shopping Core quantities;
+- strict JSON integer binding for servings; fractional ingredient quantities remain allowed;
+- conversion semantics remain exclusively owned by accepted M2.1 `RecipeShoppingListConverter`;
+- self-contained response provenance through ordered `sourceIngredientIds` resolving within the returned recipe;
+- fail-closed projection invariants for mismatched list identity and missing/orphan/cross-recipe provenance;
+- sanitized validation/unreadable-body 400 problem contract with internal failures left as server failures;
+- OpenAPI 3.1 contract and generated TypeScript schema/client path;
+- application architecture guards preventing provider/retailer/matching/basket/comparison/database coupling;
+- no retailer traffic, location lookup, persistence, Recipe→Comparison orchestration, Recipe UI or fuzzy/AI matching.
+
+#### Verification state
+
+A fully implemented code checkpoint `b451dacbec41e3d7bd75ce4580f76fb6f86d5cae` passed **13/13 PR checks across all 9 normal workflow groups**, including API/full Maven verification, generated-contract verification, Web + desktop/mobile Playwright regression, retailer bridge, CodeQL, dependency review, container security, release contract and release bundle.
+
+Read-only review then found one low-risk design drift: malformed-body handling was in the controller instead of the approved controller-scoped advice. The correction keeps the controller thin and centralizes both known request-failure paths in the advice. Because that correction and these documentation changes move the PR head, M2.2 remains **not accepted** until the final exact head is green, independent review has no unresolved P0/P1/P2, the PR is squash-merged, and normal post-merge `main` workflows pass.
+
+### M2.3 — Composed Recipe → Comparison flow — NEXT AFTER M2.2 ACCEPTANCE
+
+Target deterministic path:
+
+`Recipe input → recipe-shopping preview → generated shopping requirements → comparison preview`
+
+Goals:
+
+- compose the two accepted stateless boundaries without duplicating recipe or comparison semantics;
+- preserve self-contained recipe provenance while keeping retailer/provider internals out of the Recipe API;
+- preserve existing production-access gating and fail-closed comparison states;
+- add contract/application tests before introducing UI;
+- keep retailer traffic absent from ordinary CI.
+
+After the composed flow is accepted, implement the first real responsive Recipe UI using frontend component TDD and desktop/mobile Playwright RED-first.
+
+Do **not** add persistence, saved recipes or fuzzy/AI ingestion merely because M2.2 makes them convenient. Those remain separate product decisions.
 
 ### M2 exit direction
 
-After the application/API boundary is accepted, extend toward the minimal usable recipe flow and then recipe aggregation needed by M3 Weekly Planning. Do not introduce fuzzy/AI ingestion until deterministic recipe semantics remain stable through the application boundary.
+After the stateless application boundary and composed comparison flow are accepted, extend toward the minimal usable Recipe UI and then deterministic multi-recipe aggregation needed by M3 Weekly Planning. Do not introduce fuzzy/AI ingestion until deterministic recipe semantics remain stable through these application boundaries.
 
 ## Parallel connectivity / operational work
 

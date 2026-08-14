@@ -16,6 +16,13 @@ All notable project changes are recorded here. Zakup Gotov is pre-release; entri
 - Deep-immutable ordered provenance `ShoppingItemId → RecipeIngredientRef(RecipeId, RecipeIngredientId)` kept outside Shopping Core types.
 - Fail-closed generated-ID collision detection through a package-private deterministic-ID seam covered by regression tests.
 - M2.1 design, implementation plan and shipping evidence documenting the domain/conversion boundary, TDD chain, review and acceptance gates.
+- Stateless M2.2 `POST /api/v1/recipe-shopping-previews` application boundary converting explicit recipe input into a canonical ShoppingList preview without persistence or retailer traffic.
+- Server-owned transient Recipe, ingredient and ShoppingList UUID generation at the application boundary; client-supplied server identities are not part of the contract.
+- Self-contained recipe preview provenance through ordered `sourceIngredientIds` on every generated shopping item, with fail-closed checks for missing, orphan, cross-recipe or mismatched-list evidence.
+- Recipe-preview request validation and sanitized `INVALID_RECIPE_SHOPPING_PREVIEW` problem details for semantic and unreadable-body failures.
+- Strict JSON integer handling for base/target servings while preserving decimal ingredient quantities and existing Shopping Core quantity canonicalization.
+- OpenAPI 3.1 recipe-shopping-preview request/response/problem schemas plus generated TypeScript path and types.
+- Recipe-preview architecture tests keeping the application adapter dependent inward on `recipe`/`shopping` and independent from provider, retailer, matching, basket, comparison and database packages.
 
 #### Product and shopping core
 
@@ -65,10 +72,12 @@ All notable project changes are recorded here. Zakup Gotov is pre-release; entri
 - Project phase advanced from M0 Product & Integration Discovery to M1 Shopping Core and, after final acceptance, to **M2 Recipes**.
 - M1 Shopping Core is **COMPLETE / ACCEPTED** on the post-merge pre-acquisition-gate baseline `779d0b219a13e0bf82263a1e655fb732553ed5fe`.
 - The M1→M2 decision is **GO for deterministic product/core development**; it does not claim every retailer is production-ready.
-- M2.1 `Recipe → explicit ingredients → canonical quantities → ShoppingList` is **COMPLETE / ACCEPTED** after squash merge `423eb14f7c565bbe264257a92df89a6b42d0d158` and 8/8 successful post-merge `main` workflows; REST/OpenAPI/client/UI/persistence remain separate follow-up work.
+- M2.1 `Recipe → explicit ingredients → canonical quantities → ShoppingList` is **COMPLETE / ACCEPTED** after squash merge `423eb14f7c565bbe264257a92df89a6b42d0d158` and 8/8 successful post-merge `main` workflows.
+- M2.2 is **implemented/tested and in shipping review, not yet accepted**: the stateless recipe application boundary, OpenAPI/generated client and regression coverage exist in PR #97, while final exact-head review/merge/post-merge proof remains required.
 - Recipe → ShoppingList merging is intentionally stricter than product matching: only exact normalized requirements with the same canonical unit merge; no case-folding/synonym/AI equivalence is introduced.
-- Recipe provenance remains conversion metadata rather than an optional Recipe field added to neutral `ShoppingItem`.
-- The next M2 design target is the Recipe application/API boundary; no lifecycle, persistence or UI choice is implied by M2.1 acceptance.
+- Recipe provenance remains conversion metadata rather than an optional Recipe field added to neutral `ShoppingItem`; M2.2 projects that provenance publicly as self-contained source ingredient IDs instead of modifying Shopping Core types.
+- The M2.2 lifecycle decision is stateless for the current hypothesis-testing phase; persistence remains deferred until reusable saved recipes become a demonstrated product requirement.
+- Recipe preview conversion does not directly orchestrate retailer comparison. The next deterministic slice after M2.2 acceptance is explicit composition of the recipe-shopping preview with the accepted comparison-preview boundary.
 - Retailer onboarding remains transport-neutral and universal; a failed direct path changes acquisition mode rather than retailer scope.
 - `ObservedOffer` is the provider trust boundary and `OfferSnapshot` the immutable comparison record.
 - Observation time and provider-side update time remain distinct.
@@ -90,6 +99,9 @@ All notable project changes are recorded here. Zakup Gotov is pre-release; entri
 - Recipe conversion rejects missing inputs and invalid provenance identities.
 - Recipe generated-item identity collision across different merge keys fails closed rather than relying on overwrite/order behavior.
 - Recipe provenance maps and nested lineage lists are defensively copied and immutable.
+- Recipe preview production wiring now explicitly supplies the transient ID generator, request factory, accepted converter and application service required by the Spring controller.
+- Fractional JSON serving counts are rejected by recipe-specific strict integer deserialization instead of being silently coerced to integers; this strictness does not change unrelated API binding behavior.
+- Recipe preview unreadable-body handling is centralized in the approved controller-scoped advice, keeping the controller thin and preventing raw Jackson/internal exception details from becoming public 400 responses.
 - Provider offer validation rejects provenance/context mismatches before comparison logic.
 - Precise addresses are excluded from default string representations and provider routing.
 - Snapshot freshness rejects provider timestamps after observation time.
