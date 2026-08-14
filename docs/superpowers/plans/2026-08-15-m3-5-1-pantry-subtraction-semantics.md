@@ -1,294 +1,120 @@
 # M3.5.1 Pantry Subtraction Semantics Implementation Plan
 
-> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
+> **Execution workflow:** superpowers:executing-plans, TDD-first, isolated GitHub feature branch.
 
-**Goal:** Add a pure deterministic Pantry domain layer that subtracts household stock from a canonical ShoppingList with explicit immutable audit evidence.
+**Goal:** Add a pure deterministic Pantry domain layer that subtracts household stock from a canonical `ShoppingList` with explicit immutable audit evidence.
 
-**Architecture:** Create `io.github.trueruslan.zakupgotov.pantry` depending only on accepted `shopping` types. Pantry stock is aggregated by exact `(ShoppingRequirement, canonical QuantityUnit)`, consumed sequentially in source ShoppingList order, and projected to a new remaining ShoppingList preserving source IDs plus per-item adjustment evidence.
+**Architecture:** `io.github.trueruslan.zakupgotov.pantry` depends only on accepted `shopping` types. Pantry stock is aggregated by exact `(ShoppingRequirement, canonical QuantityUnit)`, consumed sequentially in source `ShoppingList` order, and projected to a remaining `ShoppingList` preserving source IDs plus per-item adjustment evidence.
 
-**Tech Stack:** Java 25, JUnit 5, AssertJ, ArchUnit, existing Gradle/API CI.
+**Tech stack / verification:** Java 25, Maven 3.9.16 via repository `./mvnw`, JUnit 5, AssertJ, ArchUnit, GitHub Actions API CI.
 
-## Global Constraints
+## Global constraints
 
 - Baseline: `e11fd532c8d1f927a14cb886abaa9e9988f9b21b`.
 - Issue: #121.
-- No production code without a failing test first.
-- `pantry` may depend only on `shopping` project package.
+- PR: #122.
+- No production code before the corresponding failing behavior test.
+- `pantry` may depend only on the `shopping` project package.
 - No endpoint/OpenAPI/generated-client/UI/persistence/provider/retailer changes.
 - Exact matching only; no case folding, fuzzy, synonym or AI equivalence.
 - `Quantity` remains authoritative for positive values and kg/g + l/ml canonicalization.
-- Input ShoppingList and caller-owned pantry collection must never be mutated.
-- Preserve source ShoppingListId, surviving ShoppingItemId values and source item order.
+- Input `ShoppingList` and caller-owned pantry collection must never be mutated.
+- Preserve source `ShoppingListId`, surviving `ShoppingItemId` values and source item order.
+
+## Verification commands
+
+Focused tests may be run with Surefire selectors, while the authoritative gate is the same full Maven verification used by API CI:
+
+```bash
+./mvnw --batch-mode --no-transfer-progress -Dtest=PantryAdjustmentEvidenceTest test
+./mvnw --batch-mode --no-transfer-progress -Dtest=PantryShoppingListAdjusterTest test
+./mvnw --batch-mode --no-transfer-progress -Dtest=PantryArchitectureTest test
+./mvnw --batch-mode --no-transfer-progress verify
+```
+
+GitHub Actions on exact commit SHAs is authoritative in this connector-only execution environment.
 
 ---
 
 ### Task 1: Pantry value objects and evidence invariants
 
 **Files:**
-- Create: `apps/api/src/test/java/io/github/trueruslan/zakupgotov/pantry/PantryAdjustmentEvidenceTest.java`
-- Create: `apps/api/src/main/java/io/github/trueruslan/zakupgotov/pantry/PantryItem.java`
-- Create: `apps/api/src/main/java/io/github/trueruslan/zakupgotov/pantry/PantryAdjustmentStatus.java`
-- Create: `apps/api/src/main/java/io/github/trueruslan/zakupgotov/pantry/PantryAdjustmentEvidence.java`
+- `apps/api/src/test/java/io/github/trueruslan/zakupgotov/pantry/PantryAdjustmentEvidenceTest.java`
+- `apps/api/src/main/java/io/github/trueruslan/zakupgotov/pantry/PantryItem.java`
+- `apps/api/src/main/java/io/github/trueruslan/zakupgotov/pantry/PantryAdjustmentStatus.java`
+- `apps/api/src/main/java/io/github/trueruslan/zakupgotov/pantry/PantryAdjustmentEvidence.java`
 
-**Interfaces:**
-- Produces: `PantryItem(ShoppingRequirement requirement, Quantity quantity)`.
-- Produces: enum `PantryAdjustmentStatus { UNCHANGED, PARTIALLY_COVERED, FULLY_COVERED }`.
-- Produces: `PantryAdjustmentEvidence(ShoppingItemId itemId, ShoppingRequirement requirement, Quantity required, Optional<Quantity> pantryUsed, Optional<Quantity> remaining, PantryAdjustmentStatus status)`.
-
-- [ ] **Step 1: Write failing evidence tests**
-
-Cover valid UNCHANGED/PARTIAL/FULL states and reject impossible combinations such as `UNCHANGED` with used quantity, `PARTIALLY_COVERED` without both quantities, FULL with remaining quantity, mismatched units, used > required, or required != used + remaining.
-
-Representative test:
-
-```java
-@Test
-void fullyCoveredEvidenceKeepsRequiredAndUsedButHasNoRemainingQuantity() {
-    var required = quantity("500", QuantityUnit.GRAM);
-
-    var evidence = new PantryAdjustmentEvidence(
-            itemId(1),
-            new ShoppingRequirement("Rice"),
-            required,
-            Optional.of(required),
-            Optional.empty(),
-            PantryAdjustmentStatus.FULLY_COVERED);
-
-    assertThat(evidence.status()).isEqualTo(PantryAdjustmentStatus.FULLY_COVERED);
-    assertThat(evidence.pantryUsed()).contains(required);
-    assertThat(evidence.remaining()).isEmpty();
-}
-```
-
-- [ ] **Step 2: Verify RED**
-
-Run:
-
-```bash
-./gradlew :apps:api:test --tests '*PantryAdjustmentEvidenceTest'
-```
-
-Expected: FAIL because Pantry production types do not exist.
-
-- [ ] **Step 3: Implement minimal value objects**
-
-`PantryItem` null-checks both fields. `PantryAdjustmentEvidence` defensively null-checks all fields and validates status structure, equal units, arithmetic consistency and positive `Quantity` invariants inherited from Shopping.
-
-Use `BigDecimal.compareTo` for arithmetic equality after canonicalization.
-
-- [ ] **Step 4: Verify GREEN**
-
-Run the same focused test command; expected PASS.
-
-- [ ] **Step 5: Commit**
-
-```bash
-git add apps/api/src/main/java/io/github/trueruslan/zakupgotov/pantry \
-        apps/api/src/test/java/io/github/trueruslan/zakupgotov/pantry/PantryAdjustmentEvidenceTest.java
-git commit -m "feat(m3): define Pantry adjustment evidence"
-```
+- [x] Define valid `UNCHANGED`, `PARTIALLY_COVERED`, `FULLY_COVERED` evidence and reject impossible status/value/unit/arithmetic combinations.
+- [x] RED: `e95b076825278a4653939fe06599d5b42b3097f5` — API verification failed before Pantry production types existed.
+- [x] Implement immutable value types.
+- [x] Correct Java compact-record constructor capture issue without changing the test contract.
+- [x] GREEN: `0b04b775b80e480c7082872b70729ec01663109d` — full API CI / Maven `verify` SUCCESS.
 
 ---
 
 ### Task 2: Deterministic Pantry subtraction core
 
 **Files:**
-- Create: `apps/api/src/test/java/io/github/trueruslan/zakupgotov/pantry/PantryShoppingListAdjusterTest.java`
-- Create: `apps/api/src/main/java/io/github/trueruslan/zakupgotov/pantry/PantryMatchKey.java`
-- Create: `apps/api/src/main/java/io/github/trueruslan/zakupgotov/pantry/PantryAdjustment.java`
-- Create: `apps/api/src/main/java/io/github/trueruslan/zakupgotov/pantry/PantryShoppingListAdjuster.java`
+- `apps/api/src/test/java/io/github/trueruslan/zakupgotov/pantry/PantryShoppingListAdjusterTest.java`
+- `apps/api/src/main/java/io/github/trueruslan/zakupgotov/pantry/PantryMatchKey.java`
+- `apps/api/src/main/java/io/github/trueruslan/zakupgotov/pantry/PantryAdjustment.java`
+- `apps/api/src/main/java/io/github/trueruslan/zakupgotov/pantry/PantryShoppingListAdjuster.java`
 
-**Interfaces:**
-- `PantryAdjustment` exposes `ShoppingList remainingShoppingList()` and immutable `List<PantryAdjustmentEvidence> evidence()`.
-- `PantryShoppingListAdjuster#adjust(ShoppingList source, List<PantryItem> pantryItems)` returns `PantryAdjustment`.
-- `PantryMatchKey` is package-private and contains only `ShoppingRequirement requirement, QuantityUnit unit`.
+Required behavior:
 
-- [ ] **Step 1: Write the first failing subtraction test**
-
-Start with partial coverage and identity/order preservation:
-
-```java
-@Test
-void partialCoverageReducesQuantityAndPreservesIdentity() {
-    var source = shoppingList(
-            item(1, "Rice", "1000", QuantityUnit.GRAM),
-            item(2, "Milk", "1000", QuantityUnit.MILLILITER));
-
-    var result = adjuster.adjust(source, List.of(
-            pantry("Rice", "250", QuantityUnit.GRAM)));
-
-    assertThat(result.remainingShoppingList().id()).isEqualTo(source.id());
-    assertThat(result.remainingShoppingList().items())
-            .extracting(item -> item.id().value())
-            .containsExactly(itemId(1).value(), itemId(2).value());
-    assertThat(result.remainingShoppingList().items().getFirst().quantity())
-            .isEqualTo(quantity("750", QuantityUnit.GRAM));
-    assertThat(source.items().getFirst().quantity())
-            .isEqualTo(quantity("1000", QuantityUnit.GRAM));
-}
-```
-
-- [ ] **Step 2: Verify RED**
-
-```bash
-./gradlew :apps:api:test --tests '*PantryShoppingListAdjusterTest'
-```
-
-Expected: FAIL because adjuster/result types do not exist.
-
-- [ ] **Step 3: Implement minimal partial subtraction**
-
-Create a new `ShoppingList(source.id())`, copy surviving items with original IDs/requirements and subtract using canonical amounts. Emit one evidence row per source item.
-
-- [ ] **Step 4: Verify focused GREEN**
-
-Run the focused test; expected PASS.
-
-- [ ] **Step 5: Add RED cases incrementally**
-
-Add one failing behavior at a time, running after each addition:
-
-1. unmatched pantry → item unchanged + UNCHANGED evidence;
-2. full coverage → source item absent from remaining list + FULLY_COVERED evidence;
-3. kg pantry covers gram requirement;
-4. liter pantry covers milliliter requirement;
+1. unmatched pantry leaves source requirement unchanged;
+2. partial coverage reduces only quantity while preserving IDs/order;
+3. full coverage omits item from remaining list while retaining audit evidence;
+4. kg/g and l/ml compatibility comes only from accepted `Quantity` canonicalization;
 5. incompatible dimensions do not match;
-6. duplicate pantry entries with the same key aggregate;
-7. duplicate source keys consume shared pantry only once in source order;
-8. excess pantry never creates zero/negative Shopping quantities;
-9. result evidence stays in source order;
-10. input source/pantry list remains unchanged.
+6. duplicate pantry rows aggregate by exact accepted match key;
+7. pantry stock is consumed once across duplicate source keys in source order;
+8. excess pantry never creates zero/negative `Quantity`;
+9. exact requirement equality remains case-sensitive;
+10. input shopping/pantry collections are not mutated;
+11. null inputs/rows fail closed as domain misuse.
 
-- [ ] **Step 6: Implement each GREEN minimally**
-
-Maintain a `LinkedHashMap<PantryMatchKey, BigDecimal>` of remaining pantry amounts. Aggregate duplicate pantry entries by addition. For each source item, compute:
-
-```java
-var available = stock.getOrDefault(key, BigDecimal.ZERO);
-var used = required.min(available);
-var remaining = required.subtract(used);
-stock.put(key, available.subtract(used));
-```
-
-Create `Quantity` only for strictly positive `used`/`remaining` amounts. Never mutate the source item/list or caller collection.
-
-- [ ] **Step 7: Verify complete subtraction suite GREEN**
-
-```bash
-./gradlew :apps:api:test --tests '*PantryShoppingListAdjusterTest' --tests '*PantryAdjustmentEvidenceTest'
-```
-
-Expected: PASS.
-
-- [ ] **Step 8: Commit**
-
-```bash
-git add apps/api/src/main/java/io/github/trueruslan/zakupgotov/pantry \
-        apps/api/src/test/java/io/github/trueruslan/zakupgotov/pantry
-git commit -m "feat(m3): add deterministic Pantry subtraction"
-```
+- [x] RED: `289e973463bf2d391442a9645651851ad587e177` — API test compilation failed because `PantryShoppingListAdjuster` did not exist.
+- [x] Implement `LinkedHashMap<PantryMatchKey, BigDecimal>` stock aggregation and sequential `min(required, available)` consumption.
+- [x] Preserve source `ShoppingListId`, surviving `ShoppingItemId`, requirement and source order.
+- [x] Emit one evidence row per source item in source order.
+- [x] GREEN: `a88092c914ffe5c80e4d4ad1da672ba8dcd2033d` — full API CI / Maven `verify` SUCCESS.
 
 ---
 
 ### Task 3: Architecture hardening
 
-**Files:**
-- Create: `apps/api/src/test/java/io/github/trueruslan/zakupgotov/pantry/PantryArchitectureTest.java`
+**File:**
+- `apps/api/src/test/java/io/github/trueruslan/zakupgotov/pantry/PantryArchitectureTest.java`
 
-**Interfaces:**
-- No production API changes.
-- Enforces package dependency direction.
+Rules:
 
-- [ ] **Step 1: Write failing architecture test before any forbidden dependency exists**
+- production `pantry` package must exist;
+- direct project dependencies from `pantry` may target only `shopping`;
+- no `pantry` dependency on Recipe, WeeklyPlan, preview/comparison, retailer/provider, matching/basket, database or Spring packages;
+- accepted `shopping`, `recipe` and `weeklyplan` packages must not depend on `pantry` in M3.5.1.
 
-The architecture test must assert the production package exists, collect direct project-package dependencies from `..pantry..`, allow only `..shopping..`, and assert no reverse dependencies from accepted `shopping`, `recipe` or `weeklyplan` packages.
-
-Core rule:
-
-```java
-noClasses()
-        .that().resideInAPackage("..pantry..")
-        .should().dependOnClassesThat().resideInAnyPackage(
-                "..recipe..",
-                "..weeklyplan..",
-                "..preview..",
-                "..comparison..",
-                "..basket..",
-                "..matching..",
-                "..provider..",
-                "..retailer..",
-                "..database..",
-                "org.springframework..")
-        .check(classes);
-```
-
-Also assert:
-
-```java
-noClasses()
-        .that().resideInAnyPackage("..shopping..", "..recipe..", "..weeklyplan..")
-        .should().dependOnClassesThat().resideInAPackage("..pantry..")
-        .check(classes);
-```
-
-- [ ] **Step 2: Verify the architecture test runs GREEN against the already implemented allowed dependency graph**
-
-This task is an architecture characterization/hardening test; no production change is expected if Task 2 respected the design.
-
-```bash
-./gradlew :apps:api:test --tests '*PantryArchitectureTest'
-```
-
-Expected: PASS. If it fails, fix the production dependency violation, not the rule.
-
-- [ ] **Step 3: Commit**
-
-```bash
-git add apps/api/src/test/java/io/github/trueruslan/zakupgotov/pantry/PantryArchitectureTest.java
-git commit -m "test(m3): harden Pantry architecture boundary"
-```
+- [x] Add ArchUnit characterization/hardening tests after the TDD core exists.
+- [ ] Confirm full API CI / Maven `verify` SUCCESS on exact architecture-test head `2066135d8a275feb78904bba71fec0dce7cf9625`.
 
 ---
 
 ### Task 4: Full verification and shipping evidence
 
-**Files:**
-- Create: `docs/superpowers/plans/2026-08-15-m3-5-1-pantry-subtraction-semantics-shipping.md`
+**File:**
+- `docs/superpowers/plans/2026-08-15-m3-5-1-pantry-subtraction-semantics-shipping.md`
 
-**Interfaces:**
-- No production API changes.
-
-- [ ] **Step 1: Run focused and full API verification**
-
-```bash
-./gradlew :apps:api:test --tests '*Pantry*'
-./gradlew :apps:api:check
-```
-
-Both must PASS.
-
-- [ ] **Step 2: Confirm scope**
-
-Verify no changes under OpenAPI/generated clients/web/database/provider/retailer and no edits to accepted M3.1–M3.4 production packages other than imports required by tests (prefer none).
-
-- [ ] **Step 3: Write shipping evidence**
-
-Record baseline, RED/GREEN commit SHAs, focused/full test results, exact changed files, explicit non-goals and the expected PR acceptance gate.
-
-- [ ] **Step 4: Commit shipping evidence**
-
-```bash
-git add docs/superpowers/plans/2026-08-15-m3-5-1-pantry-subtraction-semantics-shipping.md
-git commit -m "docs(m3): record Pantry subtraction shipping evidence"
-```
-
-- [ ] **Step 5: PR acceptance gate**
-
-Open a draft PR closing #121. On the exact final head require all normal PR workflow groups to complete successfully, perform a read-only review with no unresolved P0–P3 findings, mark ready only after the exact-head gate, squash-merge with expected-head protection, then require all normal `main` push workflows to succeed before declaring M3.5.1 accepted.
+- [ ] Confirm architecture gate.
+- [ ] Confirm final scope contains no endpoint/OpenAPI/generated client/web/database/provider/retailer changes and no accepted M3.1–M3.4 production edits.
+- [ ] Record RED→GREEN evidence and exact changed files.
+- [ ] Require all 9 normal PR workflow groups SUCCESS on the exact final head, with failure count 0.
+- [ ] Perform read-only review; resolve any P0–P3 findings before merge.
+- [ ] Mark PR ready only after exact-head CI/review gate.
+- [ ] Squash-merge with expected-head protection.
+- [ ] Require all normal `main` push workflows SUCCESS before declaring implementation accepted.
 
 ## Self-review
 
-- Spec coverage: all matching, arithmetic, identity, ordering, provenance, immutability, architecture and non-goal requirements map to Tasks 1–4.
-- Placeholder scan: no TODO/TBD/unspecified implementation steps remain.
-- Type consistency: `PantryItem`, `PantryAdjustmentEvidence`, `PantryAdjustment`, `PantryShoppingListAdjuster` signatures are consistent across tasks.
+- Spec coverage: matching, arithmetic, identity, ordering, provenance, immutability, architecture and non-goals all map to Tasks 1–4.
+- Tooling correction: this project uses Maven/API CI, not Gradle; all executable commands above match the repository CI toolchain.
 - Scope remains one independently testable subsystem: pure Pantry subtraction semantics only.
