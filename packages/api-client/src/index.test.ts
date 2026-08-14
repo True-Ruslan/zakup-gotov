@@ -6,6 +6,7 @@ import {
   RECIPE_SHOPPING_PREVIEWS_PATH,
   RETAILERS_PATH,
   SYSTEM_INFO_PATH,
+  WEEKLY_PLAN_SHOPPING_PREVIEWS_PATH,
   createZakupGotovClient,
 } from "./index";
 import type { components, paths } from "./schema";
@@ -67,5 +68,25 @@ describe("Zakup Gotov API client", () => {
     expect(operationExists).toBeUndefined();
     expect(requestExists).toBeUndefined();
     expect(responseExists).toBeUndefined();
+  });
+
+  it("exposes the weekly plan shopping preview endpoint through the generated contract", () => {
+    const path: keyof paths = WEEKLY_PLAN_SHOPPING_PREVIEWS_PATH;
+    const client = createZakupGotovClient("https://api.example.test");
+    type WeeklyPreviewPost = paths["/api/v1/weekly-plan-shopping-previews"]["post"];
+    type WeeklyPreviewRequest = components["schemas"]["WeeklyPlanShoppingPreviewRequest"];
+    type WeeklyPreviewResponse = components["schemas"]["WeeklyPlanShoppingPreviewResponse"];
+    type WeeklyPreviewProblem = components["schemas"]["InvalidWeeklyPlanShoppingPreviewProblem"];
+    const operationExists: WeeklyPreviewPost | undefined = undefined;
+    const requestExists: WeeklyPreviewRequest | undefined = undefined;
+    const responseExists: WeeklyPreviewResponse | undefined = undefined;
+    const problemExists: WeeklyPreviewProblem | undefined = undefined;
+
+    expect(path).toBe("/api/v1/weekly-plan-shopping-previews");
+    expect(client.POST).toBeTypeOf("function");
+    expect(operationExists).toBeUndefined();
+    expect(requestExists).toBeUndefined();
+    expect(responseExists).toBeUndefined();
+    expect(problemExists).toBeUndefined();
   });
 });

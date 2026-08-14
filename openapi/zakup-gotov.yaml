@@ -97,6 +97,29 @@ paths:
                   - $ref: '#/components/schemas/InvalidRecipeComparisonPreviewProblem'
                   - $ref: '#/components/schemas/InvalidRecipeShoppingPreviewProblem'
                   - $ref: '#/components/schemas/InvalidComparisonPreviewProblem'
+  /api/v1/weekly-plan-shopping-previews:
+    post:
+      operationId: createWeeklyPlanShoppingPreview
+      summary: Create a transient weekly-plan shopping-list preview
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/WeeklyPlanShoppingPreviewRequest'
+      responses:
+        '200':
+          description: Canonical WeeklyPlan shopping preview with self-contained occurrence and Recipe provenance
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/WeeklyPlanShoppingPreviewResponse'
+        '400':
+          description: Invalid weekly plan shopping preview request
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/InvalidWeeklyPlanShoppingPreviewProblem'
 components:
   schemas:
     SystemInfo:
@@ -644,6 +667,247 @@ components:
           items:
             $ref: '#/components/schemas/RecipeComparisonPreviewValidationError'
     RecipeComparisonPreviewValidationError:
+      type: object
+      additionalProperties: false
+      required:
+        - field
+        - message
+      properties:
+        field:
+          type: string
+          minLength: 1
+        message:
+          type: string
+          minLength: 1
+    WeeklyPlanShoppingPreviewRequest:
+      type: object
+      additionalProperties: false
+      required:
+        - occurrences
+      properties:
+        occurrences:
+          type: array
+          minItems: 1
+          maxItems: 35
+          items:
+            $ref: '#/components/schemas/WeeklyPlanShoppingPreviewOccurrenceInput'
+    WeeklyPlanShoppingPreviewOccurrenceInput:
+      type: object
+      additionalProperties: false
+      required:
+        - day
+        - targetServings
+        - recipe
+      properties:
+        day:
+          $ref: '#/components/schemas/WeeklyPlanDay'
+        targetServings:
+          type: integer
+          minimum: 1
+        recipe:
+          $ref: '#/components/schemas/WeeklyPlanShoppingPreviewRecipeInput'
+    WeeklyPlanShoppingPreviewRecipeInput:
+      type: object
+      additionalProperties: false
+      required:
+        - title
+        - baseServings
+        - ingredients
+      properties:
+        title:
+          type: string
+          minLength: 1
+          maxLength: 240
+        baseServings:
+          type: integer
+          minimum: 1
+        ingredients:
+          type: array
+          minItems: 1
+          maxItems: 100
+          items:
+            $ref: '#/components/schemas/RecipeShoppingPreviewIngredientInput'
+    WeeklyPlanDay:
+      type: string
+      enum:
+        - MONDAY
+        - TUESDAY
+        - WEDNESDAY
+        - THURSDAY
+        - FRIDAY
+        - SATURDAY
+        - SUNDAY
+    WeeklyPlanShoppingPreviewResponse:
+      type: object
+      additionalProperties: false
+      required:
+        - weeklyPlan
+        - shoppingList
+      properties:
+        weeklyPlan:
+          $ref: '#/components/schemas/WeeklyPlanShoppingPreviewPlan'
+        shoppingList:
+          $ref: '#/components/schemas/WeeklyPlanShoppingPreviewShoppingList'
+    WeeklyPlanShoppingPreviewPlan:
+      type: object
+      additionalProperties: false
+      required:
+        - id
+        - occurrences
+      properties:
+        id:
+          type: string
+          format: uuid
+        occurrences:
+          type: array
+          minItems: 1
+          maxItems: 35
+          items:
+            $ref: '#/components/schemas/WeeklyPlanShoppingPreviewOccurrence'
+    WeeklyPlanShoppingPreviewOccurrence:
+      type: object
+      additionalProperties: false
+      required:
+        - id
+        - day
+        - targetServings
+        - recipe
+      properties:
+        id:
+          type: string
+          format: uuid
+        day:
+          $ref: '#/components/schemas/WeeklyPlanDay'
+        targetServings:
+          type: integer
+          minimum: 1
+        recipe:
+          $ref: '#/components/schemas/WeeklyPlanShoppingPreviewRecipe'
+    WeeklyPlanShoppingPreviewRecipe:
+      type: object
+      additionalProperties: false
+      required:
+        - id
+        - title
+        - baseServings
+        - ingredients
+      properties:
+        id:
+          type: string
+          format: uuid
+        title:
+          type: string
+          minLength: 1
+          maxLength: 240
+        baseServings:
+          type: integer
+          minimum: 1
+        ingredients:
+          type: array
+          minItems: 1
+          maxItems: 100
+          items:
+            $ref: '#/components/schemas/WeeklyPlanShoppingPreviewIngredient'
+    WeeklyPlanShoppingPreviewIngredient:
+      type: object
+      additionalProperties: false
+      required:
+        - id
+        - requirement
+        - quantity
+      properties:
+        id:
+          type: string
+          format: uuid
+        requirement:
+          type: string
+          minLength: 1
+          maxLength: 240
+        quantity:
+          $ref: '#/components/schemas/CanonicalQuantity'
+    WeeklyPlanShoppingPreviewShoppingList:
+      type: object
+      additionalProperties: false
+      required:
+        - id
+        - items
+      properties:
+        id:
+          type: string
+          format: uuid
+        items:
+          type: array
+          minItems: 1
+          items:
+            $ref: '#/components/schemas/WeeklyPlanShoppingPreviewShoppingItem'
+    WeeklyPlanShoppingPreviewShoppingItem:
+      type: object
+      additionalProperties: false
+      required:
+        - id
+        - requirement
+        - quantity
+        - sources
+      properties:
+        id:
+          type: string
+          format: uuid
+        requirement:
+          type: string
+          minLength: 1
+          maxLength: 240
+        quantity:
+          $ref: '#/components/schemas/CanonicalQuantity'
+        sources:
+          type: array
+          minItems: 1
+          items:
+            $ref: '#/components/schemas/WeeklyPlanShoppingPreviewSource'
+    WeeklyPlanShoppingPreviewSource:
+      type: object
+      additionalProperties: false
+      required:
+        - occurrenceId
+        - recipeId
+        - recipeIngredientId
+      properties:
+        occurrenceId:
+          type: string
+          format: uuid
+        recipeId:
+          type: string
+          format: uuid
+        recipeIngredientId:
+          type: string
+          format: uuid
+    InvalidWeeklyPlanShoppingPreviewProblem:
+      type: object
+      additionalProperties: false
+      required:
+        - type
+        - title
+        - status
+        - code
+        - errors
+      properties:
+        type:
+          type: string
+          const: https://zakup-gotov.dev/problems/invalid-weekly-plan-shopping-preview
+        title:
+          type: string
+          const: Invalid weekly plan shopping preview request
+        status:
+          type: integer
+          const: 400
+        code:
+          type: string
+          const: INVALID_WEEKLY_PLAN_SHOPPING_PREVIEW
+        errors:
+          type: array
+          minItems: 1
+          items:
+            $ref: '#/components/schemas/WeeklyPlanShoppingPreviewValidationError'
+    WeeklyPlanShoppingPreviewValidationError:
       type: object
       additionalProperties: false
       required:
