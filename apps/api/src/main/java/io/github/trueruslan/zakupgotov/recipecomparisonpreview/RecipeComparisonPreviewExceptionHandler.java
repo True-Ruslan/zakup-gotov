@@ -14,14 +14,6 @@ import org.springframework.web.bind.annotation.RestControllerAdvice;
 @RestControllerAdvice(assignableTypes = RecipeComparisonPreviewController.class)
 public final class RecipeComparisonPreviewExceptionHandler {
 
-    @ExceptionHandler(InvalidRecipeComparisonPreviewRequestException.class)
-    public ResponseEntity<InvalidRecipeComparisonPreviewProblem> invalidWrapper(
-            InvalidRecipeComparisonPreviewRequestException exception) {
-        return ResponseEntity.status(HttpStatus.BAD_REQUEST)
-                .contentType(MediaType.APPLICATION_PROBLEM_JSON)
-                .body(InvalidRecipeComparisonPreviewProblem.of(exception.errors()));
-    }
-
     @ExceptionHandler(InvalidRecipeShoppingPreviewRequestException.class)
     public ResponseEntity<InvalidRecipeShoppingPreviewProblem> invalidRecipe(
             InvalidRecipeShoppingPreviewRequestException exception) {
