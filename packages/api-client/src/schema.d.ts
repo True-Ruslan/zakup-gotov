@@ -55,6 +55,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/recipe-shopping-previews": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Convert a transient recipe request into a canonical shopping-list preview */
+        post: operations["createRecipeShoppingPreview"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -92,6 +109,19 @@ export interface components {
             amount: number;
             unit: components["schemas"]["QuantityInputUnit"];
         };
+        RecipeShoppingPreviewRequest: {
+            title: string;
+            baseServings: number;
+            targetServings: number;
+            ingredients: components["schemas"]["RecipeShoppingPreviewIngredientInput"][];
+        };
+        RecipeShoppingPreviewIngredientInput: {
+            requirement: string;
+            quantity: {
+                amount: number;
+                unit: components["schemas"]["QuantityInputUnit"];
+            };
+        };
         /** @enum {string} */
         QuantityInputUnit: "PIECE" | "GRAM" | "KILOGRAM" | "MILLILITER" | "LITER";
         CanonicalQuantity: {
@@ -100,6 +130,36 @@ export interface components {
         };
         /** @enum {string} */
         CanonicalQuantityUnit: "PIECE" | "GRAM" | "MILLILITER";
+        RecipeShoppingPreviewResponse: {
+            recipe: components["schemas"]["RecipeShoppingPreviewRecipe"];
+            shoppingList: components["schemas"]["RecipeShoppingPreviewShoppingList"];
+        };
+        RecipeShoppingPreviewRecipe: {
+            /** Format: uuid */
+            id: string;
+            title: string;
+            baseServings: number;
+            targetServings: number;
+            ingredients: components["schemas"]["RecipeShoppingPreviewRecipeIngredient"][];
+        };
+        RecipeShoppingPreviewRecipeIngredient: {
+            /** Format: uuid */
+            id: string;
+            requirement: string;
+            quantity: components["schemas"]["CanonicalQuantity"];
+        };
+        RecipeShoppingPreviewShoppingList: {
+            /** Format: uuid */
+            id: string;
+            items: components["schemas"]["RecipeShoppingPreviewShoppingItem"][];
+        };
+        RecipeShoppingPreviewShoppingItem: {
+            /** Format: uuid */
+            id: string;
+            requirement: string;
+            quantity: components["schemas"]["CanonicalQuantity"];
+            sourceIngredientIds: string[];
+        };
         ComparisonPreviewResponse: {
             locality: string;
             items: components["schemas"]["ComparisonPreviewRequestedItem"][];
@@ -153,6 +213,21 @@ export interface components {
             errors: components["schemas"]["ComparisonPreviewValidationError"][];
         };
         ComparisonPreviewValidationError: {
+            field: string;
+            message: string;
+        };
+        InvalidRecipeShoppingPreviewProblem: {
+            /** @constant */
+            type: "https://zakup-gotov.dev/problems/invalid-recipe-shopping-preview";
+            /** @constant */
+            title: "Invalid recipe shopping preview request";
+            /** @constant */
+            status: 400;
+            /** @constant */
+            code: "INVALID_RECIPE_SHOPPING_PREVIEW";
+            errors: components["schemas"]["RecipeShoppingPreviewValidationError"][];
+        };
+        RecipeShoppingPreviewValidationError: {
             field: string;
             message: string;
         };
@@ -257,6 +332,39 @@ export interface operations {
                 };
                 content: {
                     "application/problem+json": components["schemas"]["InvalidComparisonPreviewProblem"];
+                };
+            };
+        };
+    };
+    createRecipeShoppingPreview: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RecipeShoppingPreviewRequest"];
+            };
+        };
+        responses: {
+            /** @description Canonical Recipe to ShoppingList conversion preview with ingredient provenance */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RecipeShoppingPreviewResponse"];
+                };
+            };
+            /** @description Invalid recipe shopping preview request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["InvalidRecipeShoppingPreviewProblem"];
                 };
             };
         };
