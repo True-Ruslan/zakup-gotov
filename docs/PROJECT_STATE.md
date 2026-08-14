@@ -4,20 +4,25 @@ Updated: 2026-08-14
 
 ## Project
 
-**Zakup Gotov** is a recipe-to-cart grocery comparison product. The target experience is to turn recipes, meal plans or a manual grocery list into a location-aware comparison of complete retailer baskets while preserving price/availability evidence, package semantics, provenance, freshness and uncertainty.
+**Zakup Gotov** is a recipe-to-cart grocery comparison product. The target experience is to turn recipes, weekly meal plans or a manual grocery list into a location-aware comparison of complete retailer baskets while preserving price/availability evidence, package semantics, provenance, freshness and uncertainty.
 
 Repository: `True-Ruslan/zakup-gotov`  
 Visibility: Public  
-Current phase: **M3 — Weekly Planning**  
-M0 status: **technical discovery COMPLETE**  
-M1 status: **Shopping Core COMPLETE / ACCEPTED**  
-M2 status: **Recipes COMPLETE / ACCEPTED**  
-M2.1 status: **Recipe domain + Recipe → ShoppingList COMPLETE / ACCEPTED (#94 / #93)**  
-M2.2 status: **Recipe application/API boundary COMPLETE / ACCEPTED (#97 / #96)**  
-M2.3 status: **Recipe → Comparison composition COMPLETE / ACCEPTED (#101 / #100)**  
-M2.4 status: **Responsive Recipe UI COMPLETE / ACCEPTED (#104 / #103)**  
-M2.5 status: **Deterministic multi-recipe aggregation COMPLETE / ACCEPTED (#107 / #106)**  
-Current focus: **design the first M3 Weekly Planning domain/application slice over accepted M2.5 aggregation semantics**
+Current phase: **M3 — Weekly Planning**
+
+Milestone status:
+
+- M0 Product & Integration Discovery — **COMPLETE**;
+- M1 Shopping Core — **COMPLETE / ACCEPTED**;
+- M2 Recipes — **COMPLETE / ACCEPTED**;
+- M2.1 Recipe domain + Recipe → ShoppingList — **COMPLETE / ACCEPTED** (#94 / #93);
+- M2.2 Recipe application/API boundary — **COMPLETE / ACCEPTED** (#97 / #96);
+- M2.3 Recipe → Comparison composition — **COMPLETE / ACCEPTED** (#101 / #100);
+- M2.4 Responsive Recipe UI — **COMPLETE / ACCEPTED** (#104 / #103);
+- M2.5 Deterministic multi-recipe aggregation — **COMPLETE / ACCEPTED** (#107 / #106);
+- M3.1 WeeklyPlan domain + deterministic shopping composition — **COMPLETE / ACCEPTED** (#110 / #109).
+
+Current focus: **design M3.2 stateless WeeklyPlan application/API boundary**.
 
 ## Permanent connectivity rule
 
@@ -31,13 +36,7 @@ Technical feasibility, production-access readiness and deterministic product/cor
 
 ### M0 — Product & Integration Discovery — COMPLETE
 
-Accepted evidence established:
-
-- Perekrestok and Pyaterochka browser-bridge acquisition paths;
-- Magnit public-web acquisition path;
-- at least two acquisition modes;
-- deterministic sanitized fixtures/E2E and finite guarded probes;
-- provider-neutral retailer architecture.
+Accepted evidence established Perekrestok/Pyaterochka browser-bridge acquisition, Magnit public-web technical feasibility, at least two acquisition modes, deterministic sanitized fixtures/E2E and provider-neutral retailer architecture.
 
 M0 proves technical feasibility only. It does not establish blanket permission for recurring production acquisition.
 
@@ -46,20 +45,81 @@ M0 proves technical feasibility only. It does not establish blanket permission f
 Acceptance: [`m1-shopping-core-acceptance-2026-08-13.md`](m1-shopping-core-acceptance-2026-08-13.md).  
 Accepted final hardening baseline: `779d0b219a13e0bf82263a1e655fb732553ed5fe`.
 
-Accepted capabilities:
+Accepted core includes canonical retailer registry/readiness, shopping requirements and canonical quantities, location/fulfillment provenance, immutable offer/freshness evidence, deterministic matching, whole-package basket calculation, truthful complete/uncertain/incomplete/unavailable comparison states, pre-acquisition production-access gating, stateless comparison preview API and responsive manual-list journey.
 
-- canonical eight-retailer registry with independent technical-coverage and production-access states;
-- shopping requirements, canonical quantities and shopping-list identity;
-- provider/path orchestration and provider-neutral location/fulfillment context;
-- immutable offer snapshots with explicit observation/provider freshness and `UNKNOWN` availability;
-- deterministic exact/normalized matching with explicit matched/ambiguous/unmatched states;
-- whole-package single-store basket calculation with complete/uncertain/incomplete states;
-- truthful retailer comparison/readiness projection;
-- structured package evidence and Magnit package/location technical research;
-- pre-acquisition production-access gate that scopes retailer evidence before a source can run;
-- stateless `POST /api/v1/comparison-previews` and responsive manual-list web journey.
+### M2 — Recipes — COMPLETE / ACCEPTED
 
-M1 guarantees that unavailable retailers stay visible, ambiguity remains explicit, incomplete baskets do not expose misleading complete totals, and production preview evidence never falls back to deterministic fixtures.
+M2 established deterministic Recipe semantics from domain through responsive Recipe-first product flow.
+
+Accepted baselines:
+
+- M2.1 Recipe domain/conversion — merge `423eb14f7c565bbe264257a92df89a6b42d0d158`;
+- M2.2 `POST /api/v1/recipe-shopping-previews` — acceptance [`m2-2-recipe-shopping-preview-acceptance-2026-08-14.md`](m2-2-recipe-shopping-preview-acceptance-2026-08-14.md), merge `8f0c1d8d31cfc1673656780a7989512d38788aff`;
+- M2.3 `POST /api/v1/recipe-comparison-previews` — acceptance [`m2-3-recipe-comparison-preview-acceptance-2026-08-14.md`](m2-3-recipe-comparison-preview-acceptance-2026-08-14.md), merge `15a086d135f40277c655b39549c3e7a04c2e914e`;
+- M2.4 responsive Recipe-first UI — acceptance [`m2-4-responsive-recipe-ui-acceptance-2026-08-14.md`](m2-4-responsive-recipe-ui-acceptance-2026-08-14.md), merge `aba20c9cee263a683c0d4383ad840d7415851861`;
+- M2.5 deterministic multi-recipe aggregation — acceptance [`m2-5-multi-recipe-aggregation-acceptance-2026-08-14.md`](m2-5-multi-recipe-aggregation-acceptance-2026-08-14.md), merge `0854fc5bf76ad2976986537d6b4f5f3b8ebd18f0`.
+
+M2 guarantees that Recipe scaling/canonicalization is deterministic, automatic merge remains exact normalized requirement + canonical unit only, ShoppingItem identity is deterministic/list-scoped, Recipe/multi-Recipe provenance remains outside neutral Shopping Core and no fuzzy/AI equivalence is introduced implicitly.
+
+### M3.1 — WeeklyPlan domain + deterministic shopping composition — COMPLETE / ACCEPTED
+
+Authoritative design: [`superpowers/specs/2026-08-14-m3-1-weekly-plan-domain-design.md`](superpowers/specs/2026-08-14-m3-1-weekly-plan-domain-design.md)  
+Implementation plan: [`superpowers/plans/2026-08-14-m3-1-weekly-plan-domain.md`](superpowers/plans/2026-08-14-m3-1-weekly-plan-domain.md)  
+Shipping evidence: [`superpowers/plans/2026-08-14-m3-1-weekly-plan-domain-shipping.md`](superpowers/plans/2026-08-14-m3-1-weekly-plan-domain-shipping.md)  
+Acceptance: [`m3-1-weekly-plan-acceptance-2026-08-14.md`](m3-1-weekly-plan-acceptance-2026-08-14.md)  
+Accepted squash merge: `13e09c63959b050d431cc913597fc868aa408718`.
+
+Accepted flow:
+
+`ordered WeeklyPlan meal occurrences + target servings → accepted M2.5 aggregation → one canonical weekly ShoppingList + WeeklyMealOccurrence/RecipeIngredient provenance`
+
+Accepted behavior:
+
+- immutable WeeklyPlan identity + ordered non-empty meal occurrences;
+- required Monday-through-Sunday day metadata, with no fixed breakfast/lunch/dinner/snack slots;
+- multiple occurrences may share a day;
+- the same Recipe may appear multiple times under distinct WeeklyMealOccurrenceIds;
+- caller occurrence order is explicit and never auto-sorted by day;
+- weekly ShoppingList identity derives deterministically from WeeklyPlanId;
+- internal aggregation-entry identity derives deterministically from WeeklyPlanId + WeeklyMealOccurrenceId;
+- accepted M2.5 remains authoritative for scaling, canonicalization, cross-Recipe exact merge, final ordering and ShoppingItem identity;
+- planner provenance projects to WeeklyMealOccurrenceId + exact RecipeIngredientRef and hides internal RecipeAggregationEntryId;
+- key drift, empty lineage, unknown internal identity and generated-ID collisions fail closed;
+- weeklyplan may depend only on accepted recipe/shopping project packages; reverse dependency is prohibited;
+- no persistence, API/OpenAPI, web UI, pantry/exclusions, provider/retailer or comparison behavior was introduced.
+
+Final reviewed PR head `ec1af08cbaf373f79c54858e9654451cebc4f009`:
+
+- **9/9 normal PR workflow groups SUCCESS**;
+- final read-only review: **Looks good**, no P0/P1/P2/P3;
+- review threads empty.
+
+Post-merge proof on `main=13e09c63959b050d431cc913597fc868aa408718`:
+
+- issue #109 closed `completed`;
+- exactly 8 normal push workflows;
+- **8/8 SUCCESS, 0 failures**.
+
+## Next deterministic target — M3.2 stateless WeeklyPlan application/API boundary
+
+M3.1 accepted planner-domain semantics. The next slice should expose those semantics without introducing persistence or UI prematurely.
+
+Recommended flow:
+
+`explicit WeeklyPlan request → server-owned transient WeeklyPlan/occurrence/Recipe/ingredient identities → accepted M3.1 composition → self-contained weekly ShoppingList + planner/Recipe provenance`
+
+M3.2 design should decide:
+
+1. public request shape for ordered meal occurrences and days;
+2. bounded recipe/ingredient/occurrence counts for predictable stateless execution;
+3. server-owned transient identity generation and collision handling;
+4. self-contained response shape that exposes planner occurrence/day/Recipe ingredient lineage without leaking internal aggregation IDs;
+5. sanitized validation/problem vocabulary;
+6. whether locality/comparison remains a later composition slice rather than part of the first WeeklyPlan API — default direction: keep M3.2 planner-only;
+7. OpenAPI 3.1 + generated TypeScript contract requirements;
+8. architecture guard preventing provider/retailer/comparison/database coupling.
+
+Persistence, saved-plan history, pantry/exclusion subtraction, retailer comparison orchestration and Weekly Planning UI remain separate follow-on slices unless M3.2 design evidence requires otherwise.
 
 ## Magnit production state
 
@@ -72,135 +132,14 @@ Current product state:
 - comparison status: **`UNAVAILABLE`**;
 - public reason: **`PRODUCTION_ACCESS_BLOCKED`**.
 
-`BLOCKED` is a Zakup Gotov operating policy because an affirmative right to operate the intended recurring production catalog-acquisition/reuse model has not been established. It is not a legal adjudication. No production Spring/HTTP Magnit acquisition is activated.
-
-## M2 — Recipes — COMPLETE / ACCEPTED
-
-M2 established deterministic Recipe semantics, exposed them through stateless application/API composition, shipped a responsive Recipe-first user journey and completed the multi-recipe aggregation foundation required by M3.
-
-### M2.1 — Recipe domain + Recipe → ShoppingList — COMPLETE / ACCEPTED
-
-Design: [`superpowers/specs/2026-08-13-m2-1-recipe-domain-design.md`](superpowers/specs/2026-08-13-m2-1-recipe-domain-design.md)  
-Shipping evidence: [`superpowers/plans/2026-08-13-m2-1-recipe-domain-shipping.md`](superpowers/plans/2026-08-13-m2-1-recipe-domain-shipping.md)  
-Accepted squash merge: `423eb14f7c565bbe264257a92df89a6b42d0d158`.
-
-Accepted behavior:
-
-- immutable Recipe aggregate with stable Recipe/ingredient identities;
-- normalized title, positive integer servings and ordered explicit ingredients;
-- deterministic Recipe → ShoppingList conversion;
-- exact-safe serving scaling and canonical unit handling;
-- exact merge only by normalized requirement + canonical unit;
-- deterministic list-scoped ShoppingItem identity;
-- ordered per-ingredient provenance kept outside Shopping Core;
-- no fuzzy/synonym/AI equivalence.
-
-Post-merge acceptance: 8/8 normal push workflows SUCCESS.
-
-### M2.2 — Stateless Recipe application/API boundary — COMPLETE / ACCEPTED
-
-Authoritative design: [`superpowers/specs/2026-08-13-m2-2-recipe-shopping-preview-design-v2.md`](superpowers/specs/2026-08-13-m2-2-recipe-shopping-preview-design-v2.md)  
-Acceptance: [`m2-2-recipe-shopping-preview-acceptance-2026-08-14.md`](m2-2-recipe-shopping-preview-acceptance-2026-08-14.md)  
-Accepted squash merge: `8f0c1d8d31cfc1673656780a7989512d38788aff`.
-
-Accepted boundary: `POST /api/v1/recipe-shopping-previews`.
-
-Accepted behavior includes server-owned transient identities, strict serving validation, accepted M2.1 scaling/merge/identity semantics, self-contained ingredient provenance, sanitized request problems and generated OpenAPI/TypeScript contracts without persistence or retailer traffic.
-
-Post-merge acceptance: 8/8 normal push workflows SUCCESS.
-
-### M2.3 — Recipe → Comparison composition — COMPLETE / ACCEPTED
-
-Authoritative design: [`superpowers/specs/2026-08-14-m2-3-recipe-comparison-preview-design.md`](superpowers/specs/2026-08-14-m2-3-recipe-comparison-preview-design.md)  
-Acceptance: [`m2-3-recipe-comparison-preview-acceptance-2026-08-14.md`](m2-3-recipe-comparison-preview-acceptance-2026-08-14.md)  
-Accepted squash merge: `15a086d135f40277c655b39549c3e7a04c2e914e`.
-
-Accepted boundary: `POST /api/v1/recipe-comparison-previews`.
-
-Accepted journey:
-
-`Recipe input + locality → accepted RecipeShoppingPreview → canonical generated Shopping items → accepted ComparisonPreview`
-
-Generated ShoppingItem identity/order/requirement/canonical quantity remain stable across the composition boundary, Recipe provenance remains self-contained and production-access gating remains authoritative before runtime evidence acquisition.
-
-Post-merge acceptance: 8/8 normal push workflows SUCCESS.
-
-### M2.4 — Responsive Recipe UI — COMPLETE / ACCEPTED
-
-Authoritative design: [`superpowers/specs/2026-08-14-m2-4-responsive-recipe-ui-design.md`](superpowers/specs/2026-08-14-m2-4-responsive-recipe-ui-design.md)  
-Implementation plan: [`superpowers/plans/2026-08-14-m2-4-responsive-recipe-ui.md`](superpowers/plans/2026-08-14-m2-4-responsive-recipe-ui.md)  
-Shipping evidence: [`superpowers/plans/2026-08-14-m2-4-responsive-recipe-ui-shipping.md`](superpowers/plans/2026-08-14-m2-4-responsive-recipe-ui-shipping.md)  
-Acceptance: [`m2-4-responsive-recipe-ui-acceptance-2026-08-14.md`](m2-4-responsive-recipe-ui-acceptance-2026-08-14.md)  
-Accepted squash merge: `aba20c9cee263a683c0d4383ad840d7415851861`.
-
-Accepted primary web journey:
-
-`Recipe title/servings + ingredient editing + locality → composed Recipe comparison endpoint → canonical generated shopping requirements → truthful retailer comparison`
-
-The browser remains a generated-contract client, internal IDs stay hidden, failure is fail-closed, manual list comparison remains available and desktop/mobile Playwright covers scaling, generated-list output, unavailable state, keyboard focus and horizontal-overflow safety.
-
-Post-merge acceptance: 8/8 normal push workflows SUCCESS.
-
-### M2.5 — Deterministic multi-recipe aggregation — COMPLETE / ACCEPTED
-
-Authoritative design: [`superpowers/specs/2026-08-14-m2-5-multi-recipe-aggregation-design.md`](superpowers/specs/2026-08-14-m2-5-multi-recipe-aggregation-design.md)  
-Implementation plan: [`superpowers/plans/2026-08-14-m2-5-multi-recipe-aggregation.md`](superpowers/plans/2026-08-14-m2-5-multi-recipe-aggregation.md)  
-Shipping evidence: [`superpowers/plans/2026-08-14-m2-5-multi-recipe-aggregation-shipping.md`](superpowers/plans/2026-08-14-m2-5-multi-recipe-aggregation-shipping.md)  
-Acceptance: [`m2-5-multi-recipe-aggregation-acceptance-2026-08-14.md`](m2-5-multi-recipe-aggregation-acceptance-2026-08-14.md)  
-Accepted squash merge: `0854fc5bf76ad2976986537d6b4f5f3b8ebd18f0`.
-
-Accepted flow:
-
-`ordered Recipe occurrences + target servings → accepted per-recipe conversion → one canonical aggregate ShoppingList + occurrence-aware provenance`
-
-Accepted behavior:
-
-- occurrence identity is separate from Recipe identity so the same Recipe may appear multiple times;
-- accepted `RecipeShoppingListConverter` remains authoritative for serving scaling and source-unit canonicalization;
-- automatic cross-Recipe merge remains exact normalized requirement + canonical unit only;
-- canonical amounts are summed exactly and first compatible occurrence controls ordering;
-- aggregate ShoppingItem IDs reuse accepted M2.1 list+requirement+unit derivation and stay independent of amount/serving changes;
-- provenance preserves aggregation occurrence + accepted RecipeIngredientRef lineage and is deeply immutable;
-- empty/duplicate occurrence sets, missing provenance and generated-ID collisions fail closed;
-- no API, web, persistence, planner, provider or retailer behavior was added.
-
-Compatibility proof locked accepted M2.1 ShoppingItem UUID `3d737f10-a263-39b3-b90a-fe7868c035b9` before shared-helper extraction and preserved it afterwards.
-
-Final reviewed PR head `a6e1095696ebfd67fafe7675a37b125ae02b3170`: 9/9 normal PR workflow groups SUCCESS; review `REVIEWED_READY / Looks good`; no unresolved P0/P1/P2; review threads empty.
-
-Post-merge proof on exact `main=0854fc5bf76ad2976986537d6b4f5f3b8ebd18f0`:
-
-- issue #106 closed `completed`;
-- exactly 8 normal push workflow runs;
-- **8/8 SUCCESS; 0 failures**;
-- API, Contract, Web/E2E, CodeQL Java + JavaScript/TypeScript, Container Security, Retailer Bridge, Release Contract and Release Bundle all passed.
-
-## M3 — Weekly Planning — CURRENT / DESIGN NEXT
-
-M2 has supplied the deterministic aggregation primitive. M3 may now add planner-specific semantics without changing accepted Recipe/Shopping merge behavior implicitly.
-
-Recommended first design slice:
-
-`WeeklyPlan identity + ordered meal/day occurrences + per-occurrence target servings → accepted M2.5 aggregation → reviewable weekly ShoppingList projection`
-
-Design questions to resolve before implementation:
-
-1. What is the smallest WeeklyPlan aggregate: ordered meals only, or explicit day/slot ownership from the start?
-2. Should M3 reuse `RecipeAggregationEntryId` as an internal bridge while exposing planner-specific occurrence identity publicly?
-3. How are day/meal labels represented without contaminating Recipe or Shopping Core?
-4. Which planner invariants are deterministic domain rules versus UI-only organization?
-5. Should the first M3 slice remain stateless, with persistence deferred until saved weekly plans demonstrate value? Default direction: yes.
-6. Pantry/exclusions should be a separate explicit semantics layer after the base weekly-plan composition is accepted; they must not silently alter M2.5 provenance.
-7. What minimal API contract is needed before planner UI work, and how does it preserve complete occurrence provenance?
-
-Persistence, accounts, pantry prediction, fuzzy/AI recipe interpretation and optimization remain separate evidence-driven decisions.
+`BLOCKED` is a Zakup Gotov operating policy because affirmative right to operate the intended recurring production catalog-acquisition/reuse model has not been established. It is not a legal adjudication. No production Spring/HTTP Magnit acquisition is activated.
 
 ## Parallel mandatory work
 
 Continue without blocking deterministic M3 work unless new evidence invalidates accepted core assumptions:
 
 - **#54** browser-bridge persistent-session/store-change/SPA lifecycle hardening;
-- **#36** Kuper supported aggregator access investigation;
+- **#36** Kuper supported aggregator investigation;
 - Chizhik, Ozon Fresh, Samokat, Lenta and VkusVill onboarding/hardening;
 - retailer-specific structured package semantics only where source evidence proves them;
 - retailer-specific production-access decisions before activation;
@@ -213,34 +152,23 @@ Continue without blocking deterministic M3 work unless new evidence invalidates 
 3. Technical connectivity and production-access readiness are independent.
 4. Precise addresses are sensitive and redacted by default.
 5. Provider/acquisition/fulfillment identifiers remain internal.
-6. `UNKNOWN` availability is never coerced.
-7. Observation time is not misrepresented as provider freshness.
-8. Matching ambiguity never becomes a hidden winner.
-9. Package quantity is explicit structured evidence and is never guessed from presentation text.
-10. Mass, volume and count are not interchangeable.
-11. Incomplete baskets never expose misleading complete-basket totals.
-12. Production-access policy scopes acquisition before source invocation.
-13. Evidence outside requested retailer scope is a contract violation.
-14. Ordinary CI/browser acceptance makes no live retailer requests.
-15. Production preview evidence does not fall back to deterministic fixtures.
-16. Universal retailer connectivity remains mandatory.
-17. Public technical accessibility is never treated as production authorization by itself.
-18. Recipe semantics reuse Shopping Core quantity/requirement normalization instead of duplicating it.
-19. Recipe provenance remains outside Shopping Core types.
-20. Recipe exact-safe merging never introduces fuzzy/AI equivalence implicitly.
-21. Recipe application requests own no server identities; transient IDs are generated at the application boundary.
-22. Public Recipe provenance is self-contained and every source ingredient ID resolves inside the same response.
-23. Fractional ingredient quantities remain valid; serving counts remain positive JSON integers.
-24. Recipe → Comparison composition preserves generated ShoppingItem identity, order, requirement and canonical quantity across the application boundary.
-25. Recipe → Comparison composition delegates accepted Recipe and Comparison semantics and never bypasses production-access gating.
-26. Browser Recipe UI is a generated-contract client; Recipe scaling/merge/provenance/comparison semantics remain server-owned.
-27. Browser/E2E fixtures can prove UX behavior but never establish production retailer readiness.
-28. Multi-recipe aggregation distinguishes Recipe identity from occurrence identity.
-29. Repeating one Recipe under distinct aggregation occurrence IDs is valid and lineage remains unambiguous.
-30. Cross-Recipe automatic merge uses the same exact requirement + canonical-unit semantics as single-Recipe conversion.
-31. Aggregate ShoppingItem identity remains list+requirement+canonical-unit scoped and independent of amount/target servings.
-32. Multi-recipe provenance remains outside neutral Shopping Core types and is deeply immutable.
-33. Planner-specific semantics in M3 must compose accepted M2 aggregation rather than silently changing Recipe/Shopping merge rules.
+6. `UNKNOWN` availability is never coerced and observation time is not misrepresented as provider freshness.
+7. Matching ambiguity never becomes a hidden winner.
+8. Package quantity is explicit structured evidence; mass, volume and count are not interchangeable.
+9. Incomplete baskets never expose misleading complete-basket totals.
+10. Production-access policy scopes acquisition before source invocation; out-of-scope evidence is a contract violation.
+11. Ordinary CI/browser acceptance makes no live retailer requests and production preview never falls back to deterministic fixtures.
+12. Universal retailer connectivity remains mandatory; public technical accessibility alone is never production authorization.
+13. Recipe semantics reuse Shopping Core requirement/quantity normalization.
+14. Recipe and planner provenance remain outside neutral Shopping Core types.
+15. Recipe and cross-Recipe automatic merge remain exact requirement + canonical-unit semantics; no fuzzy/AI equivalence is implicit.
+16. Multi-recipe aggregation distinguishes Recipe identity from occurrence identity and supports repeated Recipe use without ambiguous lineage.
+17. ShoppingItem identity remains list + normalized requirement + canonical unit scoped and independent of amount/target servings.
+18. WeeklyPlan day metadata never changes Recipe/Shopping merge or quantity semantics.
+19. WeeklyPlan occurrence identity is distinct from Recipe identity; repeated Recipe meals are valid under distinct occurrence IDs.
+20. WeeklyPlan composition delegates accepted M2.5 semantics and never duplicates serving/canonicalization/merge logic.
+21. Planner provenance exposes WeeklyMealOccurrenceId + RecipeIngredientRef and hides internal aggregation IDs.
+22. Planner composition fails closed on identity/provenance drift.
 
 ## Platform baseline
 
