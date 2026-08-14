@@ -14,8 +14,11 @@ import io.github.trueruslan.zakupgotov.shopping.ShoppingListId;
 import java.util.UUID;
 import org.junit.jupiter.api.Test;
 import org.springframework.http.MediaType;
+import org.springframework.http.converter.json.JacksonJsonHttpMessageConverter;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
+import tools.jackson.databind.DeserializationFeature;
+import tools.jackson.databind.json.JsonMapper;
 
 class RecipeShoppingPreviewHttpFailureContractTest {
     private static final String PATH = "/api/v1/recipe-shopping-previews";
@@ -72,8 +75,11 @@ class RecipeShoppingPreviewHttpFailureContractTest {
         var service = new RecipeShoppingPreviewService(
                 new RecipeShoppingPreviewRequestFactory(ids),
                 new RecipeShoppingListConverter());
+        var json = new JacksonJsonHttpMessageConverter(
+                JsonMapper.builder().disable(DeserializationFeature.ACCEPT_FLOAT_AS_INT));
         return MockMvcBuilders.standaloneSetup(new RecipeShoppingPreviewController(service))
                 .setControllerAdvice(new RecipeShoppingPreviewExceptionHandler())
+                .setMessageConverters(json)
                 .build();
     }
 
