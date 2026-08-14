@@ -46,10 +46,33 @@ Goal: combine several meals into one coherent weekly plan, derive one canonical 
 ### M3.1 — WeeklyPlan domain + deterministic shopping composition — COMPLETE / ACCEPTED
 
 Authoritative design: [`superpowers/specs/2026-08-14-m3-1-weekly-plan-domain-design.md`](superpowers/specs/2026-08-14-m3-1-weekly-plan-domain-design.md)  
+Implementation plan: [`superpowers/plans/2026-08-14-m3-1-weekly-plan-domain.md`](superpowers/plans/2026-08-14-m3-1-weekly-plan-domain.md)  
+Shipping evidence: [`superpowers/plans/2026-08-14-m3-1-weekly-plan-domain-shipping.md`](superpowers/plans/2026-08-14-m3-1-weekly-plan-domain-shipping.md)  
 Acceptance: [`m3-1-weekly-plan-acceptance-2026-08-14.md`](m3-1-weekly-plan-acceptance-2026-08-14.md)  
 Accepted squash merge: `13e09c63959b050d431cc913597fc868aa408718`.
 
-Accepted result: immutable ordered WeeklyPlan occurrences, Monday-through-Sunday metadata without fixed meal slots, repeated Recipe occurrences under distinct IDs, deterministic plan-scoped ShoppingList identity, accepted M2.5 scaling/merge/order semantics, occurrence-aware Recipe provenance and fail-closed planner identity/provenance invariants.
+Accepted result:
+
+- immutable WeeklyPlan + ordered WeeklyMealOccurrence model;
+- required Monday-through-Sunday metadata without fixed meal-slot taxonomy;
+- repeated use of one Recipe through distinct planner occurrence IDs;
+- explicit caller occurrence order rather than implicit day sorting;
+- per-occurrence target servings through accepted RecipeServings;
+- deterministic WeeklyPlan-scoped ShoppingList and internal aggregation-entry identity;
+- composition delegates accepted M2.5 scaling/canonicalization/exact merge/order/final ShoppingItem identity;
+- planner provenance projects to WeeklyMealOccurrenceId + RecipeIngredientRef;
+- internal RecipeAggregationEntryId remains hidden;
+- identity/provenance drift fails closed;
+- architecture guards keep weeklyplan dependent inward only on recipe/shopping;
+- no persistence, API, UI, pantry, retailer/provider or comparison scope.
+
+Acceptance proof:
+
+- final reviewed head `ec1af08cbaf373f79c54858e9654451cebc4f009`: **9/9 PR workflow groups SUCCESS**;
+- read-only review **Looks good**, no P0/P1/P2/P3, no review threads;
+- squash merge `13e09c63959b050d431cc913597fc868aa408718`;
+- issue #109 closed `completed`;
+- **8/8 post-merge normal push workflows SUCCESS**.
 
 ### M3.2 — Stateless WeeklyPlan shopping preview API — COMPLETE / ACCEPTED
 
