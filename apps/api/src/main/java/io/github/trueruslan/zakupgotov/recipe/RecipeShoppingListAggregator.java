@@ -8,6 +8,7 @@ import io.github.trueruslan.zakupgotov.shopping.ShoppingListId;
 import java.math.BigDecimal;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Objects;
@@ -34,10 +35,17 @@ public final class RecipeShoppingListAggregator {
             ShoppingListId aggregateShoppingListId) {
         Objects.requireNonNull(entries, "entries must not be null");
         Objects.requireNonNull(aggregateShoppingListId, "aggregateShoppingListId must not be null");
+        if (entries.isEmpty()) {
+            throw new IllegalArgumentException("entries must not be empty");
+        }
 
         var groups = new LinkedHashMap<RecipeShoppingMergeKey, GroupAccumulator>();
+        var seenEntryIds = new HashSet<RecipeAggregationEntryId>();
         for (var entry : entries) {
             Objects.requireNonNull(entry, "entry must not be null");
+            if (!seenEntryIds.add(entry.id())) {
+                throw new IllegalArgumentException("duplicate aggregation entry id");
+            }
             var conversion = converter.convert(
                     entry.recipe(),
                     entry.targetServings(),
