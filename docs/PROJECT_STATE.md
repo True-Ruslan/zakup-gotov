@@ -21,9 +21,10 @@ Milestone status:
 - M2.4 Responsive Recipe UI — **COMPLETE / ACCEPTED** (#104 / #103);
 - M2.5 Deterministic multi-recipe aggregation — **COMPLETE / ACCEPTED** (#107 / #106);
 - M3.1 WeeklyPlan domain + deterministic shopping composition — **COMPLETE / ACCEPTED** (#110 / #109);
-- M3.2 Stateless WeeklyPlan shopping-preview application/API boundary — **COMPLETE / ACCEPTED** (#113 / #112).
+- M3.2 Stateless WeeklyPlan shopping-preview application/API boundary — **COMPLETE / ACCEPTED** (#113 / #112);
+- M3.3 WeeklyPlan → Comparison composition — **COMPLETE / ACCEPTED** (#116 / #115).
 
-Current focus: **design M3.3 WeeklyPlan → Comparison composition**.
+Current focus: **M3.4 — Responsive Weekly Planning UI**.
 
 ## Permanent connectivity rule
 
@@ -144,26 +145,67 @@ Post-merge proof on `main=9682ad1230910fc268ca3cddd8601a3fad7b100e`:
 - exactly 8 normal push workflows;
 - **8/8 SUCCESS, 0 failures**.
 
-## Next deterministic target — M3.3 WeeklyPlan → Comparison composition
+### M3.3 — WeeklyPlan → Comparison composition — COMPLETE / ACCEPTED
 
-M3.2 now supplies a truthful stateless weekly shopping projection. The next slice should compose it with the already accepted comparison application boundary without changing planner, Recipe, shopping or retailer semantics.
+Authoritative design: [`superpowers/specs/2026-08-14-m3-3-weekly-plan-comparison-preview-design.md`](superpowers/specs/2026-08-14-m3-3-weekly-plan-comparison-preview-design.md)  
+Implementation plan: [`superpowers/plans/2026-08-14-m3-3-weekly-plan-comparison-preview.md`](superpowers/plans/2026-08-14-m3-3-weekly-plan-comparison-preview.md)  
+Shipping evidence: [`superpowers/plans/2026-08-14-m3-3-weekly-plan-comparison-preview-shipping.md`](superpowers/plans/2026-08-14-m3-3-weekly-plan-comparison-preview-shipping.md)  
+Acceptance: [`m3-3-weekly-plan-comparison-preview-acceptance-2026-08-14.md`](m3-3-weekly-plan-comparison-preview-acceptance-2026-08-14.md)  
+Accepted squash merge: `89b9ef2ca95d07a7e4c964fdef38a9af1c5c3a43`.
 
-Recommended flow:
+Accepted boundary:
 
-`explicit WeeklyPlan + locality → accepted M3.2 weekly shopping preview → canonical generated shopping requirements → accepted ComparisonPreview`
+`POST /api/v1/weekly-plan-comparison-previews`
 
-M3.3 design should preserve:
+Accepted flow:
 
-1. server-owned WeeklyPlan/occurrence/Recipe/ingredient identity from M3.2;
-2. exact Weekly ShoppingItem identity/order/requirement/canonical quantity across the composition boundary;
-3. self-contained planner/Recipe provenance from M3.2;
-4. existing comparison production-access gating before runtime evidence acquisition;
-5. no direct provider/retailer/matching/basket dependencies from the new composition adapter;
-6. locality only at the composition boundary rather than inside WeeklyPlan domain;
-7. sanitized wrapper failure semantics while preserving accepted nested planner/comparison errors where appropriate;
-8. ordinary CI with no live retailer traffic.
+`locality + accepted M3.2 WeeklyPlan input → accepted WeeklyPlanShoppingPreview → generated canonical ShoppingItems → accepted ComparisonPreview`
 
-Responsive Weekly Planning UI is **M3.4 after M3.3 acceptance**. Persistence/saved-plan history and pantry/exclusion subtraction remain separate evidence-driven slices.
+Accepted behavior:
+
+- M3.3 is stateless and introduces no client-controlled server identities;
+- accepted M3.2 remains authoritative for planner/Recipe validation, transient identities, weekly composition, ShoppingList/ShoppingItem identity and self-contained provenance;
+- generated weekly ShoppingItem identity, order, normalized requirement and canonical quantity cross the composition boundary unchanged;
+- accepted ComparisonPreview remains authoritative for locality, retailer visibility, production-access gating, runtime evidence, matching, basket/package semantics and truthful comparison states;
+- M3.2 public provenance is returned unchanged and never reinterpreted by comparison;
+- composition drift in cardinality, identity/order, requirement or canonical quantity fails closed;
+- whole-wrapper binding failures use sanitized `INVALID_WEEKLY_PLAN_COMPARISON_PREVIEW`, while successfully bound planner/comparison semantic failures preserve their accepted problem vocabularies;
+- OpenAPI 3.1 and generated TypeScript client expose the composed contract;
+- architecture guards keep the adapter on accepted application boundaries and out of provider/retailer/matching/basket/comparison-domain/database internals;
+- no persistence, UI, pantry, retailer onboarding/activation, production-access policy change or live-retailer CI behavior was introduced.
+
+Final reviewed PR head `396445c333ea369bed6d428b33f38f37765eff20`:
+
+- **9/9 normal PR workflow groups SUCCESS**;
+- final read-only review: **Looks good**, no P0/P1/P2/P3;
+- review threads empty.
+
+Post-merge proof on `main=89b9ef2ca95d07a7e4c964fdef38a9af1c5c3a43`:
+
+- issue #115 closed `completed`;
+- exactly 8 normal push workflows;
+- **8/8 SUCCESS, 0 failures**.
+
+## Next deterministic target — M3.4 Responsive Weekly Planning UI
+
+M3.3 now provides the accepted stateless product boundary needed by the planner UI. The next slice should build a responsive WeeklyPlan editing journey over that composed endpoint without duplicating planner, Recipe, shopping or comparison semantics in browser code.
+
+Recommended product flow:
+
+`edit ordered weekly meal occurrences + locality → POST /api/v1/weekly-plan-comparison-previews → canonical weekly shopping requirements + truthful retailer comparison`
+
+M3.4 should preserve:
+
+1. generated WeeklyPlan/occurrence/Recipe/ingredient/ShoppingList/ShoppingItem identities as server-owned implementation detail rather than editable browser state;
+2. explicit meal occurrence order, day and target servings without adding a fixed breakfast/lunch/dinner/snack taxonomy;
+3. accepted M3.3 as the primary WeeklyPlan comparison transport rather than browser-side composition of M3.2 + comparison;
+4. canonical weekly shopping requirements rendered before retailer comparison so aggregation remains inspectable;
+5. accepted comparison uncertainty/incomplete/unavailable states without fabricated winners or totals;
+6. generated OpenAPI/client types instead of duplicated frontend DTOs;
+7. manual-list and Recipe journeys unchanged and regression-covered;
+8. responsive desktop/mobile accessibility and deterministic Playwright coverage with no live retailer traffic.
+
+Pantry/exclusion subtraction and persistence/saved-plan history remain separate evidence-driven slices after the base planner flow.
 
 ## Magnit production state
 
@@ -217,6 +259,9 @@ Continue without blocking deterministic M3 work unless new evidence invalidates 
 24. Every public M3.2 shopping-item source resolves to one returned occurrence, Recipe and Recipe ingredient.
 25. M3.2 delegates Recipe validation/scaling semantics to accepted M2.2/M3.1 boundaries rather than creating a parallel planner algorithm.
 26. M3.2 remains locality/retailer-independent; comparison is an explicit composition concern.
+27. M3.3 is a stateless application composition adapter: planner projection remains owned by M3.2 and comparison behavior remains owned by accepted ComparisonPreview.
+28. M3.3 preserves generated ShoppingItem identity/order/requirement/canonical quantity and returns M3.2 self-contained planner provenance unchanged.
+29. M3.3 sanitizes whole-wrapper binding failures while preserving accepted planner/comparison semantic problem contracts after successful binding.
 
 ## Platform baseline
 

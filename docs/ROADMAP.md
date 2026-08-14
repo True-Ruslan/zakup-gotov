@@ -108,51 +108,67 @@ Acceptance proof:
 - issue #112 closed `completed`;
 - **8/8 post-merge normal push workflows SUCCESS**.
 
-### M3.3 — WeeklyPlan → Comparison composition — NEXT
+### M3.3 — WeeklyPlan → Comparison composition — COMPLETE / ACCEPTED
 
-Goal: compose the accepted weekly shopping preview with the accepted retailer comparison boundary in one stateless request without changing planner, Recipe, Shopping or retailer semantics.
+Authoritative design: [`superpowers/specs/2026-08-14-m3-3-weekly-plan-comparison-preview-design.md`](superpowers/specs/2026-08-14-m3-3-weekly-plan-comparison-preview-design.md)  
+Implementation plan: [`superpowers/plans/2026-08-14-m3-3-weekly-plan-comparison-preview.md`](superpowers/plans/2026-08-14-m3-3-weekly-plan-comparison-preview.md)  
+Shipping evidence: [`superpowers/plans/2026-08-14-m3-3-weekly-plan-comparison-preview-shipping.md`](superpowers/plans/2026-08-14-m3-3-weekly-plan-comparison-preview-shipping.md)  
+Acceptance: [`m3-3-weekly-plan-comparison-preview-acceptance-2026-08-14.md`](m3-3-weekly-plan-comparison-preview-acceptance-2026-08-14.md)  
+Accepted squash merge: `89b9ef2ca95d07a7e4c964fdef38a9af1c5c3a43`.
 
-Recommended target flow:
+Accepted boundary:
 
-`explicit WeeklyPlan + locality → accepted M3.2 weekly shopping projection → generated canonical shopping requirements → accepted ComparisonPreview`
+`POST /api/v1/weekly-plan-comparison-previews`
 
-Design defaults to validate:
+Accepted result:
 
-- request contains locality plus the accepted weekly-plan input shape and no server identities;
-- planner/Recipe identities and self-contained provenance are produced by accepted M3.2;
-- generated weekly ShoppingItem identity/order/requirement/canonical quantity are preserved unchanged into comparison input;
-- comparison production-access gating remains authoritative before runtime evidence acquisition;
-- no provider/retailer/matching/basket internals leak into the composition adapter;
-- wrapper binding failures are sanitized while nested accepted planner/comparison semantic problems remain explicit where appropriate;
-- ordinary CI performs no live retailer requests;
-- no UI/persistence/pantry scope.
+- one stateless request combines provider-neutral locality with the accepted M3.2 WeeklyPlan input and owns no server identities;
+- accepted M3.2 remains the only planner/Recipe shopping-preview authority and its self-contained provenance is returned unchanged;
+- generated weekly ShoppingItem UUID, order, normalized requirement and canonical quantity are preserved exactly into comparison;
+- accepted ComparisonPreview remains the only authority for locality validation, retailer visibility/readiness, production-access gating, runtime evidence, matching, basket/package semantics and truthful comparison projection;
+- fail-closed verification rejects cardinality, identity/order, requirement or quantity drift across the composition boundary;
+- whole-wrapper binding failures use sanitized `INVALID_WEEKLY_PLAN_COMPARISON_PREVIEW`; successfully bound M3.2 and comparison semantic failures preserve their accepted contracts;
+- OpenAPI/generated client exposes `createWeeklyPlanComparisonPreview` and `WEEKLY_PLAN_COMPARISON_PREVIEWS_PATH`;
+- ArchUnit prevents direct planner-domain/provider/retailer/matching/basket/comparison-domain/database coupling and protects accepted boundary direction;
+- no persistence, UI, pantry, retailer activation or new acquisition behavior.
 
-Exit gate:
+Acceptance proof:
 
-- authoritative design approved;
-- application/contract TDD RED→GREEN;
-- OpenAPI/generated-client synchronization green;
-- architecture/full regression green;
-- exact-head 9/9 PR workflows + clean review;
-- squash merge + 8/8 post-merge acceptance proof.
+- final reviewed head `396445c333ea369bed6d428b33f38f37765eff20`: **9/9 PR workflow groups SUCCESS**;
+- read-only review **Looks good**, no P0/P1/P2/P3, no review threads;
+- squash merge `89b9ef2ca95d07a7e4c964fdef38a9af1c5c3a43`;
+- issue #115 closed `completed`;
+- **8/8 post-merge normal push workflows SUCCESS**.
 
-### M3.4 — Responsive Weekly Planning UI — AFTER M3.3
+### M3.4 — Responsive Weekly Planning UI — NEXT
 
 Goal: provide a Recipe/meal-by-day editor over the accepted composed WeeklyPlan→Comparison contract and expose canonical weekly shopping plus truthful retailer comparison.
 
 Expected scope:
 
+- consume generated `POST /api/v1/weekly-plan-comparison-previews` contract as the primary planner product boundary;
 - add/remove/reorder weekly meal occurrences;
-- choose day and target servings per occurrence;
+- choose day and target servings per occurrence without introducing a fixed meal-slot taxonomy;
 - edit explicit Recipe ingredients;
 - show canonical weekly shopping requirements before comparison;
+- render accepted complete/uncertain/incomplete/unavailable retailer states without browser-side business recomputation;
 - preserve manual-list and Recipe comparison journeys;
+- use generated API/client types rather than duplicated frontend DTOs;
 - desktop/mobile accessibility and Playwright RED-first coverage;
-- no business-semantic duplication in browser code.
+- deterministic E2E fixtures only; no live retailer traffic in ordinary browser acceptance.
+
+Exit gate:
+
+- authoritative UI/interaction design approved;
+- browser/service TDD RED→GREEN;
+- desktop/mobile accessibility, overflow, loading/error and critical-journey regression coverage green;
+- no browser duplication of WeeklyPlan/Recipe/shopping/comparison semantics;
+- exact-head 9/9 PR workflows + clean review;
+- squash merge + 8/8 post-merge acceptance proof.
 
 ### M3.5 — Pantry / exclusions semantics — AFTER BASE PLANNER FLOW
 
-Pantry/subtraction must be an explicit semantics layer with its own design and provenance rules. It must never silently mutate accepted M2.5/M3.1/M3.2 behavior.
+Pantry/subtraction must be an explicit semantics layer with its own design and provenance rules. It must never silently mutate accepted M2.5/M3.1/M3.2/M3.3 behavior.
 
 Persistence remains deferred until saved-plan reuse/history demonstrates product value.
 
