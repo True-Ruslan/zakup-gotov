@@ -3,6 +3,7 @@ import type { components } from "@zakup-gotov/api-client";
 import { ComparisonPreviewResults } from "./comparison-preview-results";
 
 type Preview = components["schemas"]["RecipeComparisonPreviewResponse"];
+type ShoppingItem = components["schemas"]["RecipeShoppingPreviewShoppingItem"];
 
 export function RecipeComparisonResults({ preview }: { preview: Preview }) {
   return (
@@ -21,7 +22,7 @@ export function RecipeComparisonResults({ preview }: { preview: Preview }) {
         </div>
 
         <ul className="mt-6 grid gap-3 sm:grid-cols-2" aria-label="Покупки из рецепта">
-          {preview.recipeShoppingPreview.shoppingList.items.map((item) => (
+          {preview.recipeShoppingPreview.shoppingList.items.map((item: ShoppingItem) => (
             <li
               key={item.id}
               className="rounded-2xl border border-stone-200 bg-white p-4 shadow-sm"
