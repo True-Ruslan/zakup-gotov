@@ -137,29 +137,68 @@ Accepted direction:
 - issue #96 closed `completed`;
 - exact merged main SHA: 8/8 normal push workflows success, 0 failures.
 
-### M2.3 — Composed Recipe → Comparison flow — NEXT: DESIGN
+### M2.3 — Composed Recipe → Comparison flow — COMPLETE / ACCEPTED (#101 / #100)
 
-Target deterministic path:
+Authoritative design: [`superpowers/specs/2026-08-14-m2-3-recipe-comparison-preview-design.md`](superpowers/specs/2026-08-14-m2-3-recipe-comparison-preview-design.md).  
+Execution plan: [`superpowers/plans/2026-08-14-m2-3-recipe-comparison-preview.md`](superpowers/plans/2026-08-14-m2-3-recipe-comparison-preview.md).  
+Shipping evidence: [`superpowers/plans/2026-08-14-m2-3-recipe-comparison-preview-shipping.md`](superpowers/plans/2026-08-14-m2-3-recipe-comparison-preview-shipping.md).  
+Acceptance decision: [`m2-3-recipe-comparison-preview-acceptance-2026-08-14.md`](m2-3-recipe-comparison-preview-acceptance-2026-08-14.md).
 
-`Recipe input → recipe-shopping preview → generated shopping requirements → comparison preview`
+Accepted squash merge: `15a086d135f40277c655b39549c3e7a04c2e914e`.
 
-Design goals:
+Accepted direction:
 
-- compose the two accepted stateless boundaries without duplicating recipe or comparison semantics;
-- decide whether composition is an application service/internal orchestration seam or requires a new public endpoint;
-- preserve self-contained recipe provenance while keeping retailer/provider internals out of the Recipe API;
-- preserve existing production-access gating and fail-closed comparison states;
-- define identity/provenance/error behavior across the composed boundary;
-- add contract/application tests before introducing UI;
-- keep retailer traffic absent from ordinary CI.
+`POST /api/v1/recipe-comparison-previews`
 
-After the composed flow is accepted, implement the first real responsive Recipe UI using frontend component TDD and desktop/mobile Playwright RED-first.
+`Recipe input + locality → accepted Recipe shopping preview → generated canonical shopping requirements → accepted comparison preview`
 
-Do **not** add persistence, saved recipes or fuzzy/AI ingestion merely because M2.2 makes them convenient. Those remain separate product decisions.
+#### Accepted scope
+
+- one stateless use case composes the two accepted application boundaries without reimplementing Recipe or comparison semantics;
+- generated ShoppingItem UUID, order, normalized requirement and canonical quantity are preserved into comparison;
+- self-contained Recipe ingredient provenance remains in the returned Recipe shopping preview;
+- existing comparison production-access gate remains authoritative before runtime evidence acquisition;
+- composition fails closed on item cardinality, identity/order, requirement or canonical-quantity drift;
+- wrapper binding failures have a dedicated sanitized problem while nested Recipe and Comparison semantic problems keep their accepted vocabularies;
+- OpenAPI 3.1 plus generated TypeScript request/response/path contract are synchronized;
+- architecture guards limit the composition to accepted application boundaries and the finite canonical Shopping `Quantity` / `QuantityUnit` value bridge;
+- no retailer activation, provider/acquisition changes, persistence, database changes, exact-address flow, Recipe UI or fuzzy/AI semantics.
+
+#### Acceptance proof
+
+- application, HTTP and generated-client behavior each retained explicit RED→GREEN evidence;
+- final reviewed PR head `b6575f03b668f8bbaacd5b2897c4fb9301d94cdf`: all 9 normal PR workflow groups success;
+- independent read-only review: **Looks good / REVIEWED_READY**, no unresolved P0/P1/P2 and no review threads;
+- squash merge to `main=15a086d135f40277c655b39549c3e7a04c2e914e`;
+- issue #100 closed `completed`;
+- exact merged main SHA: **8/8 normal push workflows success, 0 failures**.
+
+### M2.4 — Responsive Recipe UI — NEXT
+
+Goal: expose the accepted Recipe → Comparison flow as the first real responsive Recipe product experience.
+
+Target journey:
+
+`Recipe title/servings + ingredient editing + locality → composed Recipe comparison endpoint → generated shopping requirements + retailer comparison`
+
+Scope:
+
+- recipe title plus base/target servings inputs;
+- add/remove ingredients;
+- requirement, quantity and unit editing using the generated API vocabulary;
+- locality input without introducing exact-address handling;
+- submit through `POST /api/v1/recipe-comparison-previews` as the primary product boundary;
+- render generated shopping requirements before/alongside retailer results;
+- preserve READY / UNCERTAIN / INCOMPLETE / UNAVAILABLE and item-level failure states without fabricating winners;
+- frontend component TDD with failing tests before production UI behavior;
+- desktop and mobile Playwright scenarios RED-first for the real journey, validation and API-failure states;
+- generated TypeScript client remains the transport contract.
+
+Explicit non-goals remain Recipe persistence/saved recipes, arbitrary web/AI import, fuzzy/synonym/semantic ingredient matching, multi-recipe aggregation and retailer activation.
 
 ### M2 exit direction
 
-After the composed comparison flow is accepted, extend toward the minimal usable Recipe UI and then deterministic multi-recipe aggregation needed by M3 Weekly Planning. Do not introduce fuzzy/AI ingestion until deterministic recipe semantics remain stable through these application boundaries.
+After the responsive Recipe UI is accepted, extend toward deterministic multi-recipe aggregation needed by M3 Weekly Planning. Persistence and AI ingestion should remain evidence-driven separate decisions rather than implicit consequences of the UI milestone.
 
 ## Parallel connectivity / operational work
 
