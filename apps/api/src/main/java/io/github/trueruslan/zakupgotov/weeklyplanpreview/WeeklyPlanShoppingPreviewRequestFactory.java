@@ -1,6 +1,7 @@
 package io.github.trueruslan.zakupgotov.weeklyplanpreview;
 
 import io.github.trueruslan.zakupgotov.recipepreview.InvalidRecipeShoppingPreviewRequestException;
+import io.github.trueruslan.zakupgotov.recipepreview.RecipeShoppingPreviewInput;
 import io.github.trueruslan.zakupgotov.recipepreview.RecipeShoppingPreviewRequest;
 import io.github.trueruslan.zakupgotov.recipepreview.RecipeShoppingPreviewRequestFactory;
 import io.github.trueruslan.zakupgotov.weeklyplan.WeeklyMealOccurrence;
@@ -39,8 +40,7 @@ public final class WeeklyPlanShoppingPreviewRequestFactory {
         }
 
         var errors = new ArrayList<WeeklyPlanShoppingPreviewValidationError>();
-        var recipeInputs = new ArrayList<io.github.trueruslan.zakupgotov.recipepreview.RecipeShoppingPreviewInput>(
-                occurrences.size());
+        var recipeInputs = new ArrayList<RecipeShoppingPreviewInput>(occurrences.size());
 
         for (var index = 0; index < occurrences.size(); index++) {
             var occurrence = occurrences.get(index);
@@ -51,29 +51,19 @@ public final class WeeklyPlanShoppingPreviewRequestFactory {
                 continue;
             }
 
-            var plannerValid = true;
             if (occurrence.day() == null) {
                 errors.add(error(prefix + ".day", "must not be null"));
-                plannerValid = false;
-            }
-            if (occurrence.targetServings() == null) {
-                errors.add(error(prefix + ".targetServings", "must not be null"));
-                plannerValid = false;
-            } else if (occurrence.targetServings() <= 0) {
-                errors.add(error(prefix + ".targetServings", "must be greater than 0"));
-                plannerValid = false;
-            }
-            if (occurrence.recipe() == null) {
-                errors.add(error(prefix + ".recipe", "must not be null"));
-                plannerValid = false;
             }
 
-            if (!plannerValid) {
+            var recipe = occurrence.recipe();
+            if (recipe == null) {
+                validateTargetServingsThroughRecipeBoundary(
+                        occurrence.targetServings(), prefix, errors);
+                errors.add(error(prefix + ".recipe", "must not be null"));
                 recipeInputs.add(null);
                 continue;
             }
 
-            var recipe = occurrence.recipe();
             try {
                 recipeInputs.add(recipeFactory.create(new RecipeShoppingPreviewRequest(
                         recipe.title(),
@@ -81,17 +71,7 @@ public final class WeeklyPlanShoppingPreviewRequestFactory {
                         occurrence.targetServings(),
                         recipe.ingredients())));
             } catch (InvalidRecipeShoppingPreviewRequestException exception) {
-                for (var nested : exception.errors()) {
-                    var field = nested.field();
-                    if (field.equals("targetServings")) {
-                        field = prefix + ".targetServings";
-                    } else if (field.equals("$request")) {
-                        field = prefix + ".recipe";
-                    } else {
-                        field = prefix + ".recipe." + field;
-                    }
-                    errors.add(error(field, nested.message()));
-                }
+                translateRecipeErrors(exception, prefix, errors);
                 recipeInputs.add(null);
             }
         }
@@ -117,6 +97,41 @@ public final class WeeklyPlanShoppingPreviewRequestFactory {
         }
 
         return new WeeklyPlanShoppingPreviewInput(new WeeklyPlan(planId, domainOccurrences));
+    }
+
+    private void validateTargetServingsThroughRecipeBoundary(
+            Integer targetServings,
+            String prefix,
+            List<WeeklyPlanShoppingPreviewValidationError> errors) {
+        try {
+            recipeFactory.create(new RecipeShoppingPreviewRequest(null, null, targetServings, null));
+        } catch (InvalidRecipeShoppingPreviewRequestException exception) {
+            exception.errors().stream()
+                    .filter(nested -> nested.field().equals("targetServings"))
+                    .forEach(nested -> errors.add(error(
+                            prefix + ".targetServings",
+                            nested.message())));
+        }
+    }
+
+    private static void translateRecipeErrors(
+            InvalidRecipeShoppingPreviewRequestException exception,
+            String prefix,
+            List<WeeklyPlanShoppingPreviewValidationError> errors) {
+        exception.errors().stream()
+                .filter(nested -> nested.field().equals("targetServings"))
+                .forEach(nested -> errors.add(error(
+                        prefix + ".targetServings",
+                        nested.message())));
+
+        exception.errors().stream()
+                .filter(nested -> !nested.field().equals("targetServings"))
+                .forEach(nested -> {
+                    var field = nested.field().equals("$request")
+                            ? prefix + ".recipe"
+                            : prefix + ".recipe." + nested.field();
+                    errors.add(error(field, nested.message()));
+                });
     }
 
     private static InvalidWeeklyPlanShoppingPreviewRequestException invalid(
