@@ -1,7 +1,7 @@
 # M3.1 — WeeklyPlan Domain + Deterministic Shopping Composition
 
 Date: 2026-08-14  
-Status: DESIGN APPROVED; WRITTEN SPEC AWAITING USER REVIEW  
+Status: AUTHORITATIVE DESIGN — approved for implementation by the user  
 Issue: #109  
 Baseline: `main=7d7df863e8b9218b018f343e46dd7fd7c03396f1`
 
@@ -181,6 +181,8 @@ Final ShoppingItem identity remains entirely owned by M2.5:
 
 Therefore amount, target servings, Recipe occurrence day and occurrence position do not participate directly in ShoppingItem identity.
 
+Reordering occurrences may change final ShoppingItem order because M2.5 uses first-compatible-occurrence ordering, but it does not change ShoppingItem IDs for unchanged merge keys under the same WeeklyPlanId.
+
 ## Provenance
 
 ### Planner provenance type
@@ -190,7 +192,9 @@ Therefore amount, target servings, Recipe occurrence day and occurrence position
 - `WeeklyMealOccurrenceId occurrenceId`;
 - accepted `RecipeIngredientRef recipeIngredient`.
 
-No `RecipeAggregationEntryId` is exposed in the final planner result. `WeeklyPlanDay` is intentionally not duplicated in provenance: callers resolve planner metadata through `occurrenceId` against the same WeeklyPlan, while the provenance value stays a minimal stable lineage reference.
+No `RecipeAggregationEntryId` is exposed in the final planner result.
+
+`WeeklyPlanDay` is intentionally not duplicated into provenance. The occurrence ID resolves to exactly one occurrence in the same WeeklyPlan, and that occurrence owns the day. Planner provenance therefore remains minimal and non-redundant.
 
 ### Projection invariants
 
@@ -215,9 +219,9 @@ The composer sends aggregation entries to M2.5 in exactly that order.
 
 M2.5 remains authoritative for final ShoppingItem order: first compatible normalized requirement + canonical unit occurrence wins the group position.
 
-`WeeklyPlanDay` is not an implicit sort key. Reordering occurrences may therefore change final ShoppingItem order when first compatible occurrences move, but it must not change ShoppingItem identity for unchanged `WeeklyPlanId + normalized requirement + canonical unit` merge keys.
+`WeeklyPlanDay` is not an implicit sort key.
 
-This separation is intentional: the planner records calendar placement; shopping aggregation remains deterministic over explicit planner order.
+This separation is intentional: the planner records calendar placement; shopping aggregation remains deterministic over explicit planner order. Reordering the WeeklyPlan may reorder output groups without changing their deterministic identities.
 
 ## Error handling
 
@@ -279,7 +283,7 @@ Must prove:
 - repeated use of the same Recipe remains unambiguous in provenance;
 - same plan identity + requirement + unit yields stable ShoppingItem ID across target-serving changes;
 - changing only day does not alter ShoppingItem ID or quantity;
-- reordering occurrences can change final item order but not identity for unchanged merge keys;
+- reordering occurrences may change final item order but does not change IDs for unchanged merge keys under the same WeeklyPlanId;
 - changing WeeklyPlanId changes the derived ShoppingList scope and therefore final ShoppingItem IDs;
 - generated internal aggregation-ID collision fails closed through the package-private derivation seam;
 - provenance is deeply immutable;
