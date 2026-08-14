@@ -131,43 +131,68 @@ Acceptance proof:
 - issue #118 closed `completed`;
 - **8/8 post-merge normal push workflows SUCCESS**.
 
-### M3.5 — Pantry / exclusions semantics — NEXT
+### M3.5 — Pantry / exclusions semantics — IN PROGRESS
 
-Goal: subtract explicitly known-at-home or intentionally excluded requirements from the accepted weekly shopping projection without hidden ingredient loss, identity drift or unexplained quantity mutation.
+Goal: subtract explicitly known-at-home requirements from the accepted weekly shopping projection without hidden ingredient loss, identity drift or unexplained quantity mutation, then expose that accepted semantics through stateless WeeklyPlan/comparison boundaries and responsive controls.
 
-M3.5 is a semantics/design problem before it is a UI convenience. The first slice should remain deterministic and provider-neutral.
+#### M3.5.1 — Pure Pantry subtraction semantics — COMPLETE / ACCEPTED
 
-Design questions that must be resolved explicitly:
+Authoritative design: [`superpowers/specs/2026-08-15-m3-5-1-pantry-subtraction-semantics-design.md`](superpowers/specs/2026-08-15-m3-5-1-pantry-subtraction-semantics-design.md)  
+Implementation plan: [`superpowers/plans/2026-08-15-m3-5-1-pantry-subtraction-semantics.md`](superpowers/plans/2026-08-15-m3-5-1-pantry-subtraction-semantics.md)  
+Shipping evidence: [`superpowers/plans/2026-08-15-m3-5-1-pantry-subtraction-semantics-shipping.md`](superpowers/plans/2026-08-15-m3-5-1-pantry-subtraction-semantics-shipping.md)  
+Acceptance: [`m3-5-1-pantry-subtraction-semantics-acceptance-2026-08-15.md`](m3-5-1-pantry-subtraction-semantics-acceptance-2026-08-15.md)  
+Accepted squash merge: `bcc644bb243a63941e7629755f1b3196d94332c2`.
 
-- whether pantry input is request-scoped initially or persistence is genuinely required;
-- whether “pantry” and “exclude entirely” are one quantity-bearing concept or two distinct operations;
-- canonical quantity compatibility: only proven compatible units/dimensions may subtract;
-- exact subtraction semantics for partial coverage, exact exhaustion and pantry surplus;
-- zero-result behavior: whether fully covered requirements disappear from the comparison list and how their provenance remains inspectable;
-- stable ShoppingItem identity/order after subtraction and how accepted list+requirement+unit identity rules are preserved;
-- provenance showing original weekly requirement, applied pantry/exclusion evidence and resulting shopping requirement;
-- API composition boundary: pantry semantics should live above accepted M3.1 aggregation and before M3.3 comparison without changing either layer silently;
-- how M3.2/M3.3 contracts evolve or are composed so pre-/post-subtraction evidence remains self-contained;
-- deterministic RED→GREEN tests for incompatible units, negative/zero values, partial subtraction, full coverage, repeated Recipe lineage and no hidden mutation;
-- responsive UI only after domain/application semantics are accepted.
+Accepted semantics:
 
-Recommended first implementation split after design approval:
+- a pure provider-neutral `pantry` package adjusts an already canonical ShoppingList and depends only on accepted Shopping types;
+- Pantry matching reuses exact `(ShoppingRequirement, canonical QuantityUnit)` semantics and existing kg→g / l→ml canonicalization;
+- duplicate Pantry rows aggregate by that exact key and stock is consumed at most once in source ShoppingList order;
+- every row consumes `min(required, available)`; no zero/negative Shopping quantity is emitted;
+- unmatched rows remain unchanged, partial rows preserve Shopping identity/order and reduce only quantity, fully covered rows disappear from the remaining ShoppingList;
+- all source rows retain immutable ordered `UNCHANGED / PARTIALLY_COVERED / FULLY_COVERED` audit evidence;
+- no fuzzy/synonym/AI/case-folding equivalence, endpoint, UI, persistence, retailer/provider behavior or accepted M3.1–M3.4 production mutation was introduced;
+- explicit omit-all exclusions remain a separate semantic decision rather than zero/negative Pantry stock.
 
-1. M3.5.1 pure pantry/exclusion domain + deterministic subtraction/provenance;
-2. M3.5.2 stateless application/API composition over accepted WeeklyPlan shopping projection;
-3. M3.5.3 pantry-aware WeeklyPlan → Comparison composition;
-4. M3.5.4 responsive pantry/exclusion controls and inspectable before/after shopping output.
+Acceptance proof:
 
-Persistence/saved-plan history remains deferred until repeat-use evidence demonstrates product value and does not belong in the first subtraction slice by default.
+- final reviewed PR #122 head `b48a88e4ded457f81245223b75477be16ccf3051`: **9/9 PR workflow groups SUCCESS**;
+- read-only review **Looks good**, no P0/P1/P2/P3 or nitpicks, no unresolved review threads;
+- squash merge `bcc644bb243a63941e7629755f1b3196d94332c2`;
+- issue #121 closed `completed`;
+- exactly **8/8 post-merge normal push workflows SUCCESS, 0 failures**;
+- Web CI/Web E2E and CodeQL Java + JavaScript/TypeScript succeeded on the accepted merge.
 
-Exit gate for the first M3.5 slice:
+#### M3.5.2 — Stateless Pantry-aware WeeklyPlan shopping composition/API — NEXT
 
-- authoritative semantics/design approved before production code;
-- no mutation of accepted M2.5/M3.1/M3.2/M3.3/M3.4 behavior;
-- exact quantity/unit and provenance invariants documented and tested RED→GREEN;
-- provider/database independence preserved unless explicitly justified by accepted design;
-- exact-head 9/9 PR workflows + clean review;
-- squash merge + 8/8 post-merge acceptance proof.
+Goal: expose the accepted M3.5.1 semantics above the accepted M3.2 WeeklyPlan shopping projection without changing the existing M3.2 or M3.3 contracts silently.
+
+Required design/implementation boundary:
+
+1. introduce a **new stateless application/API composition**, rather than adding hidden behavior to `POST /api/v1/weekly-plan-shopping-previews`;
+2. accept the existing ordered WeeklyPlan request vocabulary plus explicit request-scoped Pantry rows using accepted Shopping requirement/quantity vocabulary;
+3. construct the canonical WeeklyPlan shopping projection through accepted M3.2/M3.1 semantics, then apply accepted `PantryShoppingListAdjuster` exactly once;
+4. return inspectable original weekly Shopping requirements, Pantry adjustment evidence and remaining Shopping requirements so full coverage never becomes hidden ingredient loss;
+5. preserve generated source ShoppingItem IDs/provenance across the adjustment bridge and fail closed on identity/order/requirement/quantity drift;
+6. synchronize sanitized validation problems, OpenAPI 3.1 and generated TypeScript client without provider/database coupling;
+7. keep persistence/history, retailer comparison and browser UI out of M3.5.2;
+8. protect accepted M3.2/M3.3 endpoints with regression/architecture tests proving their behavior is unchanged.
+
+Exit gate:
+
+- authoritative design before production code;
+- deterministic RED→GREEN application, provenance, HTTP/OpenAPI/generated-client and architecture coverage;
+- no live retailer requests;
+- exact-head **9/9 PR workflows + clean review**;
+- squash merge + **8/8 post-merge workflows**.
+
+Planned later slices:
+
+- **M3.5.3 Pantry-aware WeeklyPlan → Comparison composition** — feed only the accepted remaining Shopping projection to ComparisonPreview while preserving original/pantry/remaining audit evidence;
+- **M3.5.4 Responsive Pantry controls** — request-scoped Pantry editing plus inspectable before/after weekly shopping output before retailer comparison;
+- explicit omit-all exclusion rules only after a separate semantic design proves they are needed and cannot be confused with Pantry stock.
+
+Persistence/saved-plan history remains deferred until repeat-use evidence demonstrates product value and does not belong in the stateless Pantry composition slices by default.
 
 ## Parallel connectivity / operational work
 
