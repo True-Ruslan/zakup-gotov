@@ -88,10 +88,12 @@ class WeeklyPlanShoppingPreviewProjectionInvariantTest {
     }
 
     private static ShoppingList shoppingList() {
-        return new ShoppingList(LIST, List.of(new ShoppingItem(
+        var shoppingList = new ShoppingList(LIST);
+        shoppingList.add(new ShoppingItem(
                 ITEM,
                 new ShoppingRequirement("Milk"),
-                new Quantity(new BigDecimal("100"), QuantityUnit.MILLILITER))));
+                new Quantity(new BigDecimal("100"), QuantityUnit.MILLILITER)));
+        return shoppingList;
     }
 
     private static WeeklyPlanShoppingPreviewRequest request() {
