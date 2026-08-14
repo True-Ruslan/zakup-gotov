@@ -28,16 +28,7 @@ class RecipeComparisonPreviewControllerTest {
 
     @Test
     void exposesComposedPreviewAndPreservesNestedValidationProblems() throws Exception {
-        var recipeService = new RecipeShoppingPreviewService(
-                new RecipeShoppingPreviewRequestFactory(new FixedIds()),
-                new RecipeShoppingListConverter());
-        var comparisonService = new ComparisonPreviewService(
-                RetailerRegistry.initial(),
-                new NoopComparisonRuntimeEvidenceSource());
-        var composedService = new RecipeComparisonPreviewService(recipeService, comparisonService);
-        var mvc = MockMvcBuilders.standaloneSetup(new RecipeComparisonPreviewController(composedService))
-                .setControllerAdvice(new RecipeComparisonPreviewExceptionHandler())
-                .build();
+        var mvc = mvc();
 
         mvc.perform(post("/api/v1/recipe-comparison-previews")
                         .contentType(MediaType.APPLICATION_JSON)
@@ -74,16 +65,7 @@ class RecipeComparisonPreviewControllerTest {
 
     @Test
     void sanitizesMalformedOrUnknownWrapperJson() throws Exception {
-        var recipeService = new RecipeShoppingPreviewService(
-                new RecipeShoppingPreviewRequestFactory(new FixedIds()),
-                new RecipeShoppingListConverter());
-        var comparisonService = new ComparisonPreviewService(
-                RetailerRegistry.initial(),
-                new NoopComparisonRuntimeEvidenceSource());
-        var mvc = MockMvcBuilders.standaloneSetup(new RecipeComparisonPreviewController(
-                        new RecipeComparisonPreviewService(recipeService, comparisonService)))
-                .setControllerAdvice(new RecipeComparisonPreviewExceptionHandler())
-                .build();
+        var mvc = mvc();
 
         mvc.perform(post("/api/v1/recipe-comparison-previews")
                         .contentType(MediaType.APPLICATION_JSON)
@@ -94,6 +76,32 @@ class RecipeComparisonPreviewControllerTest {
                 .andExpect(jsonPath("$.errors.length()").value(1))
                 .andExpect(jsonPath("$.errors[0].field").value("$request"))
                 .andExpect(jsonPath("$.errors[0].message").value("malformed JSON request"));
+    }
+
+    @Test
+    void rejectsNullWrapperAsSanitizedClientError() throws Exception {
+        mvc().perform(post("/api/v1/recipe-comparison-previews")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("null"))
+                .andExpect(status().isBadRequest())
+                .andExpect(content().contentTypeCompatibleWith(MediaType.APPLICATION_PROBLEM_JSON))
+                .andExpect(jsonPath("$.code").value("INVALID_RECIPE_COMPARISON_PREVIEW"))
+                .andExpect(jsonPath("$.errors.length()").value(1))
+                .andExpect(jsonPath("$.errors[0].field").value("$request"))
+                .andExpect(jsonPath("$.errors[0].message").value("must not be null"));
+    }
+
+    private static org.springframework.test.web.servlet.MockMvc mvc() {
+        var recipeService = new RecipeShoppingPreviewService(
+                new RecipeShoppingPreviewRequestFactory(new FixedIds()),
+                new RecipeShoppingListConverter());
+        var comparisonService = new ComparisonPreviewService(
+                RetailerRegistry.initial(),
+                new NoopComparisonRuntimeEvidenceSource());
+        return MockMvcBuilders.standaloneSetup(new RecipeComparisonPreviewController(
+                        new RecipeComparisonPreviewService(recipeService, comparisonService)))
+                .setControllerAdvice(new RecipeComparisonPreviewExceptionHandler())
+                .build();
     }
 
     private static final class FixedIds implements RecipeShoppingPreviewIdGenerator {
