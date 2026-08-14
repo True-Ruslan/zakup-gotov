@@ -13,8 +13,8 @@ M0 status: **technical discovery COMPLETE**
 M1 status: **Shopping Core COMPLETE / ACCEPTED**  
 M1→M2 decision: **GO** — [`m1-shopping-core-acceptance-2026-08-13.md`](m1-shopping-core-acceptance-2026-08-13.md)  
 M2.1 status: **Recipe domain + Recipe → ShoppingList COMPLETE / ACCEPTED (#94 / #93)**  
-M2.2 status: **Recipe application/API boundary IMPLEMENTED / TESTED / SHIPPING (#97 / #96); not yet accepted**  
-Current focus: **finish exact-head verification and independent review for M2.2, then merge/post-merge acceptance proof**
+M2.2 status: **Recipe application/API boundary COMPLETE / ACCEPTED (#97 / #96)**  
+Current focus: **design M2.3 deterministic Recipe → Comparison composition**
 
 ## Permanent connectivity rule
 
@@ -131,18 +131,22 @@ Verification evidence before merge:
 
 M2.1 intentionally did **not** add REST/OpenAPI/generated-client contracts, persistence, recipe UI, AI/NLP import, fuzzy ingredient equivalence, nutrition optimization, pantry prediction, fractional servings, or multi-recipe aggregation.
 
-### M2.2 — Stateless Recipe shopping preview application/API boundary — IMPLEMENTED / TESTED / SHIPPING (#97 / #96)
+### M2.2 — Stateless Recipe shopping preview application/API boundary — COMPLETE / ACCEPTED (#97 / #96)
 
 Authoritative design: [`superpowers/specs/2026-08-13-m2-2-recipe-shopping-preview-design-v2.md`](superpowers/specs/2026-08-13-m2-2-recipe-shopping-preview-design-v2.md).  
-Execution plan: [`superpowers/plans/2026-08-13-m2-2-recipe-shopping-preview-v2.md`](superpowers/plans/2026-08-13-m2-2-recipe-shopping-preview-v2.md).
+Execution plan: [`superpowers/plans/2026-08-13-m2-2-recipe-shopping-preview-v2.md`](superpowers/plans/2026-08-13-m2-2-recipe-shopping-preview-v2.md).  
+Shipping evidence: [`superpowers/plans/2026-08-14-m2-2-recipe-shopping-preview-shipping.md`](superpowers/plans/2026-08-14-m2-2-recipe-shopping-preview-shipping.md).  
+Acceptance decision: [`m2-2-recipe-shopping-preview-acceptance-2026-08-14.md`](m2-2-recipe-shopping-preview-acceptance-2026-08-14.md).
 
-Implemented boundary:
+Accepted squash merge: `8f0c1d8d31cfc1673656780a7989512d38788aff` (`feat(m2): add stateless recipe shopping preview API (#97)`).
+
+Accepted boundary:
 
 `POST /api/v1/recipe-shopping-previews`
 
 `HTTP recipe request → request validation + server-owned transient IDs → Recipe domain → RecipeShoppingListConverter → self-contained ShoppingList projection`
 
-Implemented behavior:
+Accepted behavior:
 
 - stateless request/response; no Recipe persistence or CRUD;
 - server-owned Recipe, ingredient and ShoppingList UUIDs; clients cannot supply internal identities;
@@ -160,24 +164,25 @@ Implemented behavior:
 - architecture guards preserve `recipepreview → recipe → shopping` / `recipepreview → shopping` direction and forbid provider/retailer/matching/basket/comparison/database dependencies;
 - no retailer network request, address/location data, persistence, recipe UI, comparison orchestration or fuzzy/AI matching is introduced.
 
-Verification evidence achieved before the final documentation/review head:
+Acceptance proof:
 
-- application wiring defect was found by API CI and fixed with explicit recipe-preview Spring configuration plus production UUID generator;
-- unreadable-body regression exposed fractional JSON serving coercion in standalone controller tests; the test stack was aligned with production Jackson 3 while strictness remains recipe-scoped through `StrictIntegerDeserializer`;
-- OpenAPI/client TDD RED was observed for missing path/export/response schema before contract implementation;
-- generated-schema freshness RED was observed after the OpenAPI change, and the committed `schema.d.ts` matches the actual `openapi-typescript 7.13.0` output;
-- exact code checkpoint `b451dacbec41e3d7bd75ce4580f76fb6f86d5cae` completed **13/13 check runs successfully across all 9 normal PR workflow groups**, including API CI/full Maven verification, Contract CI, Web CI + Web E2E, Retailer Bridge CI, CodeQL Java + JS/TS, Dependency Review, Container Security API/Web, Release Contract CI and Release Bundle CI;
-- read-only review of that checkpoint found one low-risk design drift: unreadable-body handling lived in the controller instead of the approved controller-scoped advice; the drift was corrected before shipping documentation.
+- implementation checkpoint `b451dacbec41e3d7bd75ce4580f76fb6f86d5cae` passed 13/13 individual PR checks across all 9 normal PR workflow groups;
+- final reviewed PR head `318a48c569d0d001a4c27b5792e1681f7884e518` passed all 9 normal PR workflow groups;
+- independent read-only review verdict: **Looks good**; the earlier P3 structural drift was corrected; no unresolved P0/P1/P2/P3 finding remained and review threads were empty;
+- PR #97 was squash-merged from that exact head to `main=8f0c1d8d31cfc1673656780a7989512d38788aff`;
+- issue #96 closed `completed` with the merge;
+- GitHub created exactly 8 normal push-triggered workflows on the merged main SHA;
+- **8/8 post-merge main workflows completed successfully; failures: 0**.
 
-**Acceptance is not claimed yet.** The final documentation/review head must pass exact-head CI, complete independent review with no unresolved P0/P1/P2, squash-merge, and then pass normal post-merge `main` workflows before M2.2 can be marked `COMPLETE / ACCEPTED`.
-
-### M2.3 direction after M2.2 acceptance
+### M2.3 — Composed Recipe → Comparison flow — NEXT DESIGN TARGET
 
 Next deterministic vertical slice:
 
 `Recipe input → recipe-shopping preview → generated shopping requirements → comparison preview`
 
-Only after that composed flow is stable should the real responsive Recipe UI be implemented with frontend component TDD and desktop/mobile Playwright. Persistence, saved recipes and fuzzy/AI ingestion remain separate product decisions.
+The design must compose the two accepted stateless boundaries without duplicating Recipe conversion or comparison semantics, preserve self-contained recipe provenance, preserve existing production-access gating and fail-closed comparison states, and keep ordinary CI retailer-network-free.
+
+Only after that composed flow is accepted should the real responsive Recipe UI be implemented with frontend component TDD and desktop/mobile Playwright. Persistence, saved recipes and fuzzy/AI ingestion remain separate product decisions.
 
 ## Parallel mandatory work
 

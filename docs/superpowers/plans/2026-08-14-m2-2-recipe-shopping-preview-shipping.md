@@ -5,7 +5,8 @@ Issue: #96
 PR: #97  
 Authoritative design: `docs/superpowers/specs/2026-08-13-m2-2-recipe-shopping-preview-design-v2.md`  
 Execution plan: `docs/superpowers/plans/2026-08-13-m2-2-recipe-shopping-preview-v2.md`  
-Status: **SHIPPING CANDIDATE — merge/post-merge acceptance pending**
+Acceptance decision: `docs/m2-2-recipe-shopping-preview-acceptance-2026-08-14.md`  
+Status: **COMPLETE / ACCEPTED**
 
 ## Scope delivered
 
@@ -61,7 +62,7 @@ The same SHA produced 13/13 successful check runs across all 9 normal PR workflo
 
 ## Frontend / browser regression
 
-M2.2 introduces no browser-visible Recipe UI. The existing frontend regression gate remains mandatory instead of fabricating a screen only to claim E2E coverage.
+M2.2 introduces no browser-visible Recipe UI. The existing frontend regression gate remained mandatory instead of fabricating a screen only to claim E2E coverage.
 
 At `b451dacb...`, Web CI `31777817425` succeeded for both jobs. `Web E2E` successfully built the production Next.js app, installed Chromium and completed the responsive Playwright regression.
 
@@ -79,22 +80,27 @@ The P3 was corrected before final shipping:
 - `RecipeShoppingPreviewExceptionHandler` is the single controller-scoped advice handling both `InvalidRecipeShoppingPreviewRequestException` and `HttpMessageNotReadableException`;
 - there is still no catch-all conversion of internal invariant failures to public 400 responses.
 
-After that correction, no known P0/P1/P2/P3 review finding remains. The final exact documentation/cleanup head still requires CI proof because every code or documentation commit invalidates exact-head shipping evidence.
+Final review on exact head `318a48c569d0d001a4c27b5792e1681f7884e518`: **Looks good**. No unresolved P0/P1/P2/P3 finding remained and review threads were empty.
 
 A transient execution-marker file used during branch setup was removed before shipping.
 
-## Final gates still required
+## Merge and post-merge acceptance evidence
 
-Before merge:
+Final PR head: `318a48c569d0d001a4c27b5792e1681f7884e518`.
 
-1. require all normal PR workflows on the final exact head to succeed;
-2. confirm no unresolved review threads or blocking reviews;
-3. mark the PR ready for review;
-4. squash-merge using the exact reviewed/verified head SHA;
-5. require all normal push workflows on the resulting `main` SHA to succeed.
+Before merge, all 9 normal PR workflow groups completed successfully. PR #97 was marked ready and squash-merged with exact-head protection.
 
-Only after those gates may issue #96 and canonical project state be marked **COMPLETE / ACCEPTED**.
+Merged main SHA: `8f0c1d8d31cfc1673656780a7989512d38788aff` (`feat(m2): add stateless recipe shopping preview API (#97)`). Issue #96 closed `completed` from the merge.
 
-## Post-merge acceptance evidence
+GitHub created exactly 8 normal push-triggered workflows for the merged main SHA. All **8/8 completed successfully** with zero failures:
 
-Pending.
+- API CI;
+- Contract CI;
+- Web CI;
+- Retailer Bridge CI;
+- CodeQL;
+- Container Security CI;
+- Release Contract CI;
+- Release Bundle CI.
+
+M2.2 therefore satisfies the project acceptance sequence: implemented → tested → reviewed → merged → post-merge verified → accepted.
