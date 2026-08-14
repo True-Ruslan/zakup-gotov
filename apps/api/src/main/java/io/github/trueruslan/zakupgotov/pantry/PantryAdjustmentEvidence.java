@@ -22,8 +22,12 @@ public record PantryAdjustmentEvidence(
         remaining = Objects.requireNonNull(remaining, "remaining must not be null");
         status = Objects.requireNonNull(status, "status must not be null");
 
-        pantryUsed.ifPresent(quantity -> requireSameUnit(required, quantity));
-        remaining.ifPresent(quantity -> requireSameUnit(required, quantity));
+        if (pantryUsed.isPresent()) {
+            requireSameUnit(required, pantryUsed.orElseThrow());
+        }
+        if (remaining.isPresent()) {
+            requireSameUnit(required, remaining.orElseThrow());
+        }
 
         switch (status) {
             case UNCHANGED -> validateUnchanged(required, pantryUsed, remaining);
