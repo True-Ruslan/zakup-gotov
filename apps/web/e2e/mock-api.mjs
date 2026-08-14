@@ -14,6 +14,10 @@ const retailerNames = {
   samokat: "Самокат",
 };
 
+function normalizeText(value) {
+  return String(value).trim().replace(/\s+/g, " ");
+}
+
 function canonicalQuantity(quantity) {
   if (quantity.unit === "KILOGRAM") {
     return { amount: quantity.amount * 1000, unit: "GRAM" };
@@ -21,7 +25,7 @@ function canonicalQuantity(quantity) {
   if (quantity.unit === "LITER") {
     return { amount: quantity.amount * 1000, unit: "MILLILITER" };
   }
-  return quantity;
+  return { amount: quantity.amount, unit: quantity.unit };
 }
 
 function readJson(request) {
@@ -59,14 +63,21 @@ function requestedItem(item) {
   };
 }
 
-function selection(item, productName, packageQuantity, packageCount, lineTotal) {
+function selection(item, productName, packageQuantity, packagePrice) {
   const requested = canonicalQuantity(item.quantity);
+  const packageCount =
+    requested.unit === packageQuantity.unit
+      ? Math.max(1, Math.ceil(requested.amount / packageQuantity.amount))
+      : 1;
   return {
     productName,
     packageQuantity,
     packageCount,
-    coveredQuantity: requested,
-    lineTotal,
+    coveredQuantity: {
+      amount: packageQuantity.amount * packageCount,
+      unit: packageQuantity.unit,
+    },
+    lineTotal: packagePrice * packageCount,
     currencyCode: "RUB",
   };
 }
@@ -100,14 +111,12 @@ function buildPreview(request) {
     milk,
     "Молоко",
     { amount: 1000, unit: "MILLILITER" },
-    2,
-    200,
+    100,
   );
   const eggsSelection = selection(
     eggs,
     "Яйца",
     { amount: 10, unit: "PIECE" },
-    1,
     120,
   );
 
@@ -122,7 +131,10 @@ function buildPreview(request) {
         productionAccess: "READY",
         comparisonStatus: "READY",
         reasons: [],
-        total: { amount: 320, currencyCode: "RUB" },
+        total: {
+          amount: milkSelection.lineTotal + eggsSelection.lineTotal,
+          currencyCode: "RUB",
+        },
         freshness: {
           basis: "OBSERVATION_ONLY",
           observedAt: "2026-08-12T10:00:00Z",
@@ -139,7 +151,10 @@ function buildPreview(request) {
         productionAccess: "READY",
         comparisonStatus: "UNCERTAIN",
         reasons: ["AVAILABILITY_UNKNOWN"],
-        total: { amount: 330, currencyCode: "RUB" },
+        total: {
+          amount: milkSelection.lineTotal + eggsSelection.lineTotal + 10,
+          currencyCode: "RUB",
+        },
         freshness: {
           basis: "PROVIDER_TIMESTAMP",
           observedAt: "2026-08-12T10:00:00Z",
@@ -147,10 +162,10 @@ function buildPreview(request) {
         },
         items: [
           itemResult(milk, "AVAILABILITY_UNKNOWN", {
-            selection: { ...milkSelection, lineTotal: 205 },
+            selection: { ...milkSelection, lineTotal: milkSelection.lineTotal + 5 },
           }),
           itemResult(eggs, "FULFILLED", {
-            selection: { ...eggsSelection, lineTotal: 125 },
+            selection: { ...eggsSelection, lineTotal: eggsSelection.lineTotal + 5 },
           }),
         ],
       },
@@ -209,6 +224,85 @@ function buildPreview(request) {
   };
 }
 
+function fixedUuid(prefix, index = 1) {
+  return `${prefix}0000000-0000-0000-0000-${String(index).padStart(12, "0")}`;
+}
+
+function buildRecipeComparisonPreview(request) {
+  const recipe = request.recipe;
+  const scale = recipe.targetServings / recipe.baseServings;
+  const recipeId = fixedUuid("1");
+  const shoppingListId = fixedUuid("3");
+
+  const sourceIngredients = recipe.ingredients.map((ingredient, index) => ({
+    id: fixedUuid("2", index + 1),
+    requirement: normalizeText(ingredient.requirement),
+    quantity: canonicalQuantity(ingredient.quantity),
+  }));
+
+  const groups = new Map();
+  for (const ingredient of sourceIngredients) {
+    const key = `${ingredient.requirement}\u0000${ingredient.quantity.unit}`;
+    const scaledAmount = ingredient.quantity.amount * scale;
+    const existing = groups.get(key);
+    if (existing) {
+      existing.quantity.amount += scaledAmount;
+      existing.sourceIngredientIds.push(ingredient.id);
+    } else {
+      groups.set(key, {
+        requirement: ingredient.requirement,
+        quantity: { amount: scaledAmount, unit: ingredient.quantity.unit },
+        sourceIngredientIds: [ingredient.id],
+      });
+    }
+  }
+
+  const shoppingItems = Array.from(groups.values()).map((item, index) => ({
+    id: fixedUuid("4", index + 1),
+    ...item,
+  }));
+
+  return {
+    recipeShoppingPreview: {
+      recipe: {
+        id: recipeId,
+        title: normalizeText(recipe.title),
+        baseServings: recipe.baseServings,
+        targetServings: recipe.targetServings,
+        ingredients: sourceIngredients,
+      },
+      shoppingList: {
+        id: shoppingListId,
+        items: shoppingItems,
+      },
+    },
+    comparisonPreview: buildPreview({
+      locality: request.locality,
+      items: shoppingItems,
+    }),
+  };
+}
+
+function invalidComparison(response, message = "deterministic acceptance requires two items") {
+  writeJson(response, 400, {
+    type: "https://zakup-gotov.dev/problems/invalid-comparison-preview",
+    title: "Invalid comparison preview request",
+    status: 400,
+    code: "INVALID_COMPARISON_PREVIEW",
+    errors: [{ field: "items", message }],
+  });
+}
+
+function invalidRecipeComparison(response, field, message) {
+  writeJson(response, 400, {
+    type: "https://zakup-gotov.dev/problems/invalid-recipe-comparison-preview",
+    title: "Invalid recipe comparison preview request",
+    status: 400,
+    code: "INVALID_RECIPE_COMPARISON_PREVIEW",
+    errors: [{ field, message }],
+  });
+}
+
 const server = http.createServer(async (request, response) => {
   if (request.method === "GET" && request.url === "/health") {
     response.writeHead(204);
@@ -216,34 +310,55 @@ const server = http.createServer(async (request, response) => {
     return;
   }
 
-  if (request.method !== "POST" || request.url !== "/api/v1/comparison-previews") {
+  if (request.method !== "POST") {
     writeJson(response, 404, { error: "not found" });
     return;
   }
 
   try {
     const body = await readJson(request);
-    if (body.locality === "Недоступно") {
-      writeJson(response, 503, { error: "deterministic unavailable scenario" });
+
+    if (request.url === "/api/v1/recipe-comparison-previews") {
+      if (body.locality === "Недоступно") {
+        writeJson(response, 503, { error: "deterministic unavailable scenario" });
+        return;
+      }
+      if (
+        !body.recipe ||
+        !Array.isArray(body.recipe.ingredients) ||
+        body.recipe.ingredients.length < 2
+      ) {
+        invalidRecipeComparison(
+          response,
+          "recipe.ingredients",
+          "deterministic acceptance requires two ingredients",
+        );
+        return;
+      }
+      writeJson(response, 200, buildRecipeComparisonPreview(body));
       return;
     }
-    if (!Array.isArray(body.items) || body.items.length < 2) {
-      writeJson(response, 400, {
-        type: "https://zakup-gotov.dev/problems/invalid-comparison-preview",
-        title: "Invalid comparison preview request",
-        status: 400,
-        code: "INVALID_COMPARISON_PREVIEW",
-        errors: [{ field: "items", message: "deterministic acceptance requires two items" }],
-      });
+
+    if (request.url === "/api/v1/comparison-previews") {
+      if (body.locality === "Недоступно") {
+        writeJson(response, 503, { error: "deterministic unavailable scenario" });
+        return;
+      }
+      if (!Array.isArray(body.items) || body.items.length < 2) {
+        invalidComparison(response);
+        return;
+      }
+      writeJson(response, 200, buildPreview(body));
       return;
     }
-    writeJson(response, 200, buildPreview(body));
+
+    writeJson(response, 404, { error: "not found" });
   } catch {
     writeJson(response, 400, {
-      type: "https://zakup-gotov.dev/problems/invalid-comparison-preview",
-      title: "Invalid comparison preview request",
+      type: "https://zakup-gotov.dev/problems/invalid-recipe-comparison-preview",
+      title: "Invalid recipe comparison preview request",
       status: 400,
-      code: "INVALID_COMPARISON_PREVIEW",
+      code: "INVALID_RECIPE_COMPARISON_PREVIEW",
       errors: [{ field: "$request", message: "malformed JSON request" }],
     });
   }
