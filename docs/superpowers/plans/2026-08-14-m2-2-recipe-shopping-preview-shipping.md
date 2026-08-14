@@ -45,7 +45,7 @@ Invalid RED attempts caused by test syntax/compile mistakes were explicitly corr
 
 The full API workflow executes Maven `verify`, including the existing Spring Boot context, Spring Modulith architecture verification and PostgreSQL/Testcontainers/Flyway integration baseline. M2.2 itself is stateless, so no artificial persistence or M2.2-specific Testcontainers production path was introduced merely to increase test count.
 
-At reviewed implementation head `b451dacbec41e3d7bd75ce4580f76fb6f86d5cae`:
+At implementation checkpoint `b451dacbec41e3d7bd75ce4580f76fb6f86d5cae`:
 
 - API CI `31777817368`: success;
 - Contract CI `31777817391`: success;
@@ -57,31 +57,39 @@ At reviewed implementation head `b451dacbec41e3d7bd75ce4580f76fb6f86d5cae`:
 - Release Contract CI `31777817436`: success;
 - Release Bundle CI `31777817374`: success.
 
-This is 9/9 normal PR workflow groups on the same exact head.
+The same SHA produced 13/13 successful check runs across all 9 normal PR workflow groups, including separate Web E2E, CodeQL language and container-security jobs.
 
 ## Frontend / browser regression
 
 M2.2 introduces no browser-visible Recipe UI. The existing frontend regression gate remains mandatory instead of fabricating a screen only to claim E2E coverage.
 
-At `b451dacb...`, Web CI `31777817425` succeeded for both jobs. `Web E2E` successfully built the production Next.js app, installed Chromium and completed the `Run responsive browser tests` Playwright step.
+At `b451dacb...`, Web CI `31777817425` succeeded for both jobs. `Web E2E` successfully built the production Next.js app, installed Chromium and completed the responsive Playwright regression.
 
 The next real Recipe frontend slice must start RED-first and add desktop/mobile Playwright coverage for recipe editing, servings, ingredient add/remove, quantity/unit input, API errors, generated shopping list and transition into comparison.
 
-## Review
+## Independent review
 
-Independent read-only review of the implementation against the authoritative v2 design and runtime paths found no P0/P1/P2 findings. Validation, provenance, internal-error propagation, API schema synchronization, architecture boundaries and CI blast radius were checked.
+Independent read-only review checked the authoritative v2 design, request and response contracts, ID ownership, validation ordering, Jackson binding, conversion delegation, provenance integrity, internal-error propagation, OpenAPI/generated-client synchronization, architecture boundaries, regression surface and security/privacy implications.
 
-Non-blocking P3: unreadable-body handling is controller-local rather than located in the controller-scoped advice as the design wording originally preferred. The behavior remains scoped to this endpoint, sanitized, tested, and does not broaden exception conversion. This does not block M2.2 acceptance criteria, which require no unresolved P0/P1/P2.
+Initial verdict: **Caution**, with no P0/P1/P2 findings and one P3 structural drift: unreadable-body handling lived in the controller instead of the controller-scoped advice required by the approved design.
+
+The P3 was corrected before final shipping:
+
+- `RecipeShoppingPreviewController` now only delegates to the application service;
+- `RecipeShoppingPreviewExceptionHandler` is the single controller-scoped advice handling both `InvalidRecipeShoppingPreviewRequestException` and `HttpMessageNotReadableException`;
+- there is still no catch-all conversion of internal invariant failures to public 400 responses.
+
+After that correction, no known P0/P1/P2/P3 review finding remains. The final exact documentation/cleanup head still requires CI proof because every code or documentation commit invalidates exact-head shipping evidence.
 
 A transient execution-marker file used during branch setup was removed before shipping.
 
 ## Final gates still required
 
-This document changes the candidate head, so the earlier 9/9 result is evidence for the reviewed implementation, not permission to merge the new head. Before merge:
+Before merge:
 
-1. re-run all normal PR workflows on the final exact head and require 9/9 success;
-2. confirm no unresolved review threads / blocking reviews;
-3. update the stale PR description and mark the PR ready;
+1. require all normal PR workflows on the final exact head to succeed;
+2. confirm no unresolved review threads or blocking reviews;
+3. mark the PR ready for review;
 4. squash-merge using the exact reviewed/verified head SHA;
 5. require all normal push workflows on the resulting `main` SHA to succeed.
 
