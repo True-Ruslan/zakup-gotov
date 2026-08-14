@@ -7,24 +7,30 @@ import io.github.trueruslan.zakupgotov.weeklyplan.WeeklyPlanShoppingListComposer
 import io.github.trueruslan.zakupgotov.weeklyplan.WeeklyPlanShoppingListComposition;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
-import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 
 public final class WeeklyPlanShoppingPreviewService {
     private final WeeklyPlanShoppingPreviewRequestFactory requestFactory;
-    private final WeeklyPlanShoppingListComposer composer;
+    private final WeeklyPlanCompositionBoundary compositionBoundary;
 
     public WeeklyPlanShoppingPreviewService(
             WeeklyPlanShoppingPreviewRequestFactory requestFactory,
             WeeklyPlanShoppingListComposer composer) {
+        this(requestFactory, Objects.requireNonNull(composer, "composer must not be null")::compose);
+    }
+
+    WeeklyPlanShoppingPreviewService(
+            WeeklyPlanShoppingPreviewRequestFactory requestFactory,
+            WeeklyPlanCompositionBoundary compositionBoundary) {
         this.requestFactory = Objects.requireNonNull(requestFactory, "requestFactory must not be null");
-        this.composer = Objects.requireNonNull(composer, "composer must not be null");
+        this.compositionBoundary = Objects.requireNonNull(
+                compositionBoundary, "compositionBoundary must not be null");
     }
 
     public WeeklyPlanShoppingPreview create(WeeklyPlanShoppingPreviewRequest request) {
         var input = requestFactory.create(request);
-        var composition = composer.compose(input.weeklyPlan());
+        var composition = compositionBoundary.compose(input.weeklyPlan());
         return project(input.weeklyPlan(), composition);
     }
 
