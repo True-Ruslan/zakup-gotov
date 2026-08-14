@@ -71,6 +71,32 @@ paths:
             application/problem+json:
               schema:
                 $ref: '#/components/schemas/InvalidRecipeShoppingPreviewProblem'
+  /api/v1/recipe-comparison-previews:
+    post:
+      operationId: createRecipeComparisonPreview
+      summary: Create a transient recipe-to-retailer comparison preview
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RecipeComparisonPreviewRequest'
+      responses:
+        '200':
+          description: Composed recipe shopping and retailer comparison preview
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RecipeComparisonPreviewResponse'
+        '400':
+          description: Invalid recipe comparison preview request
+          content:
+            application/problem+json:
+              schema:
+                oneOf:
+                  - $ref: '#/components/schemas/InvalidRecipeComparisonPreviewProblem'
+                  - $ref: '#/components/schemas/InvalidRecipeShoppingPreviewProblem'
+                  - $ref: '#/components/schemas/InvalidComparisonPreviewProblem'
 components:
   schemas:
     SystemInfo:
@@ -221,6 +247,19 @@ components:
               exclusiveMinimum: 0
             unit:
               $ref: '#/components/schemas/QuantityInputUnit'
+    RecipeComparisonPreviewRequest:
+      type: object
+      additionalProperties: false
+      required:
+        - locality
+        - recipe
+      properties:
+        locality:
+          type: string
+          minLength: 1
+          maxLength: 160
+        recipe:
+          $ref: '#/components/schemas/RecipeShoppingPreviewRequest'
     QuantityInputUnit:
       type: string
       enum:
@@ -258,6 +297,17 @@ components:
           $ref: '#/components/schemas/RecipeShoppingPreviewRecipe'
         shoppingList:
           $ref: '#/components/schemas/RecipeShoppingPreviewShoppingList'
+    RecipeComparisonPreviewResponse:
+      type: object
+      additionalProperties: false
+      required:
+        - recipeShoppingPreview
+        - comparisonPreview
+      properties:
+        recipeShoppingPreview:
+          $ref: '#/components/schemas/RecipeShoppingPreviewResponse'
+        comparisonPreview:
+          $ref: '#/components/schemas/ComparisonPreviewResponse'
     RecipeShoppingPreviewRecipe:
       type: object
       additionalProperties: false
@@ -554,6 +604,46 @@ components:
           items:
             $ref: '#/components/schemas/RecipeShoppingPreviewValidationError'
     RecipeShoppingPreviewValidationError:
+      type: object
+      additionalProperties: false
+      required:
+        - field
+        - message
+      properties:
+        field:
+          type: string
+          minLength: 1
+        message:
+          type: string
+          minLength: 1
+    InvalidRecipeComparisonPreviewProblem:
+      type: object
+      additionalProperties: false
+      required:
+        - type
+        - title
+        - status
+        - code
+        - errors
+      properties:
+        type:
+          type: string
+          const: https://zakup-gotov.dev/problems/invalid-recipe-comparison-preview
+        title:
+          type: string
+          const: Invalid recipe comparison preview request
+        status:
+          type: integer
+          const: 400
+        code:
+          type: string
+          const: INVALID_RECIPE_COMPARISON_PREVIEW
+        errors:
+          type: array
+          minItems: 1
+          items:
+            $ref: '#/components/schemas/RecipeComparisonPreviewValidationError'
+    RecipeComparisonPreviewValidationError:
       type: object
       additionalProperties: false
       required:
