@@ -33,14 +33,14 @@ public record InvalidRecipeComparisonPreviewProblem(
         }
     }
 
+    public static InvalidRecipeComparisonPreviewProblem of(
+            List<RecipeComparisonPreviewValidationError> errors) {
+        return new InvalidRecipeComparisonPreviewProblem(TYPE, TITLE, 400, CODE, errors);
+    }
+
     public static InvalidRecipeComparisonPreviewProblem malformedJson() {
-        return new InvalidRecipeComparisonPreviewProblem(
-                TYPE,
-                TITLE,
-                400,
-                CODE,
-                List.of(new RecipeComparisonPreviewValidationError(
-                        "$request",
-                        "malformed JSON request")));
+        return of(List.of(new RecipeComparisonPreviewValidationError(
+                "$request",
+                "malformed JSON request")));
     }
 }
