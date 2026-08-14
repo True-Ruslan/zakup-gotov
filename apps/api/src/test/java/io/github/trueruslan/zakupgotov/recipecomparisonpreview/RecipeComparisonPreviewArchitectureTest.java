@@ -6,6 +6,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import com.tngtech.archunit.core.domain.JavaClasses;
 import com.tngtech.archunit.core.importer.ClassFileImporter;
 import com.tngtech.archunit.core.importer.ImportOption;
+import java.util.stream.Collectors;
 import org.junit.jupiter.api.Test;
 
 class RecipeComparisonPreviewArchitectureTest {
@@ -22,14 +23,13 @@ class RecipeComparisonPreviewArchitectureTest {
     }
 
     @Test
-    void composedBoundaryDoesNotReachPastAcceptedApplicationBoundaries() {
+    void composedBoundaryDoesNotReachIntoRecipeOrComparisonInternals() {
         var classes = productionClasses();
 
         noClasses()
                 .that().resideInAPackage("..recipecomparisonpreview..")
                 .should().dependOnClassesThat().resideInAnyPackage(
                         "..recipe..",
-                        "..shopping..",
                         "..provider..",
                         "..retailer..",
                         "..matching..",
@@ -37,6 +37,24 @@ class RecipeComparisonPreviewArchitectureTest {
                         "..comparison..",
                         "..database..")
                 .check(classes);
+    }
+
+    @Test
+    void composerUsesOnlyCanonicalShoppingQuantityValueTypes() {
+        var classes = productionClasses();
+
+        var shoppingDependencies = classes.stream()
+                .filter(javaClass -> javaClass.getPackageName()
+                        .equals("io.github.trueruslan.zakupgotov.recipecomparisonpreview"))
+                .flatMap(javaClass -> javaClass.getDirectDependenciesFromSelf().stream())
+                .map(dependency -> dependency.getTargetClass().getName())
+                .filter(name -> name.startsWith("io.github.trueruslan.zakupgotov.shopping."))
+                .collect(Collectors.toSet());
+
+        assertThat(shoppingDependencies)
+                .containsOnly(
+                        "io.github.trueruslan.zakupgotov.shopping.Quantity",
+                        "io.github.trueruslan.zakupgotov.shopping.QuantityUnit");
     }
 
     @Test
