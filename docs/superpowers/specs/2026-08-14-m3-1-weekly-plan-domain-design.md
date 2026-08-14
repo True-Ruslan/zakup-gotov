@@ -1,7 +1,7 @@
 # M3.1 — WeeklyPlan Domain + Deterministic Shopping Composition
 
 Date: 2026-08-14  
-Status: APPROVED FOR IMPLEMENTATION PLANNING  
+Status: DESIGN APPROVED; WRITTEN SPEC AWAITING USER REVIEW  
 Issue: #109  
 Baseline: `main=7d7df863e8b9218b018f343e46dd7fd7c03396f1`
 
@@ -190,7 +190,7 @@ Therefore amount, target servings, Recipe occurrence day and occurrence position
 - `WeeklyMealOccurrenceId occurrenceId`;
 - accepted `RecipeIngredientRef recipeIngredient`.
 
-No `RecipeAggregationEntryId` is exposed in the final planner result.
+No `RecipeAggregationEntryId` is exposed in the final planner result. `WeeklyPlanDay` is intentionally not duplicated in provenance: callers resolve planner metadata through `occurrenceId` against the same WeeklyPlan, while the provenance value stays a minimal stable lineage reference.
 
 ### Projection invariants
 
@@ -215,7 +215,7 @@ The composer sends aggregation entries to M2.5 in exactly that order.
 
 M2.5 remains authoritative for final ShoppingItem order: first compatible normalized requirement + canonical unit occurrence wins the group position.
 
-`WeeklyPlanDay` is not an implicit sort key.
+`WeeklyPlanDay` is not an implicit sort key. Reordering occurrences may therefore change final ShoppingItem order when first compatible occurrences move, but it must not change ShoppingItem identity for unchanged `WeeklyPlanId + normalized requirement + canonical unit` merge keys.
 
 This separation is intentional: the planner records calendar placement; shopping aggregation remains deterministic over explicit planner order.
 
@@ -279,6 +279,7 @@ Must prove:
 - repeated use of the same Recipe remains unambiguous in provenance;
 - same plan identity + requirement + unit yields stable ShoppingItem ID across target-serving changes;
 - changing only day does not alter ShoppingItem ID or quantity;
+- reordering occurrences can change final item order but not identity for unchanged merge keys;
 - changing WeeklyPlanId changes the derived ShoppingList scope and therefore final ShoppingItem IDs;
 - generated internal aggregation-ID collision fails closed through the package-private derivation seam;
 - provenance is deeply immutable;
