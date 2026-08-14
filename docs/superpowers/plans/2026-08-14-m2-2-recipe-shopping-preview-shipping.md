@@ -5,7 +5,7 @@ Issue: #96
 PR: #97  
 Authoritative design: `docs/superpowers/specs/2026-08-13-m2-2-recipe-shopping-preview-design-v2.md`  
 Execution plan: `docs/superpowers/plans/2026-08-13-m2-2-recipe-shopping-preview-v2.md`  
-Status: **SHIPPING CANDIDATE — merge/post-merge acceptance pending**
+Status: **COMPLETE / ACCEPTED**
 
 ## Scope delivered
 
@@ -59,11 +59,13 @@ At implementation checkpoint `b451dacbec41e3d7bd75ce4580f76fb6f86d5cae`:
 
 The same SHA produced 13/13 successful check runs across all 9 normal PR workflow groups, including separate Web E2E, CodeQL language and container-security jobs.
 
+Final exact PR head `318a48c569d0d001a4c27b5792e1681f7884e518` independently passed all 9 normal PR workflow groups after the review correction and canonical documentation updates.
+
 ## Frontend / browser regression
 
-M2.2 introduces no browser-visible Recipe UI. The existing frontend regression gate remains mandatory instead of fabricating a screen only to claim E2E coverage.
+M2.2 introduces no browser-visible Recipe UI. The existing frontend regression gate remained mandatory instead of fabricating a screen only to claim E2E coverage.
 
-At `b451dacb...`, Web CI `31777817425` succeeded for both jobs. `Web E2E` successfully built the production Next.js app, installed Chromium and completed the responsive Playwright regression.
+At the final PR head, Web CI completed both the normal web job and responsive Chromium Playwright E2E successfully. Retailer Bridge CI also completed its independent Chromium E2E successfully.
 
 The next real Recipe frontend slice must start RED-first and add desktop/mobile Playwright coverage for recipe editing, servings, ingredient add/remove, quantity/unit input, API errors, generated shopping list and transition into comparison.
 
@@ -71,30 +73,30 @@ The next real Recipe frontend slice must start RED-first and add desktop/mobile 
 
 Independent read-only review checked the authoritative v2 design, request and response contracts, ID ownership, validation ordering, Jackson binding, conversion delegation, provenance integrity, internal-error propagation, OpenAPI/generated-client synchronization, architecture boundaries, regression surface and security/privacy implications.
 
-Initial verdict: **Caution**, with no P0/P1/P2 findings and one P3 structural drift: unreadable-body handling lived in the controller instead of the controller-scoped advice required by the approved design.
+Initial review found one P3 structural drift: unreadable-body handling lived in the controller instead of the controller-scoped advice required by the approved design. The P3 was corrected before merge:
 
-The P3 was corrected before final shipping:
+- `RecipeShoppingPreviewController` only delegates to the application service;
+- `RecipeShoppingPreviewExceptionHandler` is the controller-scoped advice handling both `InvalidRecipeShoppingPreviewRequestException` and `HttpMessageNotReadableException`;
+- there is no catch-all conversion of internal invariant failures to public 400 responses.
 
-- `RecipeShoppingPreviewController` now only delegates to the application service;
-- `RecipeShoppingPreviewExceptionHandler` is the single controller-scoped advice handling both `InvalidRecipeShoppingPreviewRequestException` and `HttpMessageNotReadableException`;
-- there is still no catch-all conversion of internal invariant failures to public 400 responses.
-
-After that correction, no known P0/P1/P2/P3 review finding remains. The final exact documentation/cleanup head still requires CI proof because every code or documentation commit invalidates exact-head shipping evidence.
+Final exact-head re-review verdict: **Looks good**. P0: none. P1: none. P2: none. P3: none. Review threads were empty.
 
 A transient execution-marker file used during branch setup was removed before shipping.
 
-## Final gates still required
+## Merge and post-merge acceptance evidence
 
-Before merge:
+PR #97 was marked ready only after exact-head verification and review, then squash-merged with GitHub-side `expected_head_sha` protection against exact head `318a48c569d0d001a4c27b5792e1681f7884e518`.
 
-1. require all normal PR workflows on the final exact head to succeed;
-2. confirm no unresolved review threads or blocking reviews;
-3. mark the PR ready for review;
-4. squash-merge using the exact reviewed/verified head SHA;
-5. require all normal push workflows on the resulting `main` SHA to succeed.
+Accepted squash merge:
 
-Only after those gates may issue #96 and canonical project state be marked **COMPLETE / ACCEPTED**.
+`8f0c1d8d31cfc1673656780a7989512d38788aff` — `feat(m2): add stateless recipe shopping preview API (#97)`
 
-## Post-merge acceptance evidence
+Post-merge proof on exact `main=8f0c1d8d31cfc1673656780a7989512d38788aff`:
 
-Pending.
+- 8 push-triggered workflow runs total;
+- 8/8 completed with `conclusion=success`;
+- failures: 0;
+- CodeQL Java and JavaScript/TypeScript both completed successfully;
+- issue #96 closed automatically with `state_reason=completed`.
+
+This establishes the code/behavior acceptance gate for M2.2. The follow-up docs-only acceptance PR records this evidence in canonical project state and is itself required to pass its normal exact-head PR and post-merge workflow gates before the repository documentation is considered synchronized.
