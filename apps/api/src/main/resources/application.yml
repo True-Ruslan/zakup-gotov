@@ -9,7 +9,6 @@ spring:
   jackson:
     deserialization:
       fail-on-unknown-properties: true
-      accept-float-as-int: false
   datasource:
     url: ${DATABASE_URL}
     username: ${DATABASE_USERNAME}
