@@ -57,6 +57,14 @@ All notable project changes are recorded here. Zakup Gotov is pre-release; entri
 - Fail-closed WeeklyPlan composition rejects deterministic internal-ID collisions, missing/orphan/empty ShoppingItem provenance and unknown aggregation-entry lineage.
 - ArchUnit guards constrain `weeklyplan` production dependencies to accepted `recipe`/`shopping` packages and protect reverse dependency direction.
 - M3.1 design, implementation plan, shipping evidence and acceptance decision document domain/composition/hardening RED→GREEN chains, reviewed head `ec1af08cbaf373f79c54858e9654451cebc4f009`, squash merge `13e09c63959b050d431cc913597fc868aa408718` and 8/8 successful post-merge `main` workflows.
+- Stateless M3.2 `POST /api/v1/weekly-plan-shopping-previews` boundary accepts `1..35` ordered weekly meal occurrences without client-supplied planner, Recipe or ingredient identities.
+- M3.2 generates transient WeeklyPlan/occurrence identities while reusing accepted M2.2 Recipe/ingredient construction and nested Recipe validation/normalization semantics.
+- Weekly shopping composition remains delegated to accepted M3.1/M2.5, preserving plan-scoped ShoppingList identity, canonical quantities, exact merge semantics, output ordering and final ShoppingItem identity without parallel planner arithmetic.
+- Public M3.2 provenance exposes only self-contained `occurrenceId + recipeId + recipeIngredientId` source tuples; internal `RecipeAggregationEntryId` remains hidden.
+- M3.2 rejects malformed JSON, unknown fields/day/unit and fractional serving JSON through sanitized `INVALID_WEEKLY_PLAN_SHOPPING_PREVIEW` problems without exposing parser internals.
+- OpenAPI 3.1 and generated TypeScript expose `createWeeklyPlanShoppingPreview`, `WEEKLY_PLAN_SHOPPING_PREVIEWS_PATH` and synchronized request/response/problem types.
+- ArchUnit guards keep `weeklyplanpreview` out of provider, retailer, matching, basket, comparison and database layers and protect reverse dependency direction into accepted Recipe/Shopping/WeeklyPlan packages.
+- M3.2 design, implementation plan, shipping evidence and acceptance decision document request/composition/provenance/HTTP/contract/hardening RED→GREEN chains, reviewed head `250aedb85b675036ffcb20e96a67db1afc03167a`, squash merge `9682ad1230910fc268ca3cddd8601a3fad7b100e`, issue #112 closure and 8/8 successful post-merge `main` workflows.
 
 #### Product and shopping core
 
@@ -113,13 +121,15 @@ All notable project changes are recorded here. Zakup Gotov is pre-release; entri
 - M2.5 deterministic multi-Recipe aggregation is **COMPLETE / ACCEPTED** after final reviewed head `a6e1095696ebfd67fafe7675a37b125ae02b3170`, squash merge `0854fc5bf76ad2976986537d6b4f5f3b8ebd18f0`, issue #106 closure and 8/8 successful post-merge `main` workflows.
 - M2 Recipes is **COMPLETE / ACCEPTED**.
 - M3.1 WeeklyPlan domain + deterministic shopping composition is **COMPLETE / ACCEPTED** after final reviewed head `ec1af08cbaf373f79c54858e9654451cebc4f009`, squash merge `13e09c63959b050d431cc913597fc868aa408718`, issue #109 closure and 8/8 successful post-merge `main` workflows.
-- The current deterministic target is **M3.2 stateless WeeklyPlan application/API boundary**; persistence, pantry subtraction, comparison orchestration and planner UI remain later explicit slices.
+- M3.2 stateless WeeklyPlan shopping-preview application/API boundary is **COMPLETE / ACCEPTED** after final reviewed head `250aedb85b675036ffcb20e96a67db1afc03167a`, squash merge `9682ad1230910fc268ca3cddd8601a3fad7b100e`, issue #112 closure and 8/8 successful post-merge `main` workflows.
+- The current deterministic target is **M3.3 WeeklyPlan → Comparison composition**; responsive Weekly Planning UI is M3.4, while persistence and pantry subtraction remain later explicit slices.
 - Recipe → ShoppingList merging is intentionally stricter than product matching: only exact normalized requirements with the same canonical unit merge; no case-folding/synonym/AI equivalence is introduced.
 - Recipe provenance remains conversion metadata rather than an optional Recipe field added to neutral `ShoppingItem`; M2.2 projects that provenance publicly as self-contained source ingredient IDs instead of modifying Shopping Core types.
 - Recipe lifecycle and the first Weekly Planning direction remain stateless by default; persistence stays deferred until reusable saved plans/history demonstrate product value.
 - Recipe → Comparison has an accepted primary product boundary at `/api/v1/recipe-comparison-previews`; M2.4 consumes it directly as the primary Recipe-first browser journey.
 - Multi-Recipe aggregation distinguishes Recipe identity from occurrence identity; repeated Recipe use is valid only through distinct occurrence IDs and does not weaken accepted exact merge semantics.
 - WeeklyPlan distinguishes planner occurrence identity from Recipe identity and keeps day metadata outside Recipe/Shopping merge and quantity semantics.
+- WeeklyPlan shopping preview remains locality/retailer-independent; retailer comparison is an explicit later composition concern rather than hidden planner behavior.
 - Retailer onboarding remains transport-neutral and universal; a failed direct path changes acquisition mode rather than retailer scope.
 - `ObservedOffer` is the provider trust boundary and `OfferSnapshot` the immutable comparison record.
 - Observation time and provider-side update time remain distinct.
@@ -152,6 +162,8 @@ All notable project changes are recorded here. Zakup Gotov is pre-release; entri
 - Multi-Recipe aggregation rejects generated final ShoppingItem-ID collisions across different merge keys and missing/empty converted provenance instead of silently overwriting lineage.
 - WeeklyPlan rejects missing/empty occurrence state and duplicate meal-occurrence identity rather than producing an ambiguous planner aggregate.
 - WeeklyPlan composition rejects missing/orphan/empty ShoppingItem provenance, unknown internal aggregation lineage and deterministic internal aggregation-ID collisions rather than repairing or silently dropping evidence.
+- WeeklyPlan shopping preview preserves independent nested Recipe validation errors even when target servings are also invalid instead of stopping validation at the planner wrapper.
+- WeeklyPlan shopping preview rejects missing/orphan/mismatched occurrence/Recipe/ingredient lineage and sanitizes unreadable JSON instead of exposing or repairing invalid provenance/parser state.
 - Provider offer validation rejects provenance/context mismatches before comparison logic.
 - Precise addresses are excluded from default string representations and provider routing.
 - Snapshot freshness rejects provider timestamps after observation time.
