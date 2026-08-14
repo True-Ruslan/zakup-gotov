@@ -31,6 +31,13 @@ All notable project changes are recorded here. Zakup Gotov is pre-release; entri
 - OpenAPI 3.1 composed request/response/problem contract plus generated TypeScript `RECIPE_COMPARISON_PREVIEWS_PATH` and generated types, verified by pinned regeneration and clean-diff CI.
 - Architecture guards for `recipecomparisonpreview` that permit only accepted application-boundary dependencies plus the finite canonical Shopping `Quantity` / `QuantityUnit` value bridge and reject Recipe-domain/downstream/persistence coupling.
 - M2.3 design, implementation plan, shipping evidence and acceptance decision documenting RED→GREEN checkpoints, exact-head review, squash merge `15a086d135f40277c655b39549c3e7a04c2e914e` and 8/8 successful post-merge `main` workflows.
+- M2.4 responsive Recipe-first web journey using the generated `POST /api/v1/recipe-comparison-previews` contract rather than duplicating Recipe/comparison DTOs or domain semantics in browser code.
+- Recipe form for title, base/target servings, locality and 1..100 editable ingredients with explicit quantity/unit controls, add/remove behavior, pending state and product-safe preflight errors.
+- Generated canonical Recipe shopping requirements rendered before the existing truthful retailer comparison result projection while transient Recipe/ingredient/list/item IDs stay hidden from user-facing output.
+- Fail-closed Recipe web transport with a finite timeout, sanitized generated 400 validation messages and no fabricated result on missing configuration, timeout, network or unexpected-service failure.
+- Responsive desktop/mobile Recipe acceptance coverage for serving scaling, generated shopping output, unavailable API state, visible keyboard focus, no horizontal overflow and continued manual-list comparison regression.
+- Deterministic E2E-only `/api/v1/recipe-comparison-previews` fixture path; production browser code contains no retailer fixture evidence and browser acceptance makes no live retailer request.
+- M2.4 design, implementation plan, shipping evidence and acceptance decision documenting explicit RED→GREEN checkpoints, reviewed head `fb069d64b96f0d989951e67fd62b793277453024`, squash merge `aba20c9cee263a683c0d4383ad840d7415851861` and 8/8 successful post-merge `main` workflows.
 
 #### Product and shopping core
 
@@ -83,10 +90,12 @@ All notable project changes are recorded here. Zakup Gotov is pre-release; entri
 - M2.1 `Recipe → explicit ingredients → canonical quantities → ShoppingList` is **COMPLETE / ACCEPTED** after squash merge `423eb14f7c565bbe264257a92df89a6b42d0d158` and 8/8 successful post-merge `main` workflows.
 - M2.2 stateless Recipe application/API boundary is **COMPLETE / ACCEPTED** after final reviewed head `318a48c569d0d001a4c27b5792e1681f7884e518`, squash merge `8f0c1d8d31cfc1673656780a7989512d38788aff`, issue #96 closure and 8/8 successful post-merge `main` workflows.
 - M2.3 composed Recipe → Comparison boundary is **COMPLETE / ACCEPTED** after final reviewed head `b6575f03b668f8bbaacd5b2897c4fb9301d94cdf`, squash merge `15a086d135f40277c655b39549c3e7a04c2e914e`, issue #100 closure and 8/8 successful post-merge `main` workflows.
+- M2.4 responsive Recipe UI is **COMPLETE / ACCEPTED** after final reviewed head `fb069d64b96f0d989951e67fd62b793277453024`, squash merge `aba20c9cee263a683c0d4383ad840d7415851861`, issue #103 closure and 8/8 successful post-merge `main` workflows.
 - Recipe → ShoppingList merging is intentionally stricter than product matching: only exact normalized requirements with the same canonical unit merge; no case-folding/synonym/AI equivalence is introduced.
 - Recipe provenance remains conversion metadata rather than an optional Recipe field added to neutral `ShoppingItem`; M2.2 projects that provenance publicly as self-contained source ingredient IDs instead of modifying Shopping Core types.
-- The M2.2 lifecycle decision is stateless for the current hypothesis-testing phase; persistence remains deferred until reusable saved recipes become a demonstrated product requirement.
-- Recipe → Comparison now has an accepted primary product boundary at `/api/v1/recipe-comparison-previews`; the next deterministic slice is M2.4 responsive Recipe UI rather than client-side orchestration of separate preview endpoints.
+- The Recipe lifecycle remains stateless for the current hypothesis-testing phase; persistence stays deferred until reusable saved recipes or weekly plans become a demonstrated product requirement.
+- Recipe → Comparison has an accepted primary product boundary at `/api/v1/recipe-comparison-previews`; M2.4 now consumes it directly as the primary Recipe-first browser journey.
+- After M2.4 acceptance, the next deterministic Recipe slice is **M2.5 multi-recipe aggregation** required by M3 Weekly Planning; persistence and AI ingestion remain separate decisions.
 - Retailer onboarding remains transport-neutral and universal; a failed direct path changes acquisition mode rather than retailer scope.
 - `ObservedOffer` is the provider trust boundary and `OfferSnapshot` the immutable comparison record.
 - Observation time and provider-side update time remain distinct.
@@ -108,11 +117,12 @@ All notable project changes are recorded here. Zakup Gotov is pre-release; entri
 - Recipe conversion rejects missing inputs and invalid provenance identities.
 - Recipe generated-item identity collision across different merge keys fails closed rather than relying on overwrite/order behavior.
 - Recipe provenance maps and nested lineage lists are defensively copied and immutable.
-- Recipe preview production wiring now explicitly supplies the transient ID generator, request factory, accepted converter and application service required by the Spring controller.
+- Recipe preview production wiring explicitly supplies the transient ID generator, request factory, accepted converter and application service required by the Spring controller.
 - Fractional JSON serving counts are rejected by recipe-specific strict integer deserialization instead of being silently coerced to integers; this strictness does not change unrelated API binding behavior.
 - Recipe preview unreadable-body handling is centralized in the approved controller-scoped advice, keeping the controller thin and preventing raw Jackson/internal exception details from becoming public 400 responses.
 - Recipe comparison wrapper rejects unknown/malformed JSON with a sanitized problem instead of exposing binding internals.
 - Recipe comparison composition fails closed if generated shopping items and returned comparison items drift in cardinality, identity/order, normalized requirement or canonical quantity.
+- Recipe UI ingredient row keys are deterministic local integers instead of random UUIDs so server render/hydration does not depend on nondeterministic initial IDs.
 - Provider offer validation rejects provenance/context mismatches before comparison logic.
 - Precise addresses are excluded from default string representations and provider routing.
 - Snapshot freshness rejects provider timestamps after observation time.
