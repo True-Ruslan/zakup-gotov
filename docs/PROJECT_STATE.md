@@ -14,7 +14,8 @@ M1 status: **Shopping Core COMPLETE / ACCEPTED**
 M1→M2 decision: **GO** — [`m1-shopping-core-acceptance-2026-08-13.md`](m1-shopping-core-acceptance-2026-08-13.md)  
 M2.1 status: **Recipe domain + Recipe → ShoppingList COMPLETE / ACCEPTED (#94 / #93)**  
 M2.2 status: **Recipe application/API boundary COMPLETE / ACCEPTED (#97 / #96)**  
-Current focus: **design M2.3 deterministic Recipe → Comparison composition**
+M2.3 status: **Recipe → Comparison composition COMPLETE / ACCEPTED (#101 / #100)**  
+Current focus: **design M2.4 responsive Recipe UI**
 
 ## Permanent connectivity rule
 
@@ -174,15 +175,60 @@ Acceptance proof:
 - GitHub created exactly 8 normal push-triggered workflows on the merged main SHA;
 - **8/8 post-merge main workflows completed successfully; failures: 0**.
 
-### M2.3 — Composed Recipe → Comparison flow — NEXT DESIGN TARGET
+### M2.3 — Composed Recipe → Comparison flow — COMPLETE / ACCEPTED (#101 / #100)
 
-Next deterministic vertical slice:
+Authoritative design: [`superpowers/specs/2026-08-14-m2-3-recipe-comparison-preview-design.md`](superpowers/specs/2026-08-14-m2-3-recipe-comparison-preview-design.md).  
+Execution plan: [`superpowers/plans/2026-08-14-m2-3-recipe-comparison-preview.md`](superpowers/plans/2026-08-14-m2-3-recipe-comparison-preview.md).  
+Shipping evidence: [`superpowers/plans/2026-08-14-m2-3-recipe-comparison-preview-shipping.md`](superpowers/plans/2026-08-14-m2-3-recipe-comparison-preview-shipping.md).  
+Acceptance decision: [`m2-3-recipe-comparison-preview-acceptance-2026-08-14.md`](m2-3-recipe-comparison-preview-acceptance-2026-08-14.md).
 
-`Recipe input → recipe-shopping preview → generated shopping requirements → comparison preview`
+Accepted squash merge: `15a086d135f40277c655b39549c3e7a04c2e914e` (`feat(m2): compose recipe into comparison preview (#101)`).
 
-The design must compose the two accepted stateless boundaries without duplicating Recipe conversion or comparison semantics, preserve self-contained recipe provenance, preserve existing production-access gating and fail-closed comparison states, and keep ordinary CI retailer-network-free.
+Accepted boundary:
 
-Only after that composed flow is accepted should the real responsive Recipe UI be implemented with frontend component TDD and desktop/mobile Playwright. Persistence, saved recipes and fuzzy/AI ingestion remain separate product decisions.
+`POST /api/v1/recipe-comparison-previews`
+
+`Recipe input + locality → accepted RecipeShoppingPreview → generated canonical Shopping items → accepted ComparisonPreview`
+
+Accepted behavior:
+
+- one stateless request composes the accepted Recipe and comparison application boundaries without duplicating either domain's semantics;
+- generated ShoppingItem UUID, order, normalized requirement and canonical quantity are preserved end-to-end into comparison;
+- Recipe provenance stays self-contained in `recipeShoppingPreview` through source ingredient IDs;
+- comparison validation, production-access scoping, runtime evidence loading, matching, basket planning and retailer-state assembly remain owned by the accepted M1 boundary;
+- cardinality, identity/order, requirement and canonical-quantity drift between generated shopping items and comparison projection fail closed;
+- wrapper binding failures use sanitized `INVALID_RECIPE_COMPARISON_PREVIEW`; nested Recipe and Comparison semantic failures retain their accepted problem vocabularies;
+- OpenAPI 3.1 remains source of truth and the generated TypeScript client exports `RECIPE_COMPARISON_PREVIEWS_PATH` plus generated request/response types;
+- architecture guards allow the composer to depend on accepted `recipepreview`/`preview` boundaries plus only the canonical Shopping `Quantity`/`QuantityUnit` value bridge; Recipe domain/provider/retailer/matching/basket/comparison-domain/database dependencies remain forbidden;
+- no retailer production path is activated, no provider policy is bypassed and ordinary CI remains retailer-network-free;
+- no persistence, saved recipes, Recipe UI, fuzzy/AI matching, exact-address flow or multi-recipe aggregation is introduced.
+
+Acceptance proof:
+
+- application composition, HTTP and generated-client contracts each retained explicit RED → GREEN checkpoints;
+- final reviewed PR head `b6575f03b668f8bbaacd5b2897c4fb9301d94cdf` passed all 9 normal PR workflow groups;
+- independent read-only review verdict: **Looks good / REVIEWED_READY**, with no unresolved P0/P1/P2 findings and no review threads;
+- PR #101 was squash-merged from that exact head to `main=15a086d135f40277c655b39549c3e7a04c2e914e`;
+- issue #100 closed `completed` with the merge;
+- GitHub created exactly 8 normal push-triggered workflows on the merged main SHA;
+- **8/8 post-merge main workflows completed successfully; failures: 0**.
+
+### M2.4 — Responsive Recipe UI — NEXT DESIGN TARGET
+
+Next product slice: a real responsive Recipe experience backed by the accepted composed endpoint.
+
+Target journey:
+
+`Recipe title/servings + ingredient editing + locality → POST /api/v1/recipe-comparison-previews → generated shopping requirements + truthful retailer comparison`
+
+Required direction:
+
+- frontend component TDD starts RED-first;
+- desktop and mobile Playwright scenarios start RED-first for the actual Recipe journey;
+- ingredient add/remove, quantity/unit editing, validation/API failures and serving changes are first-class UI behavior;
+- generated shopping requirements and comparison outcomes must preserve uncertainty/incomplete/unavailable states instead of inventing winners;
+- the UI consumes the generated TypeScript contract rather than duplicating request/response types;
+- persistence, saved recipes, fuzzy/AI ingestion and multi-recipe aggregation remain separate product decisions.
 
 ## Parallel mandatory work
 
@@ -220,6 +266,8 @@ Continue without blocking deterministic M2 work unless new evidence invalidates 
 21. Recipe application requests own no server identities; transient IDs are generated at the application boundary.
 22. Public Recipe provenance is self-contained and every source ingredient ID resolves inside the same response.
 23. Fractional ingredient quantities remain valid; serving counts remain positive JSON integers.
+24. Recipe → Comparison composition preserves generated ShoppingItem identity, order, requirement and canonical quantity across the application boundary.
+25. Recipe → Comparison composition delegates accepted Recipe and Comparison semantics and never bypasses production-access gating.
 
 ## Platform baseline
 
