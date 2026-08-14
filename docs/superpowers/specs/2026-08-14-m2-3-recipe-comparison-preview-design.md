@@ -61,7 +61,7 @@ The nested Recipe request and both nested response projections reuse the already
 3. Each generated shopping item UUID is preserved unchanged as the comparison request item UUID.
 4. Requirement text is preserved unchanged from the recipe shopping projection.
 5. Canonical quantity amount/unit is preserved unchanged from the recipe shopping projection.
-6. The service calls `ComparisonPreviewService.create(...)` exactly once with the normalized locality and generated items.
+6. The service calls `ComparisonPreviewService.create(...)` exactly once with locality and generated items; comparison owns locality normalization/validation.
 7. The service never reconstructs Recipe domain objects, never rescales servings and never recalculates recipe merge/provenance logic.
 8. The service never performs matching, basket planning, retailer-state assembly or runtime evidence acquisition itself.
 9. Existing comparison production-access gating remains authoritative and occurs before runtime evidence acquisition inside the accepted comparison service.
@@ -84,29 +84,40 @@ The composed response keeps M2.2 provenance self-contained: every `sourceIngredi
 
 The composed request owns `locality` because Recipe preview intentionally has no location context while comparison requires provider-neutral locality.
 
-Locality validation must reuse the comparison request boundary rather than introducing a second normalization vocabulary. Blank or over-limit locality therefore produces the existing comparison-preview validation problem.
+Locality validation reuses the comparison request boundary rather than introducing a second normalization vocabulary. Blank or over-limit locality therefore produces the existing comparison-preview validation problem.
 
-Recipe validation/binding failures remain the existing Recipe-shopping-preview validation semantics. The composed controller must sanitize malformed/unknown input and must not expose stack traces or internal exception text.
+Recipe validation failures remain the existing Recipe-shopping-preview validation semantics. The composed controller sanitizes unreadable/unknown wrapper input and must not expose stack traces or internal exception text.
 
 ## Architecture
 
 Create package `io.github.trueruslan.zakupgotov.recipecomparisonpreview`.
 
-Allowed direct dependencies:
+Primary application dependencies:
 
 - `recipecomparisonpreview → recipepreview`;
 - `recipecomparisonpreview → preview`.
 
-Forbidden direct dependencies:
+### Canonical Shopping value bridge clarification — 2026-08-14
 
-- `recipe`;
-- `shopping`;
-- `provider`;
-- `retailer`;
+Implementation inspection showed that both accepted application DTO families expose canonical Shopping value types in their public signatures: `RecipeShoppingPreviewShoppingItem.quantity()` returns `shopping.Quantity`, and `ComparisonPreviewQuantityRequest` accepts `shopping.QuantityUnit`. Avoiding any bytecode dependency on `shopping` would therefore require reflection/serialization indirection and would make the composition less type-safe.
+
+The approved architecture consequently permits only these direct Shopping dependencies:
+
+- `io.github.trueruslan.zakupgotov.shopping.Quantity`;
+- `io.github.trueruslan.zakupgotov.shopping.QuantityUnit`.
+
+They are read-only canonical value types already owned by Shopping Core. The composer must not construct or depend directly on `ShoppingList`, `ShoppingItem`, `ShoppingRequirement`, IDs, repositories or any other Shopping type. ArchUnit enforces this finite allow-list.
+
+Forbidden direct dependencies remain:
+
+- Recipe domain package `recipe`;
+- provider/acquisition package `provider`;
+- retailer registry/domain package `retailer`;
 - `matching`;
 - `basket`;
-- `comparison`;
-- `database`/persistence.
+- comparison domain package `comparison`;
+- `database`/persistence;
+- any Shopping type other than `Quantity` and `QuantityUnit`.
 
 The application boundary composes accepted application services, not lower-level domain internals. Existing lower-level dependency graphs remain unchanged.
 
@@ -124,29 +135,29 @@ Known malformed composed request/binding errors return `400 application/problem+
 - code: `INVALID_RECIPE_COMPARISON_PREVIEW`;
 - one sanitized `$request` error for unreadable/unknown composed-wrapper JSON.
 
-Nested request semantic validation continues to be emitted by the accepted nested service problems where possible. Internal invariant failures must remain server errors and must never be relabeled as user 400 responses.
+Nested Recipe semantic validation remains `INVALID_RECIPE_SHOPPING_PREVIEW`. Locality/comparison semantic validation remains `INVALID_COMPARISON_PREVIEW`. Internal invariant failures remain server errors and are never relabeled as user 400 responses.
 
 ## OpenAPI and generated client
 
 `openapi/zakup-gotov.yaml` remains source of truth.
 
-Add the new path and wrapper schemas while referencing existing Recipe-shopping and Comparison-preview schemas. Use `additionalProperties: false` and explicit required fields.
+The new path and wrapper schemas reference existing Recipe-shopping and Comparison-preview schemas, use `additionalProperties: false`, and define explicit required fields. The generated `packages/api-client/src/schema.d.ts` is derived output only; `check:generated` must regenerate it with the pinned `openapi-typescript` version and prove a clean diff before acceptance.
 
-Regenerate `packages/api-client/src/schema.d.ts`; never edit generated schema manually. Export:
+Export:
 
 ```ts
 export const RECIPE_COMPARISON_PREVIEWS_PATH = "/api/v1/recipe-comparison-previews" as const;
 ```
 
-## Required TDD cycles
+## Verification cycles
 
 1. **Service composition RED→GREEN:** preservation of shopping-item ID/order/requirement/canonical quantity and returned nested projections.
-2. **Invariant RED→GREEN:** mismatch/cardinality/order drift fails closed.
-3. **Controller RED→GREEN:** success JSON and sanitized wrapper binding failures.
-4. **Architecture RED→GREEN:** only accepted application-boundary dependencies.
+2. **Fail-closed invariant verification:** explicit tests for cardinality, identity/order, requirement and canonical-quantity drift.
+3. **Controller RED→GREEN:** success JSON, nested semantic problems and sanitized wrapper binding failures.
+4. **Architecture verification:** only accepted application boundaries plus the finite canonical Shopping value bridge; no downstream/package leakage.
 5. **OpenAPI/client RED→GREEN:** path, request/response types and generated-schema freshness.
 
-Every behavior-changing production step starts with a failing test executed against the branch before implementation.
+Every behavior-changing production step starts with a failing test executed against the branch before implementation. Additional non-behavior-changing regression/hardening assertions may be added after GREEN before shipping.
 
 ## Verification and acceptance
 
