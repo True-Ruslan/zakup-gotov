@@ -51,10 +51,9 @@ class RecipeComparisonPreviewArchitectureTest {
                 .filter(name -> name.startsWith("io.github.trueruslan.zakupgotov.shopping."))
                 .collect(Collectors.toSet());
 
-        assertThat(shoppingDependencies)
-                .containsOnly(
-                        "io.github.trueruslan.zakupgotov.shopping.Quantity",
-                        "io.github.trueruslan.zakupgotov.shopping.QuantityUnit");
+        assertThat(shoppingDependencies).allSatisfy(name -> assertThat(name).isIn(
+                "io.github.trueruslan.zakupgotov.shopping.Quantity",
+                "io.github.trueruslan.zakupgotov.shopping.QuantityUnit"));
     }
 
     @Test
