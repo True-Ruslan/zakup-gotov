@@ -2,11 +2,12 @@ package io.github.trueruslan.zakupgotov.recipepreview;
 
 import com.fasterxml.jackson.annotation.JsonAnySetter;
 import java.util.List;
+import tools.jackson.databind.annotation.JsonDeserialize;
 
 public record RecipeShoppingPreviewRequest(
         String title,
-        Integer baseServings,
-        Integer targetServings,
+        @JsonDeserialize(using = StrictIntegerDeserializer.class) Integer baseServings,
+        @JsonDeserialize(using = StrictIntegerDeserializer.class) Integer targetServings,
         List<RecipeShoppingPreviewIngredientRequest> ingredients) {
 
     @JsonAnySetter
