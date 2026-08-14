@@ -73,11 +73,12 @@ All notable project changes are recorded here. Zakup Gotov is pre-release; entri
 - M1 Shopping Core is **COMPLETE / ACCEPTED** on the post-merge pre-acquisition-gate baseline `779d0b219a13e0bf82263a1e655fb732553ed5fe`.
 - The M1→M2 decision is **GO for deterministic product/core development**; it does not claim every retailer is production-ready.
 - M2.1 `Recipe → explicit ingredients → canonical quantities → ShoppingList` is **COMPLETE / ACCEPTED** after squash merge `423eb14f7c565bbe264257a92df89a6b42d0d158` and 8/8 successful post-merge `main` workflows.
-- M2.2 is **implemented/tested and in shipping review, not yet accepted**: the stateless recipe application boundary, OpenAPI/generated client and regression coverage exist in PR #97, while final exact-head review/merge/post-merge proof remains required.
+- M2.2 stateless Recipe application/API boundary is **COMPLETE / ACCEPTED** after final exact-head 9/9 PR workflow success, independent review with no P0/P1/P2/P3 findings, squash merge `8f0c1d8d31cfc1673656780a7989512d38788aff`, and 8/8 successful post-merge `main` workflows; issue #96 is closed `completed`.
+- M2.3 composed Recipe → Comparison flow is the current next deterministic design target; it must preserve Recipe provenance and accepted comparison/production-access semantics without duplicating either boundary.
 - Recipe → ShoppingList merging is intentionally stricter than product matching: only exact normalized requirements with the same canonical unit merge; no case-folding/synonym/AI equivalence is introduced.
 - Recipe provenance remains conversion metadata rather than an optional Recipe field added to neutral `ShoppingItem`; M2.2 projects that provenance publicly as self-contained source ingredient IDs instead of modifying Shopping Core types.
 - The M2.2 lifecycle decision is stateless for the current hypothesis-testing phase; persistence remains deferred until reusable saved recipes become a demonstrated product requirement.
-- Recipe preview conversion does not directly orchestrate retailer comparison. The next deterministic slice after M2.2 acceptance is explicit composition of the recipe-shopping preview with the accepted comparison-preview boundary.
+- Recipe preview conversion does not directly orchestrate retailer comparison. M2.3 will explicitly compose the accepted recipe-shopping-preview and comparison-preview capabilities while keeping their domain semantics separate.
 - Retailer onboarding remains transport-neutral and universal; a failed direct path changes acquisition mode rather than retailer scope.
 - `ObservedOffer` is the provider trust boundary and `OfferSnapshot` the immutable comparison record.
 - Observation time and provider-side update time remain distinct.
