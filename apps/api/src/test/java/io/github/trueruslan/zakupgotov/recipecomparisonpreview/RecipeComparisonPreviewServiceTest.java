@@ -1,7 +1,10 @@
 package io.github.trueruslan.zakupgotov.recipecomparisonpreview;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
+import io.github.trueruslan.zakupgotov.preview.ComparisonPreview;
+import io.github.trueruslan.zakupgotov.preview.ComparisonPreviewRequestedItem;
 import io.github.trueruslan.zakupgotov.preview.ComparisonPreviewService;
 import io.github.trueruslan.zakupgotov.preview.NoopComparisonRuntimeEvidenceSource;
 import io.github.trueruslan.zakupgotov.recipe.RecipeId;
@@ -14,6 +17,7 @@ import io.github.trueruslan.zakupgotov.recipepreview.RecipeShoppingPreviewReques
 import io.github.trueruslan.zakupgotov.recipepreview.RecipeShoppingPreviewRequestFactory;
 import io.github.trueruslan.zakupgotov.recipepreview.RecipeShoppingPreviewService;
 import io.github.trueruslan.zakupgotov.retailer.RetailerRegistry;
+import io.github.trueruslan.zakupgotov.shopping.Quantity;
 import io.github.trueruslan.zakupgotov.shopping.QuantityUnit;
 import io.github.trueruslan.zakupgotov.shopping.ShoppingListId;
 import java.math.BigDecimal;
@@ -29,25 +33,7 @@ class RecipeComparisonPreviewServiceTest {
 
     @Test
     void preservesGeneratedShoppingItemIdentityAndCanonicalQuantityIntoComparison() {
-        var recipeService = new RecipeShoppingPreviewService(
-                new RecipeShoppingPreviewRequestFactory(new FixedIds()),
-                new RecipeShoppingListConverter());
-        var comparisonService = new ComparisonPreviewService(
-                RetailerRegistry.initial(),
-                new NoopComparisonRuntimeEvidenceSource());
-        var service = new RecipeComparisonPreviewService(recipeService, comparisonService);
-
-        var result = service.create(new RecipeComparisonPreviewRequest(
-                "  Москва  ",
-                new RecipeShoppingPreviewRequest(
-                        "  Курица с овощами  ",
-                        2,
-                        4,
-                        List.of(new RecipeShoppingPreviewIngredientRequest(
-                                "  курица  ",
-                                new RecipeShoppingPreviewQuantityRequest(
-                                        new BigDecimal("0.5"),
-                                        QuantityUnit.KILOGRAM))))));
+        var result = createResult();
 
         assertThat(result.recipeShoppingPreview().recipe().id()).isEqualTo(RECIPE_ID);
         assertThat(result.comparisonPreview().locality()).isEqualTo("Москва");
@@ -62,6 +48,77 @@ class RecipeComparisonPreviewServiceTest {
         assertThat(compared.quantity().amount()).isEqualByComparingTo("1000");
         assertThat(compared.quantity().unit()).isEqualTo(QuantityUnit.GRAM);
         assertThat(generated.sourceIngredientIds()).containsExactly(INGREDIENT_ID);
+    }
+
+    @Test
+    void failsClosedWhenComparisonProjectionDriftsFromGeneratedShoppingItems() {
+        var result = createResult();
+        var compared = result.comparisonPreview().items().getFirst();
+        var retailers = result.comparisonPreview().retailers();
+
+        assertThatThrownBy(() -> RecipeComparisonPreviewService.verifyComposition(
+                        result.recipeShoppingPreview(),
+                        new ComparisonPreview("Москва", List.of(), retailers)))
+                .isInstanceOf(IllegalStateException.class)
+                .hasMessage("comparison item cardinality drift");
+
+        assertThatThrownBy(() -> RecipeComparisonPreviewService.verifyComposition(
+                        result.recipeShoppingPreview(),
+                        new ComparisonPreview(
+                                "Москва",
+                                List.of(new ComparisonPreviewRequestedItem(
+                                        UUID.fromString("40000000-0000-0000-0000-000000000001"),
+                                        compared.requirement(),
+                                        compared.quantity())),
+                                retailers)))
+                .isInstanceOf(IllegalStateException.class)
+                .hasMessage("comparison item identity/order drift");
+
+        assertThatThrownBy(() -> RecipeComparisonPreviewService.verifyComposition(
+                        result.recipeShoppingPreview(),
+                        new ComparisonPreview(
+                                "Москва",
+                                List.of(new ComparisonPreviewRequestedItem(
+                                        compared.id(),
+                                        "другая потребность",
+                                        compared.quantity())),
+                                retailers)))
+                .isInstanceOf(IllegalStateException.class)
+                .hasMessage("comparison item requirement drift");
+
+        assertThatThrownBy(() -> RecipeComparisonPreviewService.verifyComposition(
+                        result.recipeShoppingPreview(),
+                        new ComparisonPreview(
+                                "Москва",
+                                List.of(new ComparisonPreviewRequestedItem(
+                                        compared.id(),
+                                        compared.requirement(),
+                                        new Quantity(new BigDecimal("999"), QuantityUnit.GRAM))),
+                                retailers)))
+                .isInstanceOf(IllegalStateException.class)
+                .hasMessage("comparison item quantity drift");
+    }
+
+    private static RecipeComparisonPreview createResult() {
+        var recipeService = new RecipeShoppingPreviewService(
+                new RecipeShoppingPreviewRequestFactory(new FixedIds()),
+                new RecipeShoppingListConverter());
+        var comparisonService = new ComparisonPreviewService(
+                RetailerRegistry.initial(),
+                new NoopComparisonRuntimeEvidenceSource());
+        var service = new RecipeComparisonPreviewService(recipeService, comparisonService);
+
+        return service.create(new RecipeComparisonPreviewRequest(
+                "  Москва  ",
+                new RecipeShoppingPreviewRequest(
+                        "  Курица с овощами  ",
+                        2,
+                        4,
+                        List.of(new RecipeShoppingPreviewIngredientRequest(
+                                "  курица  ",
+                                new RecipeShoppingPreviewQuantityRequest(
+                                        new BigDecimal("0.5"),
+                                        QuantityUnit.KILOGRAM))))));
     }
 
     private static final class FixedIds implements RecipeShoppingPreviewIdGenerator {
