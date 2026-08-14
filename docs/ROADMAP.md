@@ -98,18 +98,22 @@ Post-merge proof on exact `main`:
 - fractional servings;
 - multi-recipe aggregation.
 
-### M2.2 — Stateless Recipe application/API boundary — IMPLEMENTED / TESTED / SHIPPING (#97 / #96)
+### M2.2 — Stateless Recipe application/API boundary — COMPLETE / ACCEPTED (#97 / #96)
 
 Authoritative design: [`superpowers/specs/2026-08-13-m2-2-recipe-shopping-preview-design-v2.md`](superpowers/specs/2026-08-13-m2-2-recipe-shopping-preview-design-v2.md).  
-Execution plan: [`superpowers/plans/2026-08-13-m2-2-recipe-shopping-preview-v2.md`](superpowers/plans/2026-08-13-m2-2-recipe-shopping-preview-v2.md).
+Execution plan: [`superpowers/plans/2026-08-13-m2-2-recipe-shopping-preview-v2.md`](superpowers/plans/2026-08-13-m2-2-recipe-shopping-preview-v2.md).  
+Shipping evidence: [`superpowers/plans/2026-08-14-m2-2-recipe-shopping-preview-shipping.md`](superpowers/plans/2026-08-14-m2-2-recipe-shopping-preview-shipping.md).  
+Acceptance decision: [`m2-2-recipe-shopping-preview-acceptance-2026-08-14.md`](m2-2-recipe-shopping-preview-acceptance-2026-08-14.md).
 
-Approved and implemented direction:
+Accepted squash merge: `8f0c1d8d31cfc1673656780a7989512d38788aff`.
+
+Accepted direction:
 
 `POST /api/v1/recipe-shopping-previews`
 
 `Recipe request → application validation/server-owned transient IDs → Recipe domain → RecipeShoppingListConverter → canonical ShoppingList projection`
 
-#### Implemented scope
+#### Accepted scope
 
 - stateless lifecycle; no saved Recipe persistence/CRUD;
 - server-generated Recipe, ingredient and ShoppingList identities;
@@ -124,23 +128,28 @@ Approved and implemented direction:
 - application architecture guards preventing provider/retailer/matching/basket/comparison/database coupling;
 - no retailer traffic, location lookup, persistence, Recipe→Comparison orchestration, Recipe UI or fuzzy/AI matching.
 
-#### Verification state
+#### Acceptance proof
 
-A fully implemented code checkpoint `b451dacbec41e3d7bd75ce4580f76fb6f86d5cae` passed **13/13 PR checks across all 9 normal workflow groups**, including API/full Maven verification, generated-contract verification, Web + desktop/mobile Playwright regression, retailer bridge, CodeQL, dependency review, container security, release contract and release bundle.
+- code checkpoint `b451dacbec41e3d7bd75ce4580f76fb6f86d5cae`: 13/13 individual checks across all 9 normal PR workflow groups;
+- final reviewed head `318a48c569d0d001a4c27b5792e1681f7884e518`: all 9 normal PR workflow groups success;
+- independent review: **Looks good**; no unresolved P0/P1/P2/P3; review threads empty;
+- squash merge to `main=8f0c1d8d31cfc1673656780a7989512d38788aff`;
+- issue #96 closed `completed`;
+- exact merged main SHA: 8/8 normal push workflows success, 0 failures.
 
-Read-only review then found one low-risk design drift: malformed-body handling was in the controller instead of the approved controller-scoped advice. The correction keeps the controller thin and centralizes both known request-failure paths in the advice. Because that correction and these documentation changes move the PR head, M2.2 remains **not accepted** until the final exact head is green, independent review has no unresolved P0/P1/P2, the PR is squash-merged, and normal post-merge `main` workflows pass.
-
-### M2.3 — Composed Recipe → Comparison flow — NEXT AFTER M2.2 ACCEPTANCE
+### M2.3 — Composed Recipe → Comparison flow — NEXT: DESIGN
 
 Target deterministic path:
 
 `Recipe input → recipe-shopping preview → generated shopping requirements → comparison preview`
 
-Goals:
+Design goals:
 
 - compose the two accepted stateless boundaries without duplicating recipe or comparison semantics;
+- decide whether composition is an application service/internal orchestration seam or requires a new public endpoint;
 - preserve self-contained recipe provenance while keeping retailer/provider internals out of the Recipe API;
 - preserve existing production-access gating and fail-closed comparison states;
+- define identity/provenance/error behavior across the composed boundary;
 - add contract/application tests before introducing UI;
 - keep retailer traffic absent from ordinary CI.
 
@@ -150,7 +159,7 @@ Do **not** add persistence, saved recipes or fuzzy/AI ingestion merely because M
 
 ### M2 exit direction
 
-After the stateless application boundary and composed comparison flow are accepted, extend toward the minimal usable Recipe UI and then deterministic multi-recipe aggregation needed by M3 Weekly Planning. Do not introduce fuzzy/AI ingestion until deterministic recipe semantics remain stable through these application boundaries.
+After the composed comparison flow is accepted, extend toward the minimal usable Recipe UI and then deterministic multi-recipe aggregation needed by M3 Weekly Planning. Do not introduce fuzzy/AI ingestion until deterministic recipe semantics remain stable through these application boundaries.
 
 ## Parallel connectivity / operational work
 
