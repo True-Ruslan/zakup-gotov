@@ -72,6 +72,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/recipe-comparison-previews": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Create a transient recipe-to-retailer comparison preview */
+        post: operations["createRecipeComparisonPreview"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -122,6 +139,10 @@ export interface components {
                 unit: components["schemas"]["QuantityInputUnit"];
             };
         };
+        RecipeComparisonPreviewRequest: {
+            locality: string;
+            recipe: components["schemas"]["RecipeShoppingPreviewRequest"];
+        };
         /** @enum {string} */
         QuantityInputUnit: "PIECE" | "GRAM" | "KILOGRAM" | "MILLILITER" | "LITER";
         CanonicalQuantity: {
@@ -133,6 +154,10 @@ export interface components {
         RecipeShoppingPreviewResponse: {
             recipe: components["schemas"]["RecipeShoppingPreviewRecipe"];
             shoppingList: components["schemas"]["RecipeShoppingPreviewShoppingList"];
+        };
+        RecipeComparisonPreviewResponse: {
+            recipeShoppingPreview: components["schemas"]["RecipeShoppingPreviewResponse"];
+            comparisonPreview: components["schemas"]["ComparisonPreviewResponse"];
         };
         RecipeShoppingPreviewRecipe: {
             /** Format: uuid */
@@ -228,6 +253,21 @@ export interface components {
             errors: components["schemas"]["RecipeShoppingPreviewValidationError"][];
         };
         RecipeShoppingPreviewValidationError: {
+            field: string;
+            message: string;
+        };
+        InvalidRecipeComparisonPreviewProblem: {
+            /** @constant */
+            type: "https://zakup-gotov.dev/problems/invalid-recipe-comparison-preview";
+            /** @constant */
+            title: "Invalid recipe comparison preview request";
+            /** @constant */
+            status: 400;
+            /** @constant */
+            code: "INVALID_RECIPE_COMPARISON_PREVIEW";
+            errors: components["schemas"]["RecipeComparisonPreviewValidationError"][];
+        };
+        RecipeComparisonPreviewValidationError: {
             field: string;
             message: string;
         };
@@ -365,6 +405,39 @@ export interface operations {
                 };
                 content: {
                     "application/problem+json": components["schemas"]["InvalidRecipeShoppingPreviewProblem"];
+                };
+            };
+        };
+    };
+    createRecipeComparisonPreview: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RecipeComparisonPreviewRequest"];
+            };
+        };
+        responses: {
+            /** @description Composed recipe shopping and retailer comparison preview */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RecipeComparisonPreviewResponse"];
+                };
+            };
+            /** @description Invalid recipe comparison preview request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["InvalidRecipeComparisonPreviewProblem"] | components["schemas"]["InvalidRecipeShoppingPreviewProblem"] | components["schemas"]["InvalidComparisonPreviewProblem"];
                 };
             };
         };

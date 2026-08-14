@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import {
   COMPARISON_PREVIEWS_PATH,
+  RECIPE_COMPARISON_PREVIEWS_PATH,
   RECIPE_SHOPPING_PREVIEWS_PATH,
   RETAILERS_PATH,
   SYSTEM_INFO_PATH,
@@ -48,6 +49,23 @@ describe("Zakup Gotov API client", () => {
     expect(path).toBe("/api/v1/recipe-shopping-previews");
     expect(client.POST).toBeTypeOf("function");
     expect(operationExists).toBeUndefined();
+    expect(responseExists).toBeUndefined();
+  });
+
+  it("exposes the composed recipe comparison endpoint through the generated contract", () => {
+    const path: keyof paths = RECIPE_COMPARISON_PREVIEWS_PATH;
+    const client = createZakupGotovClient("https://api.example.test");
+    type ComposedPost = paths["/api/v1/recipe-comparison-previews"]["post"];
+    type ComposedRequest = components["schemas"]["RecipeComparisonPreviewRequest"];
+    type ComposedResponse = components["schemas"]["RecipeComparisonPreviewResponse"];
+    const operationExists: ComposedPost | undefined = undefined;
+    const requestExists: ComposedRequest | undefined = undefined;
+    const responseExists: ComposedResponse | undefined = undefined;
+
+    expect(path).toBe("/api/v1/recipe-comparison-previews");
+    expect(client.POST).toBeTypeOf("function");
+    expect(operationExists).toBeUndefined();
+    expect(requestExists).toBeUndefined();
     expect(responseExists).toBeUndefined();
   });
 });
