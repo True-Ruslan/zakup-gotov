@@ -4,8 +4,10 @@ import io.github.trueruslan.zakupgotov.recipe.RecipeAggregationEntry;
 import io.github.trueruslan.zakupgotov.recipe.RecipeAggregationEntryId;
 import io.github.trueruslan.zakupgotov.recipe.RecipeShoppingListAggregation;
 import io.github.trueruslan.zakupgotov.recipe.RecipeShoppingListAggregator;
+import io.github.trueruslan.zakupgotov.shopping.ShoppingItemId;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -56,10 +58,11 @@ public final class WeeklyPlanShoppingListComposer {
     private static WeeklyPlanShoppingListComposition project(
             RecipeShoppingListAggregation aggregation,
             Map<RecipeAggregationEntryId, WeeklyMealOccurrenceId> occurrenceByEntryId) {
-        var projected = new LinkedHashMap<io.github.trueruslan.zakupgotov.shopping.ShoppingItemId,
-                List<WeeklyPlanIngredientRef>>();
+        validateProvenanceStructure(aggregation);
 
-        aggregation.provenance().forEach((itemId, refs) -> {
+        var projected = new LinkedHashMap<ShoppingItemId, List<WeeklyPlanIngredientRef>>();
+        for (var item : aggregation.shoppingList().items()) {
+            var refs = aggregation.provenance().get(item.id());
             var itemRefs = new ArrayList<WeeklyPlanIngredientRef>(refs.size());
             for (var ref : refs) {
                 var occurrenceId = occurrenceByEntryId.get(ref.entryId());
@@ -68,9 +71,25 @@ public final class WeeklyPlanShoppingListComposer {
                 }
                 itemRefs.add(new WeeklyPlanIngredientRef(occurrenceId, ref.ingredientRef()));
             }
-            projected.put(itemId, List.copyOf(itemRefs));
-        });
+            projected.put(item.id(), List.copyOf(itemRefs));
+        }
 
         return new WeeklyPlanShoppingListComposition(aggregation.shoppingList(), projected);
+    }
+
+    private static void validateProvenanceStructure(RecipeShoppingListAggregation aggregation) {
+        var itemIds = new LinkedHashSet<ShoppingItemId>();
+        for (var item : aggregation.shoppingList().items()) {
+            itemIds.add(item.id());
+        }
+
+        if (!itemIds.equals(aggregation.provenance().keySet())) {
+            throw new IllegalStateException("shopping list and provenance keys must match exactly");
+        }
+        aggregation.provenance().forEach((itemId, refs) -> {
+            if (refs.isEmpty()) {
+                throw new IllegalStateException("aggregate provenance must not be empty for item " + itemId.value());
+            }
+        });
     }
 }
