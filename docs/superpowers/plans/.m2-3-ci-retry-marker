@@ -1,0 +1,14 @@
+M2.3 exact-head CI retry marker — 2026-08-14
+
+Predecessor head: 0050aca36e544fb54ecdaceb7a86ef8ab822b040
+PR: #101
+Issue: #100
+
+Observed preflight state on predecessor head:
+- 8/9 normal PR workflow groups completed successfully;
+- API CI run 31783024562 remained status=pending;
+- that run had zero jobs created;
+- no newer/in-progress API CI run existed for the PR;
+- API workflow concurrency is PR-scoped with cancel-in-progress=true.
+
+This docs-only synchronize exists solely to supersede the orphaned pending API run and obtain a fresh exact-head API verification. It does not change M2.3 runtime, API contract, generated client, tests, security posture or product behavior.
