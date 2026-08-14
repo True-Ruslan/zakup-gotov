@@ -7,7 +7,6 @@ import io.github.trueruslan.zakupgotov.preview.ComparisonPreviewRequest;
 import io.github.trueruslan.zakupgotov.preview.ComparisonPreviewService;
 import io.github.trueruslan.zakupgotov.recipepreview.RecipeShoppingPreview;
 import io.github.trueruslan.zakupgotov.recipepreview.RecipeShoppingPreviewService;
-import java.util.List;
 import java.util.Objects;
 
 public final class RecipeComparisonPreviewService {
@@ -27,10 +26,7 @@ public final class RecipeComparisonPreviewService {
     }
 
     public RecipeComparisonPreview create(RecipeComparisonPreviewRequest request) {
-        if (request == null) {
-            throw new InvalidRecipeComparisonPreviewRequestException(List.of(
-                    new RecipeComparisonPreviewValidationError("$request", "must not be null")));
-        }
+        Objects.requireNonNull(request, "request must not be null");
 
         var recipeShoppingPreview = recipeShoppingPreviewService.create(request.recipe());
         var comparisonItems = recipeShoppingPreview.shoppingList().items().stream()
