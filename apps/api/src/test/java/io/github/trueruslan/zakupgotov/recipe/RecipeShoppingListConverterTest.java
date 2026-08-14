@@ -130,6 +130,17 @@ class RecipeShoppingListConverterTest {
     }
 
     @Test
+    void preservesAcceptedLiteralShoppingItemIdentityFixture() {
+        var recipe = recipe(1, ingredient("81d23cd8-cd6f-4692-8a0f-a49e05c779cc", "Flour", "500", QuantityUnit.GRAM));
+
+        var itemId = converter.convert(recipe, new RecipeServings(1), LIST_ID)
+                .shoppingList().items().getFirst().id();
+
+        assertThat(itemId.value())
+                .isEqualTo(UUID.fromString("3d737f10-a263-39b3-b90a-fe7868c035b9"));
+    }
+
+    @Test
     void recordsCompleteOrderedProvenanceForMergedAndNonMergedIngredients() {
         var milkFirst = ingredient("81d23cd8-cd6f-4692-8a0f-a49e05c779cc", "Milk", "500", QuantityUnit.MILLILITER);
         var flour = ingredient("11388874-5a42-4863-b5cf-3c210fa70ddd", "Flour", "200", QuantityUnit.GRAM);
