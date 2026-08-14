@@ -14,7 +14,7 @@ import { RecipeComparisonResults } from "./recipe-comparison-results";
 type QuantityUnit = components["schemas"]["QuantityInputUnit"];
 
 type IngredientRow = {
-  key: string;
+  key: number;
   requirement: string;
   amount: string;
   unit: QuantityUnit;
@@ -28,9 +28,9 @@ const units: Array<{ value: QuantityUnit; label: string }> = [
   { value: "LITER", label: "л" },
 ];
 
-function newIngredient(): IngredientRow {
+function newIngredient(key: number): IngredientRow {
   return {
-    key: globalThis.crypto.randomUUID(),
+    key,
     requirement: "",
     amount: "1",
     unit: "PIECE",
@@ -89,12 +89,12 @@ export function RecipeComparisonForm() {
   const [baseServings, setBaseServings] = useState("2");
   const [targetServings, setTargetServings] = useState("2");
   const [locality, setLocality] = useState("");
-  const [ingredients, setIngredients] = useState<IngredientRow[]>(() => [newIngredient()]);
+  const [ingredients, setIngredients] = useState<IngredientRow[]>(() => [newIngredient(1)]);
   const [state, setState] = useState<RecipeComparisonState | null>(null);
   const [clientMessages, setClientMessages] = useState<string[]>([]);
   const [pending, setPending] = useState(false);
 
-  function updateIngredient(key: string, patch: Partial<IngredientRow>) {
+  function updateIngredient(key: number, patch: Partial<IngredientRow>) {
     setIngredients((current) =>
       current.map((ingredient) =>
         ingredient.key === key ? { ...ingredient, ...patch } : ingredient,
@@ -102,12 +102,22 @@ export function RecipeComparisonForm() {
     );
   }
 
-  function removeIngredient(key: string) {
+  function removeIngredient(key: number) {
     setIngredients((current) =>
       current.length === 1
         ? current
         : current.filter((ingredient) => ingredient.key !== key),
     );
+  }
+
+  function addIngredient() {
+    setIngredients((current) => {
+      if (current.length >= 100) {
+        return current;
+      }
+      const nextKey = Math.max(...current.map((ingredient) => ingredient.key)) + 1;
+      return [...current, newIngredient(nextKey)];
+    });
   }
 
   async function submit(event: FormEvent<HTMLFormElement>) {
@@ -328,11 +338,7 @@ export function RecipeComparisonForm() {
         <div className="flex flex-wrap gap-3">
           <button
             type="button"
-            onClick={() =>
-              setIngredients((current) =>
-                current.length >= 100 ? current : [...current, newIngredient()],
-              )
-            }
+            onClick={addIngredient}
             disabled={ingredients.length >= 100}
             className="min-h-11 rounded-full border border-stone-300 bg-white px-5 py-2.5 text-sm font-medium text-stone-900 hover:bg-stone-100 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-stone-900 disabled:cursor-not-allowed disabled:opacity-40"
           >
