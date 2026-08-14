@@ -89,6 +89,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/weekly-plan-shopping-previews": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Create a transient weekly-plan shopping-list preview */
+        post: operations["createWeeklyPlanShoppingPreview"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -271,6 +288,85 @@ export interface components {
             field: string;
             message: string;
         };
+        WeeklyPlanShoppingPreviewRequest: {
+            occurrences: components["schemas"]["WeeklyPlanShoppingPreviewOccurrenceInput"][];
+        };
+        WeeklyPlanShoppingPreviewOccurrenceInput: {
+            day: components["schemas"]["WeeklyPlanDay"];
+            targetServings: number;
+            recipe: components["schemas"]["WeeklyPlanShoppingPreviewRecipeInput"];
+        };
+        WeeklyPlanShoppingPreviewRecipeInput: {
+            title: string;
+            baseServings: number;
+            ingredients: components["schemas"]["RecipeShoppingPreviewIngredientInput"][];
+        };
+        /** @enum {string} */
+        WeeklyPlanDay: "MONDAY" | "TUESDAY" | "WEDNESDAY" | "THURSDAY" | "FRIDAY" | "SATURDAY" | "SUNDAY";
+        WeeklyPlanShoppingPreviewResponse: {
+            weeklyPlan: components["schemas"]["WeeklyPlanShoppingPreviewPlan"];
+            shoppingList: components["schemas"]["WeeklyPlanShoppingPreviewShoppingList"];
+        };
+        WeeklyPlanShoppingPreviewPlan: {
+            /** Format: uuid */
+            id: string;
+            occurrences: components["schemas"]["WeeklyPlanShoppingPreviewOccurrence"][];
+        };
+        WeeklyPlanShoppingPreviewOccurrence: {
+            /** Format: uuid */
+            id: string;
+            day: components["schemas"]["WeeklyPlanDay"];
+            targetServings: number;
+            recipe: components["schemas"]["WeeklyPlanShoppingPreviewRecipe"];
+        };
+        WeeklyPlanShoppingPreviewRecipe: {
+            /** Format: uuid */
+            id: string;
+            title: string;
+            baseServings: number;
+            ingredients: components["schemas"]["WeeklyPlanShoppingPreviewIngredient"][];
+        };
+        WeeklyPlanShoppingPreviewIngredient: {
+            /** Format: uuid */
+            id: string;
+            requirement: string;
+            quantity: components["schemas"]["CanonicalQuantity"];
+        };
+        WeeklyPlanShoppingPreviewShoppingList: {
+            /** Format: uuid */
+            id: string;
+            items: components["schemas"]["WeeklyPlanShoppingPreviewShoppingItem"][];
+        };
+        WeeklyPlanShoppingPreviewShoppingItem: {
+            /** Format: uuid */
+            id: string;
+            requirement: string;
+            quantity: components["schemas"]["CanonicalQuantity"];
+            sources: components["schemas"]["WeeklyPlanShoppingPreviewSource"][];
+        };
+        WeeklyPlanShoppingPreviewSource: {
+            /** Format: uuid */
+            occurrenceId: string;
+            /** Format: uuid */
+            recipeId: string;
+            /** Format: uuid */
+            recipeIngredientId: string;
+        };
+        InvalidWeeklyPlanShoppingPreviewProblem: {
+            /** @constant */
+            type: "https://zakup-gotov.dev/problems/invalid-weekly-plan-shopping-preview";
+            /** @constant */
+            title: "Invalid weekly plan shopping preview request";
+            /** @constant */
+            status: 400;
+            /** @constant */
+            code: "INVALID_WEEKLY_PLAN_SHOPPING_PREVIEW";
+            errors: components["schemas"]["WeeklyPlanShoppingPreviewValidationError"][];
+        };
+        WeeklyPlanShoppingPreviewValidationError: {
+            field: string;
+            message: string;
+        };
         /** @enum {string} */
         RetailerId: "pyaterochka" | "perekrestok" | "chizhik" | "magnit" | "lenta" | "vkusvill" | "ozon-fresh" | "samokat";
         /** @enum {string} */
@@ -438,6 +534,39 @@ export interface operations {
                 };
                 content: {
                     "application/problem+json": components["schemas"]["InvalidRecipeComparisonPreviewProblem"] | components["schemas"]["InvalidRecipeShoppingPreviewProblem"] | components["schemas"]["InvalidComparisonPreviewProblem"];
+                };
+            };
+        };
+    };
+    createWeeklyPlanShoppingPreview: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["WeeklyPlanShoppingPreviewRequest"];
+            };
+        };
+        responses: {
+            /** @description Canonical WeeklyPlan shopping preview with self-contained occurrence and Recipe provenance */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WeeklyPlanShoppingPreviewResponse"];
+                };
+            };
+            /** @description Invalid weekly plan shopping preview request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["InvalidWeeklyPlanShoppingPreviewProblem"];
                 };
             };
         };
