@@ -47,6 +47,17 @@ All notable project changes are recorded here. Zakup Gotov is pre-release; entri
 - Deep-immutable ordered multi-Recipe provenance plus fail-closed empty input, duplicate occurrence identity, missing provenance and generated-ID collision behavior.
 - M2.5 design, implementation plan, shipping evidence and acceptance decision documenting explicit RED→GREEN checkpoints, reviewed head `a6e1095696ebfd67fafe7675a37b125ae02b3170`, squash merge `0854fc5bf76ad2976986537d6b4f5f3b8ebd18f0` and 8/8 successful post-merge `main` workflows.
 
+#### Weekly planning
+
+- M3.1 immutable `WeeklyPlan` domain with stable plan/meal-occurrence identities, required Monday-through-Sunday metadata, positive per-occurrence target servings and explicit caller ordering.
+- Weekly plans allow multiple meals on the same day and repeated use of one Recipe through distinct `WeeklyMealOccurrenceId` values without imposing premature breakfast/lunch/dinner/snack slots.
+- Deterministic WeeklyPlan-scoped ShoppingList identity and internal M2.5 aggregation-entry identity use versioned namespaced UUID payloads based on `WeeklyPlanId` and `WeeklyMealOccurrenceId`.
+- `WeeklyPlanShoppingListComposer` delegates Recipe scaling, canonicalization, exact cross-Recipe merge, canonical arithmetic, final ordering and ShoppingItem identity to the accepted M2.5 aggregator rather than duplicating those semantics.
+- Planner provenance projects accepted M2.5 lineage to ordered `WeeklyMealOccurrenceId + RecipeIngredientRef` while internal `RecipeAggregationEntryId` remains hidden.
+- Fail-closed WeeklyPlan composition rejects deterministic internal-ID collisions, missing/orphan/empty ShoppingItem provenance and unknown aggregation-entry lineage.
+- ArchUnit guards constrain `weeklyplan` production dependencies to accepted `recipe`/`shopping` packages and protect reverse dependency direction.
+- M3.1 design, implementation plan, shipping evidence and acceptance decision document domain/composition/hardening RED→GREEN chains, reviewed head `ec1af08cbaf373f79c54858e9654451cebc4f009`, squash merge `13e09c63959b050d431cc913597fc868aa408718` and 8/8 successful post-merge `main` workflows.
+
 #### Product and shopping core
 
 - Canonical eight-retailer registry with independent technical-connectivity and production-access states.
@@ -92,7 +103,7 @@ All notable project changes are recorded here. Zakup Gotov is pre-release; entri
 
 ### Changed
 
-- Project phase advanced from M0 Product & Integration Discovery to M1 Shopping Core, then to M2 Recipes, and after accepted M2.5 to **M3 Weekly Planning**.
+- Project phase advanced from M0 Product & Integration Discovery to M1 Shopping Core, then M2 Recipes, and now **M3 Weekly Planning**.
 - M1 Shopping Core is **COMPLETE / ACCEPTED** on the post-merge pre-acquisition-gate baseline `779d0b219a13e0bf82263a1e655fb732553ed5fe`.
 - The M1→M2 decision is **GO for deterministic product/core development**; it does not claim every retailer is production-ready.
 - M2.1 `Recipe → explicit ingredients → canonical quantities → ShoppingList` is **COMPLETE / ACCEPTED** after squash merge `423eb14f7c565bbe264257a92df89a6b42d0d158` and 8/8 successful post-merge `main` workflows.
@@ -100,12 +111,15 @@ All notable project changes are recorded here. Zakup Gotov is pre-release; entri
 - M2.3 composed Recipe → Comparison boundary is **COMPLETE / ACCEPTED** after final reviewed head `b6575f03b668f8bbaacd5b2897c4fb9301d94cdf`, squash merge `15a086d135f40277c655b39549c3e7a04c2e914e`, issue #100 closure and 8/8 successful post-merge `main` workflows.
 - M2.4 responsive Recipe UI is **COMPLETE / ACCEPTED** after final reviewed head `fb069d64b96f0d989951e67fd62b793277453024`, squash merge `aba20c9cee263a683c0d4383ad840d7415851861`, issue #103 closure and 8/8 successful post-merge `main` workflows.
 - M2.5 deterministic multi-Recipe aggregation is **COMPLETE / ACCEPTED** after final reviewed head `a6e1095696ebfd67fafe7675a37b125ae02b3170`, squash merge `0854fc5bf76ad2976986537d6b4f5f3b8ebd18f0`, issue #106 closure and 8/8 successful post-merge `main` workflows.
-- M2 Recipes is **COMPLETE / ACCEPTED**; the deterministic roadmap now advances to **M3 Weekly Planning**, beginning with planner-specific domain/application semantics over accepted M2.5 aggregation.
+- M2 Recipes is **COMPLETE / ACCEPTED**.
+- M3.1 WeeklyPlan domain + deterministic shopping composition is **COMPLETE / ACCEPTED** after final reviewed head `ec1af08cbaf373f79c54858e9654451cebc4f009`, squash merge `13e09c63959b050d431cc913597fc868aa408718`, issue #109 closure and 8/8 successful post-merge `main` workflows.
+- The current deterministic target is **M3.2 stateless WeeklyPlan application/API boundary**; persistence, pantry subtraction, comparison orchestration and planner UI remain later explicit slices.
 - Recipe → ShoppingList merging is intentionally stricter than product matching: only exact normalized requirements with the same canonical unit merge; no case-folding/synonym/AI equivalence is introduced.
 - Recipe provenance remains conversion metadata rather than an optional Recipe field added to neutral `ShoppingItem`; M2.2 projects that provenance publicly as self-contained source ingredient IDs instead of modifying Shopping Core types.
 - Recipe lifecycle and the first Weekly Planning direction remain stateless by default; persistence stays deferred until reusable saved plans/history demonstrate product value.
 - Recipe → Comparison has an accepted primary product boundary at `/api/v1/recipe-comparison-previews`; M2.4 consumes it directly as the primary Recipe-first browser journey.
 - Multi-Recipe aggregation distinguishes Recipe identity from occurrence identity; repeated Recipe use is valid only through distinct occurrence IDs and does not weaken accepted exact merge semantics.
+- WeeklyPlan distinguishes planner occurrence identity from Recipe identity and keeps day metadata outside Recipe/Shopping merge and quantity semantics.
 - Retailer onboarding remains transport-neutral and universal; a failed direct path changes acquisition mode rather than retailer scope.
 - `ObservedOffer` is the provider trust boundary and `OfferSnapshot` the immutable comparison record.
 - Observation time and provider-side update time remain distinct.
@@ -136,6 +150,8 @@ All notable project changes are recorded here. Zakup Gotov is pre-release; entri
 - Shared Recipe ShoppingItem-ID extraction preserves the accepted literal single-Recipe UUID fixture instead of silently changing historical IDs.
 - Multi-Recipe aggregation rejects an empty occurrence set and duplicate aggregation occurrence IDs instead of producing an empty/ambiguous aggregate.
 - Multi-Recipe aggregation rejects generated final ShoppingItem-ID collisions across different merge keys and missing/empty converted provenance instead of silently overwriting lineage.
+- WeeklyPlan rejects missing/empty occurrence state and duplicate meal-occurrence identity rather than producing an ambiguous planner aggregate.
+- WeeklyPlan composition rejects missing/orphan/empty ShoppingItem provenance, unknown internal aggregation lineage and deterministic internal aggregation-ID collisions rather than repairing or silently dropping evidence.
 - Provider offer validation rejects provenance/context mismatches before comparison logic.
 - Precise addresses are excluded from default string representations and provider routing.
 - Snapshot freshness rejects provider timestamps after observation time.
