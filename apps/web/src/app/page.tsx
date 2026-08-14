@@ -1,5 +1,6 @@
 import { ComparisonPreviewForm } from "./comparison-preview-form";
 import { RecipeComparisonForm } from "./recipe-comparison-form";
+import { WeeklyPlanComparisonForm } from "./weekly-plan-comparison-form";
 
 export default function Home() {
   return (
@@ -7,7 +8,7 @@ export default function Home() {
       <div className="mx-auto w-full max-w-5xl px-6 py-16 sm:px-10 lg:px-16 lg:py-24">
         <div className="max-w-2xl">
           <p className="text-sm font-medium uppercase tracking-[0.18em] text-stone-500">
-            M2 · Recipes
+            M3 · Weekly Planning
           </p>
 
           <h1 className="mt-4 text-4xl font-semibold tracking-tight sm:text-6xl">
@@ -15,9 +16,9 @@ export default function Home() {
           </h1>
 
           <p className="mt-6 max-w-xl text-lg leading-8 text-stone-600 sm:text-xl">
-            Превратите рецепт в список покупок для нужного числа порций и сравните
-            корзину по подтверждённым данным магазинов. Неполные корзины и
-            неопределённость остаются видимыми.
+            Соберите блюда на неделю, получите один канонический список покупок и
+            сравните полную корзину по подтверждённым данным магазинов. Неполные
+            корзины и неопределённость остаются видимыми.
           </p>
 
           <section
@@ -28,13 +29,20 @@ export default function Home() {
               Сейчас
             </h2>
             <p className="mt-2 text-base leading-7 text-stone-600">
-              Рецепт и сравнение работают как stateless preview: без аккаунта,
-              сохранения рецепта или адреса. Если для магазина нет безопасных данных,
-              мы не подставляем фиктивную цену.
+              Недельный план работает как stateless preview: без аккаунта, сохранения
+              плана или точного адреса. Порядок блюд задаёте вы, а пересчёт ингредиентов,
+              объединение покупок и сравнение выполняет серверная композиция.
             </p>
           </section>
         </div>
 
+        <WeeklyPlanComparisonForm />
+
+        <div className="mt-16 border-t border-stone-200 pt-8">
+          <p className="max-w-2xl text-sm leading-6 text-stone-600">
+            Планируете одно блюдо? Сравните отдельный рецепт без недельного плана.
+          </p>
+        </div>
         <RecipeComparisonForm />
 
         <div className="mt-16 border-t border-stone-200 pt-8">
