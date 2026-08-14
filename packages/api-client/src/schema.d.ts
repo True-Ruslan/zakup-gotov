@@ -106,6 +106,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/weekly-plan-comparison-previews": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Create a transient weekly-plan-to-retailer comparison preview */
+        post: operations["createWeeklyPlanComparisonPreview"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -159,6 +176,10 @@ export interface components {
         RecipeComparisonPreviewRequest: {
             locality: string;
             recipe: components["schemas"]["RecipeShoppingPreviewRequest"];
+        };
+        WeeklyPlanComparisonPreviewRequest: {
+            locality: string;
+            weeklyPlan: components["schemas"]["WeeklyPlanShoppingPreviewRequest"];
         };
         /** @enum {string} */
         QuantityInputUnit: "PIECE" | "GRAM" | "KILOGRAM" | "MILLILITER" | "LITER";
@@ -307,6 +328,10 @@ export interface components {
             weeklyPlan: components["schemas"]["WeeklyPlanShoppingPreviewPlan"];
             shoppingList: components["schemas"]["WeeklyPlanShoppingPreviewShoppingList"];
         };
+        WeeklyPlanComparisonPreview: {
+            weeklyPlanShoppingPreview: components["schemas"]["WeeklyPlanShoppingPreviewResponse"];
+            comparisonPreview: components["schemas"]["ComparisonPreviewResponse"];
+        };
         WeeklyPlanShoppingPreviewPlan: {
             /** Format: uuid */
             id: string;
@@ -364,6 +389,21 @@ export interface components {
             errors: components["schemas"]["WeeklyPlanShoppingPreviewValidationError"][];
         };
         WeeklyPlanShoppingPreviewValidationError: {
+            field: string;
+            message: string;
+        };
+        InvalidWeeklyPlanComparisonPreviewProblem: {
+            /** @constant */
+            type: "https://zakup-gotov.dev/problems/invalid-weekly-plan-comparison-preview";
+            /** @constant */
+            title: "Invalid weekly plan comparison preview request";
+            /** @constant */
+            status: 400;
+            /** @constant */
+            code: "INVALID_WEEKLY_PLAN_COMPARISON_PREVIEW";
+            errors: components["schemas"]["WeeklyPlanComparisonPreviewValidationError"][];
+        };
+        WeeklyPlanComparisonPreviewValidationError: {
             field: string;
             message: string;
         };
@@ -567,6 +607,39 @@ export interface operations {
                 };
                 content: {
                     "application/problem+json": components["schemas"]["InvalidWeeklyPlanShoppingPreviewProblem"];
+                };
+            };
+        };
+    };
+    createWeeklyPlanComparisonPreview: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["WeeklyPlanComparisonPreviewRequest"];
+            };
+        };
+        responses: {
+            /** @description Composed WeeklyPlan shopping and retailer comparison preview */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WeeklyPlanComparisonPreview"];
+                };
+            };
+            /** @description Invalid weekly plan comparison preview request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["InvalidWeeklyPlanComparisonPreviewProblem"] | components["schemas"]["InvalidWeeklyPlanShoppingPreviewProblem"] | components["schemas"]["InvalidComparisonPreviewProblem"];
                 };
             };
         };

@@ -120,6 +120,32 @@ paths:
             application/problem+json:
               schema:
                 $ref: '#/components/schemas/InvalidWeeklyPlanShoppingPreviewProblem'
+  /api/v1/weekly-plan-comparison-previews:
+    post:
+      operationId: createWeeklyPlanComparisonPreview
+      summary: Create a transient weekly-plan-to-retailer comparison preview
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/WeeklyPlanComparisonPreviewRequest'
+      responses:
+        '200':
+          description: Composed WeeklyPlan shopping and retailer comparison preview
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/WeeklyPlanComparisonPreview'
+        '400':
+          description: Invalid weekly plan comparison preview request
+          content:
+            application/problem+json:
+              schema:
+                oneOf:
+                  - $ref: '#/components/schemas/InvalidWeeklyPlanComparisonPreviewProblem'
+                  - $ref: '#/components/schemas/InvalidWeeklyPlanShoppingPreviewProblem'
+                  - $ref: '#/components/schemas/InvalidComparisonPreviewProblem'
 components:
   schemas:
     SystemInfo:
@@ -283,6 +309,19 @@ components:
           maxLength: 160
         recipe:
           $ref: '#/components/schemas/RecipeShoppingPreviewRequest'
+    WeeklyPlanComparisonPreviewRequest:
+      type: object
+      additionalProperties: false
+      required:
+        - locality
+        - weeklyPlan
+      properties:
+        locality:
+          type: string
+          minLength: 1
+          maxLength: 160
+        weeklyPlan:
+          $ref: '#/components/schemas/WeeklyPlanShoppingPreviewRequest'
     QuantityInputUnit:
       type: string
       enum:
@@ -748,6 +787,17 @@ components:
           $ref: '#/components/schemas/WeeklyPlanShoppingPreviewPlan'
         shoppingList:
           $ref: '#/components/schemas/WeeklyPlanShoppingPreviewShoppingList'
+    WeeklyPlanComparisonPreview:
+      type: object
+      additionalProperties: false
+      required:
+        - weeklyPlanShoppingPreview
+        - comparisonPreview
+      properties:
+        weeklyPlanShoppingPreview:
+          $ref: '#/components/schemas/WeeklyPlanShoppingPreviewResponse'
+        comparisonPreview:
+          $ref: '#/components/schemas/ComparisonPreviewResponse'
     WeeklyPlanShoppingPreviewPlan:
       type: object
       additionalProperties: false
@@ -908,6 +958,46 @@ components:
           items:
             $ref: '#/components/schemas/WeeklyPlanShoppingPreviewValidationError'
     WeeklyPlanShoppingPreviewValidationError:
+      type: object
+      additionalProperties: false
+      required:
+        - field
+        - message
+      properties:
+        field:
+          type: string
+          minLength: 1
+        message:
+          type: string
+          minLength: 1
+    InvalidWeeklyPlanComparisonPreviewProblem:
+      type: object
+      additionalProperties: false
+      required:
+        - type
+        - title
+        - status
+        - code
+        - errors
+      properties:
+        type:
+          type: string
+          const: https://zakup-gotov.dev/problems/invalid-weekly-plan-comparison-preview
+        title:
+          type: string
+          const: Invalid weekly plan comparison preview request
+        status:
+          type: integer
+          const: 400
+        code:
+          type: string
+          const: INVALID_WEEKLY_PLAN_COMPARISON_PREVIEW
+        errors:
+          type: array
+          minItems: 1
+          items:
+            $ref: '#/components/schemas/WeeklyPlanComparisonPreviewValidationError'
+    WeeklyPlanComparisonPreviewValidationError:
       type: object
       additionalProperties: false
       required:
