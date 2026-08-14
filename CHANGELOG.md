@@ -65,6 +65,14 @@ All notable project changes are recorded here. Zakup Gotov is pre-release; entri
 - OpenAPI 3.1 and generated TypeScript expose `createWeeklyPlanShoppingPreview`, `WEEKLY_PLAN_SHOPPING_PREVIEWS_PATH` and synchronized request/response/problem types.
 - ArchUnit guards keep `weeklyplanpreview` out of provider, retailer, matching, basket, comparison and database layers and protect reverse dependency direction into accepted Recipe/Shopping/WeeklyPlan packages.
 - M3.2 design, implementation plan, shipping evidence and acceptance decision document request/composition/provenance/HTTP/contract/hardening RED→GREEN chains, reviewed head `250aedb85b675036ffcb20e96a67db1afc03167a`, squash merge `9682ad1230910fc268ca3cddd8601a3fad7b100e`, issue #112 closure and 8/8 successful post-merge `main` workflows.
+- Stateless M3.3 `POST /api/v1/weekly-plan-comparison-previews` composes provider-neutral locality plus the accepted M3.2 WeeklyPlan input into one accepted weekly shopping projection and retailer comparison without client-controlled server identities.
+- M3.3 preserves generated weekly ShoppingItem UUID, order, normalized requirement and canonical quantity unchanged into ComparisonPreview while returning M3.2 self-contained `occurrenceId + recipeId + recipeIngredientId` provenance unchanged.
+- Accepted ComparisonPreview remains authoritative for locality validation, canonical retailer visibility, production-access gating before acquisition, runtime evidence, matching, package/basket semantics and truthful complete/uncertain/incomplete/unavailable states.
+- M3.3 fails closed on cross-boundary cardinality, identity/order, requirement or canonical-quantity drift instead of silently adapting mismatched projections.
+- Whole-wrapper JSON binding failures use sanitized `INVALID_WEEKLY_PLAN_COMPARISON_PREVIEW`; successfully bound M3.2 and comparison semantic failures retain their accepted problem contracts.
+- OpenAPI 3.1 and generated TypeScript expose `createWeeklyPlanComparisonPreview`, `WEEKLY_PLAN_COMPARISON_PREVIEWS_PATH` and synchronized composed request/response/problem types.
+- ArchUnit keeps `weeklyplancomparisonpreview` on accepted M3.2/ComparisonPreview application boundaries with only the finite Shopping `Quantity` / `QuantityUnit` bridge, rejecting direct planner-domain/provider/retailer/matching/basket/comparison-domain/database coupling.
+- M3.3 design, implementation plan, shipping evidence and acceptance decision document explicit RED→GREEN checkpoints, reviewed head `396445c333ea369bed6d428b33f38f37765eff20`, squash merge `89b9ef2ca95d07a7e4c964fdef38a9af1c5c3a43`, issue #115 closure and 8/8 successful post-merge `main` workflows.
 
 #### Product and shopping core
 
@@ -122,14 +130,15 @@ All notable project changes are recorded here. Zakup Gotov is pre-release; entri
 - M2 Recipes is **COMPLETE / ACCEPTED**.
 - M3.1 WeeklyPlan domain + deterministic shopping composition is **COMPLETE / ACCEPTED** after final reviewed head `ec1af08cbaf373f79c54858e9654451cebc4f009`, squash merge `13e09c63959b050d431cc913597fc868aa408718`, issue #109 closure and 8/8 successful post-merge `main` workflows.
 - M3.2 stateless WeeklyPlan shopping-preview application/API boundary is **COMPLETE / ACCEPTED** after final reviewed head `250aedb85b675036ffcb20e96a67db1afc03167a`, squash merge `9682ad1230910fc268ca3cddd8601a3fad7b100e`, issue #112 closure and 8/8 successful post-merge `main` workflows.
-- The current deterministic target is **M3.3 WeeklyPlan → Comparison composition**; responsive Weekly Planning UI is M3.4, while persistence and pantry subtraction remain later explicit slices.
+- M3.3 WeeklyPlan → Comparison composition is **COMPLETE / ACCEPTED** after final reviewed head `396445c333ea369bed6d428b33f38f37765eff20`, squash merge `89b9ef2ca95d07a7e4c964fdef38a9af1c5c3a43`, issue #115 closure and 8/8 successful post-merge `main` workflows.
+- The current deterministic target is **M3.4 Responsive Weekly Planning UI**; persistence and pantry subtraction remain later explicit slices.
 - Recipe → ShoppingList merging is intentionally stricter than product matching: only exact normalized requirements with the same canonical unit merge; no case-folding/synonym/AI equivalence is introduced.
 - Recipe provenance remains conversion metadata rather than an optional Recipe field added to neutral `ShoppingItem`; M2.2 projects that provenance publicly as self-contained source ingredient IDs instead of modifying Shopping Core types.
 - Recipe lifecycle and the first Weekly Planning direction remain stateless by default; persistence stays deferred until reusable saved plans/history demonstrate product value.
 - Recipe → Comparison has an accepted primary product boundary at `/api/v1/recipe-comparison-previews`; M2.4 consumes it directly as the primary Recipe-first browser journey.
 - Multi-Recipe aggregation distinguishes Recipe identity from occurrence identity; repeated Recipe use is valid only through distinct occurrence IDs and does not weaken accepted exact merge semantics.
 - WeeklyPlan distinguishes planner occurrence identity from Recipe identity and keeps day metadata outside Recipe/Shopping merge and quantity semantics.
-- WeeklyPlan shopping preview remains locality/retailer-independent; retailer comparison is an explicit later composition concern rather than hidden planner behavior.
+- WeeklyPlan shopping preview remains locality/retailer-independent; retailer comparison is an explicit composition concern owned by M3.3 rather than hidden planner behavior.
 - Retailer onboarding remains transport-neutral and universal; a failed direct path changes acquisition mode rather than retailer scope.
 - `ObservedOffer` is the provider trust boundary and `OfferSnapshot` the immutable comparison record.
 - Observation time and provider-side update time remain distinct.
