@@ -14,6 +14,17 @@ public final class RetailerCheckoutAssessmentService {
 
     public RetailerCheckoutAssessmentResult assess(
             RetailerComparisonView comparison,
+            RetailerCheckoutEconomicsEvidence economicsEvidence) {
+        Objects.requireNonNull(comparison, "comparison must not be null");
+        economicsEvidence = Objects.requireNonNull(economicsEvidence, "economicsEvidence must not be null");
+        if (economicsEvidence.retailerId() != comparison.retailerId()) {
+            throw new IllegalArgumentException("checkout economics retailer must match retailer comparison");
+        }
+        return assess(comparison, economicsEvidence.economics());
+    }
+
+    RetailerCheckoutAssessmentResult assess(
+            RetailerComparisonView comparison,
             BasketEconomics economics) {
         Objects.requireNonNull(comparison, "comparison must not be null");
         Objects.requireNonNull(economics, "economics must not be null");
