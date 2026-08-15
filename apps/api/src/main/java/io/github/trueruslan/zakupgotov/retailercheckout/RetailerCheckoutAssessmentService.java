@@ -2,6 +2,7 @@ package io.github.trueruslan.zakupgotov.retailercheckout;
 
 import io.github.trueruslan.zakupgotov.basket.BasketEconomics;
 import io.github.trueruslan.zakupgotov.basket.BasketEconomicsCalculator;
+import io.github.trueruslan.zakupgotov.basket.BasketTotal;
 import io.github.trueruslan.zakupgotov.basket.CheckoutTotalStatus;
 import io.github.trueruslan.zakupgotov.basket.MinimumOrderStatus;
 import io.github.trueruslan.zakupgotov.comparison.RetailerComparisonStatus;
@@ -28,7 +29,7 @@ public final class RetailerCheckoutAssessmentService {
                 comparison.comparisonStatus(), eligibilityStatus, economicsAssessment.checkoutTotalStatus());
         var comparableCheckoutTotal = comparabilityStatus == RetailerCheckoutComparabilityStatus.COMPARABLE
                 ? economicsAssessment.checkoutTotal()
-                : Optional.empty();
+                : Optional.<BasketTotal>empty();
 
         return new RetailerCheckoutAssessmentResult(
                 comparison,
