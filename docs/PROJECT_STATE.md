@@ -29,8 +29,9 @@ Milestone status:
 - M3.5.3 Pantry-aware WeeklyPlan → Comparison composition — **COMPLETE / ACCEPTED** (#127 / #128);
 - M3.5.4 Responsive Pantry controls — **COMPLETE / ACCEPTED** (#130 / #131);
 - M3 Weekly Planning / Pantry deterministic product slice — **COMPLETE / ACCEPTED**.
+- M4.1 Basket economics foundation — **COMPLETE / ACCEPTED** (#133 / #134).
 
-Current deterministic target: **M4.1 — Basket economics foundation**.
+Current deterministic target: **M4.2 — One-retailer truthful total comparison**.
 
 ## Permanent connectivity rule
 
@@ -191,9 +192,34 @@ Acceptance proof:
 
 Explicit omit-all / never-buy exclusions remain intentionally deferred. They are not Pantry stock and must not be represented as zero/negative quantities.
 
-## Next deterministic target — M4.1 Basket economics foundation
+## M4.1 — Basket economics foundation — COMPLETE / ACCEPTED
 
-Start M4 with a semantics-first design before implementation. The first slice should define explicit retailer/basket economics evidence such as delivery/service fees and minimum-order constraints, how unknown values affect truthful comparison state, and when an effective checkout total may be exposed. It must preserve accepted package, completeness, uncertainty, production-access and no-hidden-winner invariants before any richer optimizer is introduced.
+Acceptance: [`m4-1-basket-economics-foundation-acceptance-2026-08-15.md`](m4-1-basket-economics-foundation-acceptance-2026-08-15.md).  
+Accepted implementation merge: `3ccaa7b2acc1e81d7360c55872882a4252c96cae`.
+
+Accepted semantics:
+
+- existing `BasketTotal(BigDecimal, ISO-4217)` remains the monetary convention;
+- delivery/service fees are explicitly `KNOWN / UNKNOWN`; known zero is not unknown;
+- minimum-order evidence is explicitly known/unknown and evaluates to `MET / NOT_MET / UNKNOWN` from merchandise subtotal only;
+- merchandise subtotal and checkout-total knowledge are separate;
+- any unknown material fee makes checkout total unknown without inventing zero or hiding merchandise subtotal;
+- known economics components must share the merchandise-subtotal currency;
+- exact `BigDecimal` arithmetic adds no hidden rounding/rescaling;
+- public `BasketEconomicsAssessment` rejects contradictory status/amount constructions;
+- the M4.1 foundation remains pure basket-domain code and does not acquire provider data or change accepted M1 quote/planner behavior.
+
+Acceptance proof:
+
+- final reviewed feature head `a0fcd626017f93e49fc6a70c4403b68404efe6d7` — **9/9 PR workflow groups SUCCESS**, 0 failure/skipped/cancelled;
+- read-only review **Looks good**, no P0/P1/P2/P3/nitpicks and no unresolved threads;
+- squash merge `3ccaa7b2acc1e81d7360c55872882a4252c96cae` with expected-head protection;
+- issue #133 closed `completed`;
+- exact implementation merge — **8/8 normal push workflows SUCCESS**.
+
+## Next deterministic target — M4.2 One-retailer truthful total comparison
+
+Compose accepted M1 single-retailer basket evidence with accepted M4.1 economics without ranking a winner yet. M4.2 must keep arithmetic checkout-total knowledge separate from retailer eligibility: a known total with minimum order `NOT_MET` is ineligible, a known total with minimum order `UNKNOWN` has unknown eligibility, and an unknown material fee cannot become a cheapest claim. Existing `COMPLETE / UNCERTAIN / INCOMPLETE / UNAVAILABLE`, retailer visibility and production-access semantics remain authoritative. No live retailer request is required for deterministic acceptance.
 
 ## Magnit production state
 
@@ -208,7 +234,7 @@ Decision: [`integrations/magnit-production-access-decision-2026-08-13.md`](integ
 
 ## Parallel mandatory work
 
-Continue without blocking deterministic M3 work unless evidence invalidates accepted core assumptions:
+Continue without blocking deterministic M4 work unless evidence invalidates accepted core assumptions:
 
 - **#54** browser-bridge persistent-session/store-change/SPA lifecycle hardening;
 - **#36** Kuper supported aggregator investigation;
