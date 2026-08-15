@@ -36,6 +36,16 @@ async function fillWeeklyPlan(page: Page, locality = "Москва") {
   await second.getByRole("combobox", { name: "Единица", exact: true }).selectOption("PIECE");
 }
 
+async function addPantryRow(page: Page, requirement: string, amount: string, unit: "PIECE" | "GRAM" | "KILOGRAM" | "MILLILITER" | "LITER") {
+  const form = weeklyForm(page);
+  await form.getByRole("button", { name: "Добавить запас" }).click();
+  const groups = form.getByRole("group", { name: /Запас дома/ });
+  const row = groups.nth((await groups.count()) - 1);
+  await row.getByRole("textbox", { name: "Продукт дома", exact: true }).fill(requirement);
+  await row.getByRole("spinbutton", { name: "Количество дома", exact: true }).fill(amount);
+  await row.getByRole("combobox", { name: "Единица дома", exact: true }).selectOption(unit);
+}
+
 async function fillRecipeForm(page: Page, locality = "Москва") {
   const form = recipeForm(page);
   await form.getByRole("textbox", { name: "Название рецепта", exact: true }).fill("Блины");
@@ -78,23 +88,45 @@ async function expectSafeComparisonResult(page: Page) {
   expect(body).not.toMatch(/самый дешёвый|лучший выбор|рекомендуем/i);
 }
 
-test("runs desktop WeeklyPlan → weekly shopping → retailer comparison", async ({ page }) => {
+test("runs desktop WeeklyPlan → Pantry audit → remaining shopping → retailer comparison", async ({ page }) => {
   await page.goto("/");
   await expect(page.getByText(/M3 · Weekly Planning/i)).toBeVisible();
   await expect(page.getByRole("heading", { level: 2, name: "Собрать неделю" })).toBeVisible();
 
   await fillWeeklyPlan(page);
+  await addPantryRow(page, "Молоко", "250", "MILLILITER");
   await weeklyForm(page).getByRole("button", { name: "Сравнить план" }).click();
 
-  await expect(page.getByRole("heading", { level: 2, name: "Покупки на неделю" })).toBeVisible();
-  const shopping = page.getByRole("list", { name: "Покупки на неделю" });
-  await expect(shopping.getByText("Молоко", { exact: true })).toBeVisible();
-  await expect(shopping.getByText("1000 MILLILITER", { exact: true })).toBeVisible();
-  await expect(shopping.getByText("Яйца", { exact: true })).toBeVisible();
-  await expect(shopping.getByText("10 PIECE", { exact: true })).toBeVisible();
+  const original = page.getByRole("region", { name: "Покупки на неделю" });
+  await expect(original.getByText("Молоко", { exact: true })).toBeVisible();
+  await expect(original.getByText("1000 MILLILITER", { exact: true })).toBeVisible();
+  await expect(original.getByText("Яйца", { exact: true })).toBeVisible();
+  await expect(original.getByText("10 PIECE", { exact: true })).toBeVisible();
+
+  const audit = page.getByRole("region", { name: "Учтено из запасов дома" });
+  await expect(audit.getByText("Частично покрыто", { exact: true })).toBeVisible();
+  await expect(audit.getByText("Из дома: 250 MILLILITER", { exact: true })).toBeVisible();
+  await expect(audit.getByText("Осталось: 750 MILLILITER", { exact: true })).toBeVisible();
+
+  const remaining = page.getByRole("list", { name: "Осталось купить" });
+  await expect(remaining.getByText("750 MILLILITER", { exact: true })).toBeVisible();
+  await expect(remaining.getByText("10 PIECE", { exact: true })).toBeVisible();
   await expectSafeComparisonResult(page);
 
   expect(await page.evaluate(() => document.documentElement.scrollWidth > document.documentElement.clientWidth)).toBe(false);
+});
+
+test("renders explicit zero-demand state when Pantry covers the whole week", async ({ page }) => {
+  await page.goto("/");
+  await fillWeeklyPlan(page);
+  await addPantryRow(page, "Молоко", "1", "LITER");
+  await addPantryRow(page, "Яйца", "10", "PIECE");
+  await weeklyForm(page).getByRole("button", { name: "Сравнить план" }).click();
+
+  await expect(page.getByRole("heading", { level: 2, name: "Покупать ничего не нужно" })).toBeVisible();
+  await expect(page.getByText("Запасы дома полностью покрывают недельный список.")).toBeVisible();
+  await expect(page.getByRole("list", { name: "Сравнение магазинов" })).toHaveCount(0);
+  await expect(page.getByRole("heading", { name: /Результат для/ })).toHaveCount(0);
 });
 
 test("keeps explicit occurrence order independent from day metadata", async ({ page }) => {
@@ -107,12 +139,13 @@ test("keeps explicit occurrence order independent from day metadata", async ({ p
   await expect(first.getByRole("combobox", { name: "День", exact: true })).toHaveValue("SUNDAY");
 });
 
-test("WeeklyPlan journey remains usable without horizontal overflow on mobile", async ({ page }) => {
+test("WeeklyPlan Pantry journey remains usable without horizontal overflow on mobile", async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 });
   await page.goto("/");
   await fillWeeklyPlan(page);
+  await addPantryRow(page, "Молоко", "250", "MILLILITER");
   await weeklyForm(page).getByRole("button", { name: "Сравнить план" }).click();
-  await expect(page.getByRole("heading", { level: 2, name: "Покупки на неделю" })).toBeVisible();
+  await expect(page.getByRole("heading", { level: 2, name: "Учтено из запасов дома" })).toBeVisible();
   const dimensions = await page.evaluate(() => ({ scrollWidth: document.documentElement.scrollWidth, clientWidth: document.documentElement.clientWidth }));
   expect(dimensions.scrollWidth).toBeLessThanOrEqual(dimensions.clientWidth);
 });
@@ -125,16 +158,23 @@ test("WeeklyPlan journey fails closed when API is unavailable", async ({ page })
   await expect(page.getByRole("list", { name: "Покупки на неделю" })).toHaveCount(0);
 });
 
-test("WeeklyPlan form exposes a visible keyboard focus path", async ({ page }) => {
+test("WeeklyPlan Pantry controls expose a visible keyboard focus path", async ({ page }) => {
   await page.goto("/");
-  const locality = weeklyForm(page).getByRole("textbox", { name: "Населённый пункт", exact: true });
+  const form = weeklyForm(page);
+  const locality = form.getByRole("textbox", { name: "Населённый пункт", exact: true });
   await page.keyboard.press("Tab");
   await expect(locality).toBeFocused();
-  const visible = await locality.evaluate((element) => {
+  const localityVisible = await locality.evaluate((element) => {
     const style = window.getComputedStyle(element);
     return (style.outlineStyle !== "none" && style.outlineWidth !== "0px") || style.boxShadow !== "none";
   });
-  expect(visible).toBe(true);
+  expect(localityVisible).toBe(true);
+
+  const addPantry = form.getByRole("button", { name: "Добавить запас" });
+  await addPantry.focus();
+  await expect(addPantry).toBeFocused();
+  await page.keyboard.press("Enter");
+  await expect(form.getByRole("group", { name: "Запас дома 1" })).toBeVisible();
 });
 
 test("preserves Recipe → shopping list → retailer comparison as a secondary journey", async ({ page }) => {

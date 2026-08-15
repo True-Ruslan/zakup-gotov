@@ -5,7 +5,7 @@ import { createWeeklyPlanComparisonPreview } from "./weekly-plan-comparison";
 
 const originalApiBaseUrl = process.env.API_BASE_URL;
 
-type Request = components["schemas"]["WeeklyPlanComparisonPreviewRequest"];
+type Request = components["schemas"]["WeeklyPlanPantryComparisonPreviewRequest"];
 
 const request: Request = {
   locality: "Москва",
@@ -24,6 +24,9 @@ const request: Request = {
       },
     ],
   },
+  pantry: [
+    { requirement: "Молоко", quantity: { amount: 250, unit: "MILLILITER" } },
+  ],
 };
 
 function restoreApiBaseUrl() {
@@ -37,7 +40,7 @@ afterEach(() => {
   vi.useRealTimers();
 });
 
-describe("WeeklyPlan comparison transport", () => {
+describe("WeeklyPlan Pantry comparison transport", () => {
   it("fails closed without API_BASE_URL and performs no request", async () => {
     delete process.env.API_BASE_URL;
     const fetchMock = vi.fn();
@@ -47,10 +50,10 @@ describe("WeeklyPlan comparison transport", () => {
     expect(fetchMock).not.toHaveBeenCalled();
   });
 
-  it("returns the typed composed preview unchanged", async () => {
+  it("uses only the generated M3.5.3 path and returns the typed preview unchanged", async () => {
     process.env.API_BASE_URL = "http://api.test";
-    const response: components["schemas"]["WeeklyPlanComparisonPreview"] = {
-      weeklyPlanShoppingPreview: {
+    const response: components["schemas"]["WeeklyPlanPantryComparisonPreview"] = {
+      pantryShoppingPreview: {
         weeklyPlan: {
           id: "10000000-0000-0000-0000-000000000001",
           occurrences: [
@@ -67,25 +70,30 @@ describe("WeeklyPlan comparison transport", () => {
             },
           ],
         },
-        shoppingList: { id: "13000000-0000-0000-0000-000000000001", items: [] },
+        originalShoppingList: { id: "13000000-0000-0000-0000-000000000001", items: [] },
+        pantryAdjustments: [],
+        remainingShoppingList: { id: "13000000-0000-0000-0000-000000000001", items: [] },
       },
-      comparisonPreview: { locality: "Москва", items: [], retailers: [] },
+      comparisonOutcome: "NO_REMAINING_DEMAND",
     };
 
-    vi.stubGlobal(
-      "fetch",
-      vi.fn().mockResolvedValue(
+    const fetchMock = vi.fn((input: RequestInfo | URL) => {
+      const url = input instanceof globalThis.Request ? input.url : String(input);
+      expect(url).toBe("http://api.test/api/v1/weekly-plan-pantry-comparison-previews");
+      return Promise.resolve(
         new Response(JSON.stringify(response), {
           status: 200,
           headers: { "content-type": "application/json" },
         }),
-      ),
-    );
+      );
+    });
+    vi.stubGlobal("fetch", fetchMock);
 
     await expect(createWeeklyPlanComparisonPreview(request)).resolves.toEqual({
       kind: "ready",
       data: response,
     });
+    expect(fetchMock).toHaveBeenCalledTimes(1);
   });
 
   it("returns only generated product-safe validation fields for HTTP 400", async () => {
@@ -95,11 +103,11 @@ describe("WeeklyPlan comparison transport", () => {
       vi.fn().mockResolvedValue(
         new Response(
           JSON.stringify({
-            type: "https://zakup-gotov.dev/problems/invalid-weekly-plan-shopping-preview",
-            title: "Invalid weekly plan shopping preview request",
+            type: "https://zakup-gotov.dev/problems/invalid-weekly-plan-pantry-comparison-preview",
+            title: "Invalid weekly plan Pantry comparison preview request",
             status: 400,
-            code: "INVALID_WEEKLY_PLAN_SHOPPING_PREVIEW",
-            errors: [{ field: "weeklyPlan.occurrences[0].targetServings", message: "must be greater than 0" }],
+            code: "INVALID_WEEKLY_PLAN_PANTRY_COMPARISON_PREVIEW",
+            errors: [{ field: "pantry[0].quantity.amount", message: "must be greater than 0" }],
           }),
           { status: 400, headers: { "content-type": "application/problem+json" } },
         ),
@@ -109,7 +117,7 @@ describe("WeeklyPlan comparison transport", () => {
     await expect(createWeeklyPlanComparisonPreview(request)).resolves.toEqual({
       kind: "invalid",
       errors: [
-        { field: "weeklyPlan.occurrences[0].targetServings", message: "must be greater than 0" },
+        { field: "pantry[0].quantity.amount", message: "must be greater than 0" },
       ],
     });
   });

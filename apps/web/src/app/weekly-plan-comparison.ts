@@ -1,7 +1,7 @@
 "use server";
 
 import {
-  WEEKLY_PLAN_COMPARISON_PREVIEWS_PATH,
+  WEEKLY_PLAN_PANTRY_COMPARISON_PREVIEWS_PATH,
   createZakupGotovClient,
   type components,
 } from "@zakup-gotov/api-client";
@@ -9,11 +9,12 @@ import {
 const WEEKLY_PLAN_COMPARISON_PREVIEW_TIMEOUT_MS = 3_000;
 
 export type WeeklyPlanComparisonPreviewRequest =
-  components["schemas"]["WeeklyPlanComparisonPreviewRequest"];
+  components["schemas"]["WeeklyPlanPantryComparisonPreviewRequest"];
 export type WeeklyPlanComparisonPreviewResponse =
-  components["schemas"]["WeeklyPlanComparisonPreview"];
+  components["schemas"]["WeeklyPlanPantryComparisonPreview"];
 export type WeeklyPlanComparisonPreviewValidationError =
-  | components["schemas"]["WeeklyPlanComparisonPreviewValidationError"]
+  | components["schemas"]["WeeklyPlanPantryComparisonPreviewValidationError"]
+  | components["schemas"]["WeeklyPlanPantryShoppingPreviewValidationError"]
   | components["schemas"]["WeeklyPlanShoppingPreviewValidationError"]
   | components["schemas"]["RecipeShoppingPreviewValidationError"]
   | components["schemas"]["ComparisonPreviewValidationError"];
@@ -34,7 +35,7 @@ export async function createWeeklyPlanComparisonPreview(
 
   try {
     const client = createZakupGotovClient(baseUrl);
-    const { data, error, response } = await client.POST(WEEKLY_PLAN_COMPARISON_PREVIEWS_PATH, {
+    const { data, error, response } = await client.POST(WEEKLY_PLAN_PANTRY_COMPARISON_PREVIEWS_PATH, {
       body: request,
       signal: controller.signal,
     });
