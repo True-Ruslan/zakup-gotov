@@ -29,7 +29,7 @@ class RetailerCheckoutAssessmentServiceTest {
     @Test
     void readyKnownEconomicsAndMetMinimumIsEligibleAndComparable() {
         var subtotal = money("1200.00");
-        var result = service.assess(ready(subtotal), economics("149.00", "39.00", "1000.00"));
+        var result = service.assess(ready(subtotal), bound(economics("149.00", "39.00", "1000.00")));
 
         var assessment = result.assessment().orElseThrow();
         assertThat(assessment.eligibilityStatus()).isEqualTo(RetailerCheckoutEligibilityStatus.ELIGIBLE);
@@ -42,7 +42,7 @@ class RetailerCheckoutAssessmentServiceTest {
     @Test
     void readyKnownEconomicsAndUnmetMinimumIsIneligibleButArithmeticTotalRemainsInspectable() {
         var subtotal = money("950.00");
-        var result = service.assess(ready(subtotal), economics("100.00", "50.00", "1000.00"));
+        var result = service.assess(ready(subtotal), bound(economics("100.00", "50.00", "1000.00")));
 
         var assessment = result.assessment().orElseThrow();
         assertThat(assessment.eligibilityStatus()).isEqualTo(RetailerCheckoutEligibilityStatus.INELIGIBLE);
@@ -59,7 +59,7 @@ class RetailerCheckoutAssessmentServiceTest {
                 BasketFee.known(money("20.00")),
                 MinimumOrderConstraint.unknown());
 
-        var assessment = service.assess(ready(subtotal), economics).assessment().orElseThrow();
+        var assessment = service.assess(ready(subtotal), bound(economics)).assessment().orElseThrow();
 
         assertThat(assessment.eligibilityStatus()).isEqualTo(RetailerCheckoutEligibilityStatus.UNKNOWN);
         assertThat(assessment.economicsAssessment().checkoutTotal()).contains(money("1320.00"));
@@ -75,7 +75,7 @@ class RetailerCheckoutAssessmentServiceTest {
                 BasketFee.known(money("20.00")),
                 MinimumOrderConstraint.known(money("1000.00")));
 
-        var assessment = service.assess(ready(subtotal), economics).assessment().orElseThrow();
+        var assessment = service.assess(ready(subtotal), bound(economics)).assessment().orElseThrow();
 
         assertThat(assessment.eligibilityStatus()).isEqualTo(RetailerCheckoutEligibilityStatus.ELIGIBLE);
         assertThat(assessment.economicsAssessment().checkoutTotalStatus()).isEqualTo(CheckoutTotalStatus.UNKNOWN);
@@ -87,7 +87,7 @@ class RetailerCheckoutAssessmentServiceTest {
     @Test
     void uncertainBasketIsNeverUpgradedToEligibleOrComparable() {
         var subtotal = money("1200.00");
-        var assessment = service.assess(uncertain(subtotal), economics("100.00", "20.00", "1000.00"))
+        var assessment = service.assess(uncertain(subtotal), bound(economics("100.00", "20.00", "1000.00")))
                 .assessment()
                 .orElseThrow();
 
@@ -100,7 +100,7 @@ class RetailerCheckoutAssessmentServiceTest {
     @Test
     void knownUnmetMinimumStillProvesIneligibilityForUncertainBasket() {
         var subtotal = money("900.00");
-        var assessment = service.assess(uncertain(subtotal), economics("100.00", "20.00", "1000.00"))
+        var assessment = service.assess(uncertain(subtotal), bound(economics("100.00", "20.00", "1000.00")))
                 .assessment()
                 .orElseThrow();
 
@@ -110,7 +110,7 @@ class RetailerCheckoutAssessmentServiceTest {
 
     @Test
     void incompleteAndUnavailableComparisonsDoNotFabricateCheckoutAssessment() {
-        var economics = economics("100.00", "20.00", "1000.00");
+        var economics = bound(economics("100.00", "20.00", "1000.00"));
 
         assertThat(service.assess(incomplete(), economics).assessment()).isEmpty();
         assertThat(service.assess(unavailable(), economics).assessment()).isEmpty();
@@ -124,7 +124,7 @@ class RetailerCheckoutAssessmentServiceTest {
                 BasketFee.known(money("0.00")),
                 MinimumOrderConstraint.known(money("0")));
 
-        var assessment = service.assess(ready(subtotal), economics).assessment().orElseThrow();
+        var assessment = service.assess(ready(subtotal), bound(economics)).assessment().orElseThrow();
 
         assertThat(assessment.economicsAssessment().economics().deliveryFee().status())
                 .isEqualTo(BasketEconomicsKnowledgeStatus.KNOWN);
@@ -132,6 +132,10 @@ class RetailerCheckoutAssessmentServiceTest {
                 .isEqualTo(BasketEconomicsKnowledgeStatus.KNOWN);
         assertThat(assessment.economicsAssessment().checkoutTotal()).contains(subtotal);
         assertThat(assessment.comparableCheckoutTotal()).contains(subtotal);
+    }
+
+    private static RetailerCheckoutEconomicsEvidence bound(BasketEconomics economics) {
+        return new RetailerCheckoutEconomicsEvidence(RetailerId.PYATEROCHKA, economics);
     }
 
     private static BasketEconomics economics(String delivery, String service, String minimum) {
