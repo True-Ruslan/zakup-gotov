@@ -166,6 +166,34 @@ paths:
             application/problem+json:
               schema:
                 $ref: '#/components/schemas/InvalidWeeklyPlanPantryComparisonPreviewProblem'
+  /api/v1/weekly-plan-pantry-optimization-previews:
+    post:
+      operationId: createWeeklyPlanPantryOptimizationPreview
+      summary: Create a server-owned Pantry-aware weekly-plan checkout optimization preview
+      description: >
+        Preserves the accepted Pantry-aware WeeklyPlan comparison projection and adds
+        server-owned checkout economics, eligibility, comparability and deterministic
+        optimizer evidence. Full Pantry coverage omits optimizationPreview. The response
+        exposes no provider, acquisition or fulfillment identifiers.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/WeeklyPlanPantryOptimizationPreviewRequest'
+      responses:
+        '200':
+          description: Pantry-aware comparison audit plus server-owned checkout optimization evidence when demand remains
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/WeeklyPlanPantryOptimizationPreview'
+        '400':
+          description: Invalid Pantry-aware weekly plan optimization preview request
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/InvalidWeeklyPlanPantryOptimizationPreviewProblem'
   /api/v1/weekly-plan-comparison-previews:
     post:
       operationId: createWeeklyPlanComparisonPreview
@@ -369,6 +397,24 @@ components:
         weeklyPlan:
           $ref: '#/components/schemas/WeeklyPlanShoppingPreviewRequest'
     WeeklyPlanPantryComparisonPreviewRequest:
+      type: object
+      additionalProperties: false
+      required:
+        - locality
+        - weeklyPlan
+        - pantry
+      properties:
+        locality:
+          type: string
+          minLength: 1
+          maxLength: 160
+        weeklyPlan:
+          $ref: '#/components/schemas/WeeklyPlanShoppingPreviewRequest'
+        pantry:
+          type: array
+          items:
+            $ref: '#/components/schemas/WeeklyPlanPantryItemInput'
+    WeeklyPlanPantryOptimizationPreviewRequest:
       type: object
       additionalProperties: false
       required:
@@ -972,6 +1018,134 @@ components:
       enum:
         - COMPARED
         - NO_REMAINING_DEMAND
+    WeeklyPlanPantryOptimizationPreview:
+      type: object
+      additionalProperties: false
+      required:
+        - pantryComparisonPreview
+      properties:
+        pantryComparisonPreview:
+          $ref: '#/components/schemas/WeeklyPlanPantryComparisonPreview'
+        optimizationPreview:
+          $ref: '#/components/schemas/CheckoutOptimizationPreview'
+      description: optimizationPreview is present only when pantryComparisonPreview.comparisonOutcome is COMPARED.
+    CheckoutOptimizationPreview:
+      type: object
+      additionalProperties: false
+      required:
+        - retailers
+        - status
+        - optimalRetailerIds
+      properties:
+        retailers:
+          type: array
+          minItems: 1
+          items:
+            $ref: '#/components/schemas/RetailerCheckoutPreview'
+        status:
+          $ref: '#/components/schemas/BasketOptimizationStatus'
+        optimalRetailerIds:
+          type: array
+          items:
+            $ref: '#/components/schemas/RetailerId'
+        lowestComparableCheckoutTotal:
+          $ref: '#/components/schemas/BasketTotal'
+    RetailerCheckoutPreview:
+      type: object
+      additionalProperties: false
+      required:
+        - retailerId
+      properties:
+        retailerId:
+          $ref: '#/components/schemas/RetailerId'
+        assessment:
+          $ref: '#/components/schemas/RetailerCheckoutAssessmentPreview'
+    RetailerCheckoutAssessmentPreview:
+      type: object
+      additionalProperties: false
+      required:
+        - merchandiseSubtotal
+        - deliveryFee
+        - serviceFee
+        - minimumOrder
+        - minimumOrderStatus
+        - checkoutTotalStatus
+        - eligibilityStatus
+        - comparabilityStatus
+      properties:
+        merchandiseSubtotal:
+          $ref: '#/components/schemas/BasketTotal'
+        deliveryFee:
+          $ref: '#/components/schemas/BasketFee'
+        serviceFee:
+          $ref: '#/components/schemas/BasketFee'
+        minimumOrder:
+          $ref: '#/components/schemas/MinimumOrderConstraint'
+        minimumOrderStatus:
+          $ref: '#/components/schemas/MinimumOrderStatus'
+        checkoutTotalStatus:
+          $ref: '#/components/schemas/CheckoutTotalStatus'
+        checkoutTotal:
+          $ref: '#/components/schemas/BasketTotal'
+        eligibilityStatus:
+          $ref: '#/components/schemas/RetailerCheckoutEligibilityStatus'
+        comparabilityStatus:
+          $ref: '#/components/schemas/RetailerCheckoutComparabilityStatus'
+        comparableCheckoutTotal:
+          $ref: '#/components/schemas/BasketTotal'
+    BasketFee:
+      type: object
+      additionalProperties: false
+      required:
+        - status
+      properties:
+        status:
+          $ref: '#/components/schemas/BasketEconomicsKnowledgeStatus'
+        amount:
+          $ref: '#/components/schemas/BasketTotal'
+    MinimumOrderConstraint:
+      type: object
+      additionalProperties: false
+      required:
+        - status
+      properties:
+        status:
+          $ref: '#/components/schemas/BasketEconomicsKnowledgeStatus'
+        threshold:
+          $ref: '#/components/schemas/BasketTotal'
+    BasketEconomicsKnowledgeStatus:
+      type: string
+      enum:
+        - KNOWN
+        - UNKNOWN
+    MinimumOrderStatus:
+      type: string
+      enum:
+        - MET
+        - NOT_MET
+        - UNKNOWN
+    CheckoutTotalStatus:
+      type: string
+      enum:
+        - KNOWN
+        - UNKNOWN
+    RetailerCheckoutEligibilityStatus:
+      type: string
+      enum:
+        - ELIGIBLE
+        - INELIGIBLE
+        - UNKNOWN
+    RetailerCheckoutComparabilityStatus:
+      type: string
+      enum:
+        - COMPARABLE
+        - NOT_COMPARABLE
+    BasketOptimizationStatus:
+      type: string
+      enum:
+        - NO_COMPARABLE_CANDIDATES
+        - UNIQUE_WINNER
+        - TIE
     WeeklyPlanComparisonPreview:
       type: object
       additionalProperties: false
@@ -1223,6 +1397,46 @@ components:
           items:
             $ref: '#/components/schemas/WeeklyPlanPantryComparisonPreviewValidationError'
     WeeklyPlanPantryComparisonPreviewValidationError:
+      type: object
+      additionalProperties: false
+      required:
+        - field
+        - message
+      properties:
+        field:
+          type: string
+          minLength: 1
+        message:
+          type: string
+          minLength: 1
+    InvalidWeeklyPlanPantryOptimizationPreviewProblem:
+      type: object
+      additionalProperties: false
+      required:
+        - type
+        - title
+        - status
+        - code
+        - errors
+      properties:
+        type:
+          type: string
+          const: https://zakup-gotov.dev/problems/invalid-weekly-plan-pantry-optimization-preview
+        title:
+          type: string
+          const: Invalid weekly plan pantry optimization preview request
+        status:
+          type: integer
+          const: 400
+        code:
+          type: string
+          const: INVALID_WEEKLY_PLAN_PANTRY_OPTIMIZATION_PREVIEW
+        errors:
+          type: array
+          minItems: 1
+          items:
+            $ref: '#/components/schemas/WeeklyPlanPantryOptimizationPreviewValidationError'
+    WeeklyPlanPantryOptimizationPreviewValidationError:
       type: object
       additionalProperties: false
       required:
