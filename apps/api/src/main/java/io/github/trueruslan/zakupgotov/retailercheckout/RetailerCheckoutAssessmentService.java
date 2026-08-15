@@ -20,13 +20,12 @@ public final class RetailerCheckoutAssessmentService {
         if (economicsEvidence.retailerId() != comparison.retailerId()) {
             throw new IllegalArgumentException("checkout economics retailer must match retailer comparison");
         }
-        return assess(comparison, economicsEvidence.economics());
+        return assessBoundEconomics(comparison, economicsEvidence.economics());
     }
 
-    RetailerCheckoutAssessmentResult assess(
+    private RetailerCheckoutAssessmentResult assessBoundEconomics(
             RetailerComparisonView comparison,
             BasketEconomics economics) {
-        Objects.requireNonNull(comparison, "comparison must not be null");
         Objects.requireNonNull(economics, "economics must not be null");
 
         if (comparison.total().isEmpty()) {
