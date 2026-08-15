@@ -1,15 +1,15 @@
 import { cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
-import { createWeeklyPlanComparisonPreview } from "./weekly-plan-comparison";
+import { createWeeklyPlanOptimizationPreview } from "./weekly-plan-comparison";
 import { WeeklyPlanComparisonForm } from "./weekly-plan-comparison-form";
 
-vi.mock("./weekly-plan-comparison", () => ({ createWeeklyPlanComparisonPreview: vi.fn() }));
+vi.mock("./weekly-plan-comparison", () => ({ createWeeklyPlanOptimizationPreview: vi.fn() }));
 vi.mock("./weekly-plan-comparison-results", () => ({
   WeeklyPlanComparisonResults: () => <section aria-label="Результаты недельного плана">Результаты недельного плана</section>,
 }));
 
-const mockedCreate = vi.mocked(createWeeklyPlanComparisonPreview);
+const mockedCreate = vi.mocked(createWeeklyPlanOptimizationPreview);
 
 afterEach(() => {
   cleanup();
@@ -20,13 +20,15 @@ function ready() {
   mockedCreate.mockResolvedValue({
     kind: "ready",
     data: {
-      pantryShoppingPreview: {
-        weeklyPlan: { id: "10000000-0000-0000-0000-000000000001", occurrences: [] },
-        originalShoppingList: { id: "13000000-0000-0000-0000-000000000001", items: [] },
-        pantryAdjustments: [],
-        remainingShoppingList: { id: "13000000-0000-0000-0000-000000000001", items: [] },
+      pantryComparisonPreview: {
+        pantryShoppingPreview: {
+          weeklyPlan: { id: "10000000-0000-0000-0000-000000000001", occurrences: [] },
+          originalShoppingList: { id: "13000000-0000-0000-0000-000000000001", items: [] },
+          pantryAdjustments: [],
+          remainingShoppingList: { id: "13000000-0000-0000-0000-000000000001", items: [] },
+        },
+        comparisonOutcome: "NO_REMAINING_DEMAND",
       },
-      comparisonOutcome: "NO_REMAINING_DEMAND",
     },
   });
 }
@@ -43,7 +45,7 @@ function fillRequiredWeeklyPlan() {
   fireEvent.change(within(group).getByLabelText("Единица"), { target: { value: "LITER" } });
 }
 
-describe("WeeklyPlan Pantry comparison form", () => {
+describe("WeeklyPlan Pantry optimization form", () => {
   it("starts with one occurrence, one protected ingredient and no Pantry rows", () => {
     render(<WeeklyPlanComparisonForm />);
     expect(screen.getAllByRole("group", { name: /Блюдо 1/ })).toHaveLength(1);
@@ -69,7 +71,7 @@ describe("WeeklyPlan Pantry comparison form", () => {
     expect((within(reordered[0]!).getByLabelText("День") as HTMLSelectElement).value).toBe("MONDAY");
   });
 
-  it("submits the generated M3.5.3 identity request with an empty Pantry", async () => {
+  it("submits the generated M4.4.1 request with an empty Pantry", async () => {
     ready();
     render(<WeeklyPlanComparisonForm />);
     fillRequiredWeeklyPlan();
