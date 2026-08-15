@@ -35,19 +35,16 @@ class WeeklyPlanPantryComparisonPreviewComputationTest {
 
     @Test
     void fullPantryCoverageHasNoDetailedComparisonComputation() {
-        var service = service();
-
-        var computation = service.compute(request(List.of(
+        var pantry = List.of(
                 pantry("Milk", "1", QuantityUnit.LITER),
-                pantry("Eggs", "6", QuantityUnit.PIECE))));
+                pantry("Eggs", "6", QuantityUnit.PIECE));
+        var computation = service().compute(request(pantry));
 
         assertThat(computation.preview().comparisonOutcome())
                 .isEqualTo(WeeklyPlanPantryComparisonOutcome.NO_REMAINING_DEMAND);
         assertThat(computation.preview().comparisonPreview()).isNull();
         assertThat(computation.comparisonComputation()).isEmpty();
-        assertThat(computation.preview()).isEqualTo(service.create(request(List.of(
-                pantry("Milk", "1", QuantityUnit.LITER),
-                pantry("Eggs", "6", QuantityUnit.PIECE)))));
+        assertThat(computation.preview()).isEqualTo(service().create(request(pantry)));
     }
 
     @Test
