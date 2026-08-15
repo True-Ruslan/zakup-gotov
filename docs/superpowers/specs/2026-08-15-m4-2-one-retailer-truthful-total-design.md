@@ -10,22 +10,30 @@ M1 exposes a truthful retailer comparison view whose `total` is the selected mer
 
 A known arithmetic checkout total is not automatically a valid optimization candidate. Minimum-order failure, minimum-order uncertainty, uncertain basket availability, incomplete evidence or unavailable retailer state must remain visible and must not become a hidden cheapest claim.
 
+M4.1 economics are deliberately retailer-neutral. At the M4.2 composition boundary they must therefore be bound to an explicit retailer identity before they can be combined with retailer comparison evidence. Cross-retailer fee/minimum-order evidence is a contract violation and fails closed before checkout arithmetic.
+
 ## Boundary
 
 Add a new downstream package:
 
 `io.github.trueruslan.zakupgotov.retailercheckout`
 
-It may depend on accepted `comparison` and `basket` types. Neither `basket` nor `comparison` may depend back on it.
+It may depend on accepted `comparison` and `basket` types plus the finite neutral `RetailerId` identity bridge required to bind M4.1 economics to the same retailer. Neither `basket`, `comparison` nor `retailer` may depend back on it.
 
 M4.2 is deterministic over supplied evidence. It performs no provider/browser/network acquisition and introduces no HTTP/OpenAPI/UI contract.
 
 ## Inputs
 
-`RetailerCheckoutAssessmentService.assess(RetailerComparisonView comparison, BasketEconomics economics)` receives:
+The public composition boundary is:
 
-- the accepted M1 retailer comparison projection;
-- explicit M4.1 basket-economics evidence.
+`RetailerCheckoutAssessmentService.assess(RetailerComparisonView comparison, RetailerCheckoutEconomicsEvidence economicsEvidence)`
+
+`RetailerCheckoutEconomicsEvidence` contains:
+
+- `RetailerId retailerId`;
+- accepted M4.1 `BasketEconomics economics`.
+
+Before any M4.1 calculation, the service requires `economicsEvidence.retailerId == comparison.retailerId`. A mismatch fails closed. No provider, acquisition or fulfillment identifier becomes public.
 
 The service never mutates or reinterprets `RetailerComparisonView.total`. That field remains the merchandise subtotal.
 
@@ -122,7 +130,19 @@ Every other assessable state is `NOT_COMPARABLE` and carries no comparable total
 - checkout assessment absent;
 - no fabricated subtotal, fee arithmetic, eligibility or comparable total.
 
+### Cross-retailer economics evidence
+
+- no arithmetic is performed;
+- composition fails closed because the economics retailer identity does not match the retailer comparison identity.
+
 ## Invariants
+
+`RetailerCheckoutEconomicsEvidence` is self-validating:
+
+- retailer identity is required;
+- M4.1 economics are required.
+
+The public service boundary additionally requires economics and comparison retailer identities to match before calculation.
 
 `RetailerCheckoutAssessment` is self-validating:
 
@@ -146,6 +166,7 @@ M4.1 currency and impossible-state invariants remain authoritative and fail fast
 - sorting or ranking retailers;
 - multi-store optimization;
 - provider acquisition of fee/minimum-order evidence;
+- provider/acquisition/fulfillment provenance for economics beyond retailer identity in this slice;
 - modifying M1 `RetailerComparisonView` or `SingleStoreBasketQuote` semantics;
 - HTTP/OpenAPI/browser changes;
 - discounts, loyalty, subscriptions, tips or currency conversion.
@@ -161,5 +182,6 @@ M4.1 currency and impossible-state invariants remain authoritative and fail fast
 7. Known zero fees remain exact known zero through M4.1 composition.
 8. Currency/invariant failures remain fail-fast.
 9. Public result/assessment objects reject forged contradictory states.
-10. Architecture tests prove `retailercheckout -> comparison + basket` only, with no reverse/provider/database/network coupling.
-11. Existing M1/M4.1 tests remain unchanged and green.
+10. Retailer-bound economics must match the retailer comparison identity; cross-retailer mixing fails before arithmetic.
+11. Architecture tests prove `retailercheckout -> comparison + basket + RetailerId only`, with no reverse/provider/database/network coupling.
+12. Existing M1/M4.1 tests remain unchanged and green.
