@@ -101,7 +101,7 @@ async function expectSafeComparisonResult(page: Page) {
 
 test("runs desktop WeeklyPlan → Pantry → comparison → truthful no-comparable optimization", async ({ page }) => {
   await page.goto("/");
-  await expect(page.getByText(/M3 · Weekly Planning/i)).toBeVisible();
+  await expect(page.getByText("M4 · Basket Optimization", { exact: true })).toBeVisible();
   await expect(page.getByRole("heading", { level: 2, name: "Собрать неделю" })).toBeVisible();
 
   await fillWeeklyPlan(page);
