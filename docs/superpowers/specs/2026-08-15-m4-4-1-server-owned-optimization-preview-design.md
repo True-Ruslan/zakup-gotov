@@ -219,11 +219,9 @@ M4.4.2 will consume only these generated types/path constants.
 
 Dependency direction:
 
-`weeklyplanpantryoptimizationpreview`
-→ accepted `weeklyplanpantrycomparisonpreview`
-→ new `optimizationpreview`
-→ accepted `retailercheckout` + `basketoptimization`
-→ accepted lower layers.
+- `weeklyplanpantryoptimizationpreview` depends on accepted `weeklyplanpantrycomparisonpreview` computation and the new generic `optimizationpreview` composition;
+- `optimizationpreview` depends on accepted `preview` detailed computation plus accepted `retailercheckout` and `basketoptimization`;
+- accepted M3.5.3, M4.1, M4.2 and M4.3 do **not** depend back on either new M4.4.1 package.
 
 The new application layer may also consume the finite `ProductLocation`, `RetailerId` and M4.1 basket value vocabulary required by the evidence-source boundary/projection.
 
