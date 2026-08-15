@@ -7,10 +7,19 @@
 
 ## Design and plan
 
+Initial semantics-first documents:
+
 - design commit: `c80a907bff76eded6cc587c5ad3b6f9b3a1a98a7`
 - implementation-plan commit: `3043cf0a1040f78ae4e44308f49283f569fd1d31`
 
+Review-hardening synchronization after the retailer-binding finding:
+
+- design amendment: `6b338a6b85577a507eecd33f21b42344bdc4f190`
+- plan amendment: `91004d2e010b56270a88ac4dee0850c86430d214`
+
 The accepted design keeps four facts separate: existing M1 retailer comparison state, M4.2 checkout eligibility, M4.1 arithmetic checkout-total knowledge and M4.2 comparability. `RetailerComparisonView.total` remains the merchandise subtotal and M4.2 does not select or rank a winner.
+
+M4.1 economics are retailer-neutral, so the final public M4.2 composition boundary additionally binds them to `RetailerId` and rejects cross-retailer mixing before arithmetic.
 
 ## TDD evidence
 
@@ -69,21 +78,51 @@ Invariant-test commit: `07a9c023de646f6d96cefdf26363b50de657b2f3`.
 
 The existing self-validating production constructors already rejected these states, so this hardening suite was GREEN without a production correction. No artificial second RED was introduced.
 
-### Architecture proof
+### Initial architecture proof
 
 Architecture-test commit: `c1d69895d4a29205d54c6afebfdc3469505a67c7`.
 
-`RetailerCheckoutArchitectureTest` proves:
-
-- the new checkout-composition package has no provider, retailer-domain, matching, shopping, location, preview, database, Recipe/WeeklyPlan/Pantry, Spring, jOOQ or Jakarta coupling;
-- accepted `basket` and `comparison` packages do not depend back on `retailercheckout`.
-
-Temporary M4.2 breadcrumb files were removed before final review. Clean runtime/proof head: `38e8a9fe2d9caa3ff9d653d394ef96e490063169`.
+Temporary M4.2 breadcrumb files were removed before review. Clean pre-review runtime/proof head: `38e8a9fe2d9caa3ff9d653d394ef96e490063169`.
 
 API CI run `31900066704`, job `95049298411` on that clean head: **SUCCESS**.
 
-## Accepted implementation semantics awaiting final PR gate
+## Read-only review finding and corrective TDD
 
+Read-only review found a correctness gap: the first public service signature accepted bare `BasketEconomics`. Because M4.1 economics are retailer-neutral, a caller could otherwise apply fee/minimum-order evidence for one retailer to another retailer comparison without detection. This violates the project's fail-closed cross-retailer evidence rule.
+
+### Retailer binding RED
+
+Test-only finding checkpoint: `fea5e00e8bcd333dc0b66c8792777da6cfee1a97`.
+
+`RetailerCheckoutEconomicsBindingTest` requires:
+
+- matching retailer-bound economics compose normally;
+- cross-retailer economics fail closed before checkout arithmetic.
+
+API CI run `31900225908`, job `95049704905`:
+
+- Java 25/toolchain setup: SUCCESS
+- expected test compilation FAILURE
+- exact reason: missing `RetailerCheckoutEconomicsEvidence`
+- two `cannot find symbol` errors, both from the new binding test
+
+### Retailer binding GREEN
+
+Corrective implementation chain:
+
+- `1d3f69e7d4f8b5c03bb52cf71a9c42acf4cb9e87` — add `RetailerCheckoutEconomicsEvidence(RetailerId, BasketEconomics)`;
+- `076b9b2a35fbb538bada70f95e28324ac26f2849` — make the public service boundary require retailer-bound economics and reject identity mismatch before arithmetic;
+- `ac876811f2a3696c9160765a0b4f872ce058a146` — harden architecture so the only direct retailer-domain dependency is `RetailerId`, while `basket`, `comparison` and `retailer` remain free of reverse `retailercheckout` dependencies.
+
+The former bare-economics overload is no longer public; it remains package-private only as the internal arithmetic/test seam after the public binding check.
+
+API CI run `31900314015`, job `95049960731` on `ac876811...`: **SUCCESS**.
+
+No provider, acquisition or fulfillment identifier was introduced.
+
+## Final implementation semantics awaiting immutable PR gate
+
+- retailer-bound economics must match `RetailerComparisonView.retailerId` before calculation;
 - READY + minimum MET + known fees -> ELIGIBLE and COMPARABLE with exact M4.1 checkout total;
 - READY + minimum NOT_MET -> INELIGIBLE even when arithmetic checkout total is known;
 - READY + minimum UNKNOWN -> UNKNOWN eligibility and NOT_COMPARABLE;
