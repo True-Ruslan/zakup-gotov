@@ -51,15 +51,3 @@ export async function createWeeklyPlanOptimizationPreview(
     clearTimeout(timeout);
   }
 }
-
-// Compatibility aliases keep the accepted form behavior stable while M4.4.2 migrates its presentation layer.
-export type WeeklyPlanComparisonPreviewRequest = WeeklyPlanOptimizationPreviewRequest;
-export type WeeklyPlanComparisonPreviewResponse = WeeklyPlanOptimizationPreviewResponse;
-export type WeeklyPlanComparisonPreviewValidationError = WeeklyPlanOptimizationPreviewValidationError;
-export type WeeklyPlanComparisonState = WeeklyPlanOptimizationState;
-
-export async function createWeeklyPlanComparisonPreview(
-  request: WeeklyPlanComparisonPreviewRequest,
-): Promise<WeeklyPlanComparisonState> {
-  return createWeeklyPlanOptimizationPreview(request);
-}
