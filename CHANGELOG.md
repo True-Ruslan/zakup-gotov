@@ -81,7 +81,7 @@ All notable project changes are recorded here. Zakup Gotov is pre-release; entri
 - WeeklyPlan web transport uses a finite three-second timeout, preserves generated product-safe 400 field/message evidence and fails closed on missing configuration, timeout, network, non-400 or unexpected service failure without fabricated results.
 - Responsive deterministic Playwright covers desktop WeeklyPlan → weekly shopping → retailer comparison, explicit reorder semantics, 390px no-overflow, keyboard focus, fail-closed unavailable state and continued Recipe/manual-list critical journeys.
 - Deterministic E2E-only `/api/v1/weekly-plan-comparison-previews` fixture creates server-owned test identities and canonical weekly shopping for browser-contract verification; production browser acceptance makes no live retailer request and carries no credential/provider internals.
-- M3.4 design, implementation plan, shipping evidence and acceptance decision document explicit RED→GREEN transport/results/form/homepage/browser checkpoints, reviewed head `12973650f274f76ec54865be41963843afcb4558`, squash merge `1201030aed45075c676f796920b6268cdcf8e036`, issue #118 closure and 8/8 successful post-merge `main` workflows.
+- M3.4 design, implementation plan, shipping evidence and acceptance decision document explicit RED→GREEN checkpoints, reviewed head `12973650f274f76ec54865be41963843afcb4558`, squash merge `1201030aed45075c676f796920b6268cdcf8e036`, issue #118 closure and 8/8 successful post-merge `main` workflows.
 
 #### Pantry-aware weekly planning
 
@@ -133,6 +133,14 @@ All notable project changes are recorded here. Zakup Gotov is pre-release; entri
 - Accepted M1 package/basket decisions are immutable optimizer inputs; M4.3 does not search substitutes, change package counts, split across stores or fabricate freshness/confidence pricing policy.
 - `BasketOptimizationResult` recomputes deterministic evaluation from its candidates and rejects forged status/minimum sets; architecture keeps M4.3 behind the accepted M4.2 result boundary with no direct `comparison`/`retailer`, provider, API, UI or persistence coupling.
 - M4.3 acceptance records final reviewed head `ddc5fed0d3bb98d9c17e5f1ec739ffad9ba77ad5`, squash merge `c854526c30a1b0b1b6b435ae37608da0d9501955`, issue #139 closure and 8/8 successful post-merge `main` workflows.
+- M4.4.1 adds the stateless server-owned `POST /api/v1/weekly-plan-pantry-optimization-previews` boundary that composes accepted M3.5.3 Pantry-aware comparison with accepted M4.2 checkout assessment and M4.3 deterministic optimization.
+- Additive detailed-computation seams expose accepted comparison/catalog state to downstream server composition while existing M3.5.3 and comparison preview `create()` behavior stays wire-compatible.
+- Full Pantry coverage stays explicit `NO_REMAINING_DEMAND`, omits `optimizationPreview` and skips checkout-economics evidence plus optimizer work instead of fabricating demand.
+- Provider-neutral checkout economics are requested only for assessable retailers; absent evidence is explicit `UNKNOWN`, never zero delivery/service fee or minimum order, and out-of-scope evidence fails closed.
+- M4.2 remains authoritative for eligibility/comparability and the accepted self-validating `BasketOptimizationResult` remains the sole M4.3 authority for winner/tie/lowest comparable total; M4.4.1 does not implement parallel economics or minima algorithms.
+- Public retailer IDs use canonical product values, the accepted optimizer authority is excluded from JSON, and provider/acquisition/fulfillment identifiers remain internal.
+- OpenAPI 3.1, pinned generated TypeScript client and architecture/regression guards are synchronized; production checkout economics intentionally defaults to no-op/unknown and ordinary CI makes no live retailer request.
+- M4.4.1 acceptance records final reviewed head `9d343f18e1391a9d249625e2cdab6de02b13e913`, squash merge `67679282a388da16706c46a3caf3ff46b2b67d54`, issue #142 closure and 8/8 successful post-merge `main` workflows.
 
 #### Product and shopping core
 
@@ -200,7 +208,8 @@ All notable project changes are recorded here. Zakup Gotov is pre-release; entri
 - M4.1 Basket economics foundation is **COMPLETE / ACCEPTED** after final reviewed head `a0fcd626017f93e49fc6a70c4403b68404efe6d7`, squash merge `3ccaa7b2acc1e81d7360c55872882a4252c96cae`, issue #133 closure and 8/8 successful post-merge `main` workflows.
 - M4.2 One-retailer truthful total comparison is **COMPLETE / ACCEPTED** after final reviewed head `1d6dae470c04ab1d8279f891766fc16698286edb`, squash merge `69f9cb1afd1b16af938052bbca570cbd4ce52557`, issue #136 closure and 8/8 successful post-merge `main` workflows.
 - M4.3 deterministic basket optimizer is **COMPLETE / ACCEPTED** after final reviewed head `ddc5fed0d3bb98d9c17e5f1ec739ffad9ba77ad5`, squash merge `c854526c30a1b0b1b6b435ae37608da0d9501955`, issue #139 closure and 8/8 successful post-merge `main` workflows.
-- The current deterministic target is **M4.4 Optimization UX**; browser code must project accepted server-owned economics/comparability/optimizer decisions without recomputing totals, eligibility, winner or tie semantics.
+- M4.4.1 server-owned optimization preview API is **COMPLETE / ACCEPTED** after final reviewed head `9d343f18e1391a9d249625e2cdab6de02b13e913`, squash merge `67679282a388da16706c46a3caf3ff46b2b67d54`, issue #142 closure and 8/8 successful post-merge `main` workflows.
+- The current deterministic target is **M4.4.2 Responsive Optimization UX**; the primary WeeklyPlan/Pantry browser flow must consume the generated M4.4.1 contract and render server-owned economics/comparability/optimizer decisions without recomputing them.
 - Recipe → ShoppingList merging is intentionally stricter than product matching: only exact normalized requirements with the same canonical unit merge; no case-folding/synonym/AI equivalence is introduced.
 - Recipe provenance remains conversion metadata rather than an optional Recipe field added to neutral `ShoppingItem`; M2.2 projects that provenance publicly as self-contained source ingredient IDs instead of modifying Shopping Core types.
 - Recipe lifecycle and Weekly Planning/Pantry composition remain stateless by default; persistence stays deferred until reusable saved plans/history demonstrate product value.
