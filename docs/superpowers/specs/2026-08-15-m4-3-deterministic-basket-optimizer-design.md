@@ -23,8 +23,11 @@ Public boundary:
 Allowed domain dependencies:
 
 - accepted `retailercheckout` M4.2 types;
-- `BasketTotal` for explicit lowest-total projection;
-- finite `RetailerId` identity bridge for duplicate-retailer validation.
+- `BasketTotal` for explicit lowest-total projection.
+
+Retailer identity is owned and projected by M4.2 through `RetailerCheckoutAssessmentResult.retailerId()`. M4.3 must not reach through that result into `RetailerComparisonView`, and it has no direct `comparison` or `retailer` dependency.
+
+The `retailerId()` convenience projection is a non-semantic M4.2 abstraction seam: it returns the already-public identity of the embedded accepted comparison and changes no M4.2 eligibility/comparability behavior.
 
 No reverse dependency from basket/retailercheckout/comparison/retailer into basketoptimization.
 
@@ -38,7 +41,7 @@ Input rules:
 
 - list is required and defensively copied;
 - null candidates are rejected;
-- retailer IDs must be unique;
+- retailer IDs, obtained only through the M4.2 result abstraction, must be unique;
 - original candidate order is retained in the result for inspectability;
 - original order is never used to prefer one retailer over another.
 
@@ -176,6 +179,19 @@ Reason: the project has no accepted quantitative staleness threshold or confiden
 
 The service and result share one package-private deterministic evaluation helper so validation and production selection cannot drift.
 
+## Review-driven architecture hardening
+
+The first proof-layer implementation obtained retailer identity through `candidate.comparison().retailerId()`. ArchUnit correctly rejected this as a direct M4.3 dependency on the M1 `comparison` layer.
+
+The accepted correction is:
+
+1. M4.2 `RetailerCheckoutAssessmentResult` exposes `retailerId()` as an identity projection of its already-owned comparison;
+2. M4.3 consumes only that M4.2 projection;
+3. duplicate-retailer validation remains fail-closed;
+4. final architecture has no direct M4.3 dependency on `comparison` or `retailer` at all.
+
+This hardening changes only dependency direction, not optimizer selection semantics or accepted M4.2 state semantics.
+
 ## Non-goals
 
 - HTTP/OpenAPI/browser UX;
@@ -200,5 +216,6 @@ The service and result share one package-private deterministic evaluation helper
 8. Public result rejects forged status/optimal sets.
 9. Freshness differences never break a monetary tie.
 10. Candidate list/order is preserved and no input object is mutated.
-11. Architecture allows only accepted M4.2 + neutral total/retailer identity and has no reverse/provider/matching/API/database coupling.
-12. Existing M1/M4.1/M4.2 tests remain unchanged and green.
+11. Architecture allows only accepted M4.2 plus neutral `BasketTotal`, with no direct `comparison`/`retailer` and no reverse/provider/matching/API/database coupling.
+12. M4.2 identity projection returns the embedded accepted retailer identity without changing M4.2 semantics.
+13. Existing M1/M4.1/M4.2 tests remain unchanged and green except for the additive M4.2 identity-projection regression.
