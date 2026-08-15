@@ -74,7 +74,8 @@ public final class CheckoutOptimizationPreviewService {
                 projectedRetailers,
                 optimization.status(),
                 optimalRetailerIds,
-                optimization.lowestComparableCheckoutTotal());
+                optimization.lowestComparableCheckoutTotal(),
+                optimization);
     }
 
     private Map<RetailerId, BasketEconomics> loadKnownEconomics(
