@@ -1,5 +1,6 @@
 package io.github.trueruslan.zakupgotov.weeklyplanpantrycomparisonpreview;
 
+import com.fasterxml.jackson.annotation.JsonInclude;
 import io.github.trueruslan.zakupgotov.preview.ComparisonPreview;
 import io.github.trueruslan.zakupgotov.weeklyplanpantrypreview.WeeklyPlanPantryShoppingPreview;
 import java.util.Objects;
@@ -7,7 +8,7 @@ import java.util.Objects;
 public record WeeklyPlanPantryComparisonPreview(
         WeeklyPlanPantryShoppingPreview pantryShoppingPreview,
         WeeklyPlanPantryComparisonOutcome comparisonOutcome,
-        ComparisonPreview comparisonPreview) {
+        @JsonInclude(JsonInclude.Include.NON_NULL) ComparisonPreview comparisonPreview) {
 
     public WeeklyPlanPantryComparisonPreview {
         pantryShoppingPreview = Objects.requireNonNull(
