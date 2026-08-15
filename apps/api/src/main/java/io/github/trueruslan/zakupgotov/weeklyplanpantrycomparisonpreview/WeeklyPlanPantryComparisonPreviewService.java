@@ -1,6 +1,7 @@
 package io.github.trueruslan.zakupgotov.weeklyplanpantrycomparisonpreview;
 
 import io.github.trueruslan.zakupgotov.preview.ComparisonPreview;
+import io.github.trueruslan.zakupgotov.preview.ComparisonPreviewComputation;
 import io.github.trueruslan.zakupgotov.preview.ComparisonPreviewItemRequest;
 import io.github.trueruslan.zakupgotov.preview.ComparisonPreviewQuantityRequest;
 import io.github.trueruslan.zakupgotov.preview.ComparisonPreviewRequest;
@@ -12,6 +13,7 @@ import io.github.trueruslan.zakupgotov.weeklyplanpantrypreview.WeeklyPlanPantryS
 import io.github.trueruslan.zakupgotov.weeklyplanpantrypreview.WeeklyPlanPantryShoppingPreviewService;
 import java.util.List;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.function.Function;
 
 public final class WeeklyPlanPantryComparisonPreviewService {
@@ -19,14 +21,19 @@ public final class WeeklyPlanPantryComparisonPreviewService {
     private static final int MAX_LOCALITY_LENGTH = 160;
 
     private final WeeklyPlanPantryShoppingPreviewService pantryShoppingPreviewService;
+    private final ComparisonPreviewService comparisonPreviewService;
     private final Function<ComparisonPreviewRequest, ComparisonPreview> comparisonCreator;
 
     public WeeklyPlanPantryComparisonPreviewService(
             WeeklyPlanPantryShoppingPreviewService pantryShoppingPreviewService,
             ComparisonPreviewService comparisonPreviewService) {
-        this(
+        this.pantryShoppingPreviewService = Objects.requireNonNull(
                 pantryShoppingPreviewService,
-                Objects.requireNonNull(comparisonPreviewService, "comparisonPreviewService must not be null")::create);
+                "pantryShoppingPreviewService must not be null");
+        this.comparisonPreviewService = Objects.requireNonNull(
+                comparisonPreviewService,
+                "comparisonPreviewService must not be null");
+        this.comparisonCreator = this.comparisonPreviewService::create;
     }
 
     WeeklyPlanPantryComparisonPreviewService(
@@ -35,12 +42,73 @@ public final class WeeklyPlanPantryComparisonPreviewService {
         this.pantryShoppingPreviewService = Objects.requireNonNull(
                 pantryShoppingPreviewService,
                 "pantryShoppingPreviewService must not be null");
+        this.comparisonPreviewService = null;
         this.comparisonCreator = Objects.requireNonNull(
                 comparisonCreator,
                 "comparisonCreator must not be null");
     }
 
     public WeeklyPlanPantryComparisonPreview create(WeeklyPlanPantryComparisonPreviewRequest request) {
+        if (comparisonPreviewService != null) {
+            return compute(request).preview();
+        }
+        return createWithProjectionOnlyCreator(request);
+    }
+
+    public WeeklyPlanPantryComparisonPreviewComputation compute(WeeklyPlanPantryComparisonPreviewRequest request) {
+        if (comparisonPreviewService == null) {
+            throw new IllegalStateException("detailed comparison computation is unavailable for projection-only test seam");
+        }
+        var prepared = prepare(request);
+        if (prepared.comparisonRequest().isEmpty()) {
+            return new WeeklyPlanPantryComparisonPreviewComputation(
+                    zeroDemandPreview(prepared.pantryShoppingPreview()),
+                    Optional.empty());
+        }
+
+        final ComparisonPreviewComputation comparisonComputation;
+        try {
+            comparisonComputation = Objects.requireNonNull(
+                    comparisonPreviewService.compute(prepared.comparisonRequest().orElseThrow()),
+                    "comparisonComputation must not be null");
+        } catch (InvalidComparisonPreviewRequestException exception) {
+            throw mapComparisonValidation(exception);
+        }
+        verifyComposition(prepared.pantryShoppingPreview(), comparisonComputation.preview());
+
+        var preview = new WeeklyPlanPantryComparisonPreview(
+                prepared.pantryShoppingPreview(),
+                WeeklyPlanPantryComparisonOutcome.COMPARED,
+                comparisonComputation.preview());
+        return new WeeklyPlanPantryComparisonPreviewComputation(
+                preview,
+                Optional.of(comparisonComputation));
+    }
+
+    private WeeklyPlanPantryComparisonPreview createWithProjectionOnlyCreator(
+            WeeklyPlanPantryComparisonPreviewRequest request) {
+        var prepared = prepare(request);
+        if (prepared.comparisonRequest().isEmpty()) {
+            return zeroDemandPreview(prepared.pantryShoppingPreview());
+        }
+
+        final ComparisonPreview comparisonPreview;
+        try {
+            comparisonPreview = Objects.requireNonNull(
+                    comparisonCreator.apply(prepared.comparisonRequest().orElseThrow()),
+                    "comparisonPreview must not be null");
+        } catch (InvalidComparisonPreviewRequestException exception) {
+            throw mapComparisonValidation(exception);
+        }
+        verifyComposition(prepared.pantryShoppingPreview(), comparisonPreview);
+
+        return new WeeklyPlanPantryComparisonPreview(
+                prepared.pantryShoppingPreview(),
+                WeeklyPlanPantryComparisonOutcome.COMPARED,
+                comparisonPreview);
+    }
+
+    private PreparedComparison prepare(WeeklyPlanPantryComparisonPreviewRequest request) {
         if (request == null) {
             throw invalid("$request", "must not be null");
         }
@@ -67,10 +135,7 @@ public final class WeeklyPlanPantryComparisonPreviewService {
 
         var remainingItems = pantryShoppingPreview.remainingShoppingList().items();
         if (remainingItems.isEmpty()) {
-            return new WeeklyPlanPantryComparisonPreview(
-                    pantryShoppingPreview,
-                    WeeklyPlanPantryComparisonOutcome.NO_REMAINING_DEMAND,
-                    null);
+            return new PreparedComparison(pantryShoppingPreview, Optional.empty());
         }
 
         var comparisonItems = remainingItems.stream()
@@ -81,26 +146,27 @@ public final class WeeklyPlanPantryComparisonPreviewService {
                                 item.quantity().amount(),
                                 item.quantity().unit())))
                 .toList();
+        return new PreparedComparison(
+                pantryShoppingPreview,
+                Optional.of(new ComparisonPreviewRequest(locality, comparisonItems)));
+    }
 
-        final ComparisonPreview comparisonPreview;
-        try {
-            comparisonPreview = Objects.requireNonNull(
-                    comparisonCreator.apply(new ComparisonPreviewRequest(locality, comparisonItems)),
-                    "comparisonPreview must not be null");
-        } catch (InvalidComparisonPreviewRequestException exception) {
-            throw new InvalidWeeklyPlanPantryComparisonPreviewRequestException(
-                    exception.errors().stream()
-                            .map(error -> new WeeklyPlanPantryComparisonPreviewValidationError(
-                                    "comparison." + error.field(),
-                                    error.message()))
-                            .toList());
-        }
-        verifyComposition(pantryShoppingPreview, comparisonPreview);
-
+    private static WeeklyPlanPantryComparisonPreview zeroDemandPreview(
+            WeeklyPlanPantryShoppingPreview pantryShoppingPreview) {
         return new WeeklyPlanPantryComparisonPreview(
                 pantryShoppingPreview,
-                WeeklyPlanPantryComparisonOutcome.COMPARED,
-                comparisonPreview);
+                WeeklyPlanPantryComparisonOutcome.NO_REMAINING_DEMAND,
+                null);
+    }
+
+    private static InvalidWeeklyPlanPantryComparisonPreviewRequestException mapComparisonValidation(
+            InvalidComparisonPreviewRequestException exception) {
+        return new InvalidWeeklyPlanPantryComparisonPreviewRequestException(
+                exception.errors().stream()
+                        .map(error -> new WeeklyPlanPantryComparisonPreviewValidationError(
+                                "comparison." + error.field(),
+                                error.message()))
+                        .toList());
     }
 
     static void verifyComposition(
@@ -136,5 +202,18 @@ public final class WeeklyPlanPantryComparisonPreviewService {
 
     private static String normalizeNullable(String value) {
         return value == null ? null : value.strip().replaceAll("\\s+", " ");
+    }
+
+    private record PreparedComparison(
+            WeeklyPlanPantryShoppingPreview pantryShoppingPreview,
+            Optional<ComparisonPreviewRequest> comparisonRequest) {
+        private PreparedComparison {
+            pantryShoppingPreview = Objects.requireNonNull(
+                    pantryShoppingPreview,
+                    "pantryShoppingPreview must not be null");
+            comparisonRequest = Objects.requireNonNull(
+                    comparisonRequest,
+                    "comparisonRequest must not be null");
+        }
     }
 }
