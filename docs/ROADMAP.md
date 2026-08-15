@@ -193,7 +193,7 @@ Persistence/saved-plan history remains deferred until repeat-use evidence demons
 
 ## Parallel connectivity / operational work
 
-Continue without blocking deterministic M3 work unless evidence invalidates accepted core assumptions:
+Continue without blocking deterministic M4 work unless evidence invalidates accepted core assumptions:
 
 - **#54** browser-bridge persistent-session/store-change/SPA lifecycle hardening;
 - **#36** Kuper supported aggregator investigation;

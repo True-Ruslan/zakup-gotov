@@ -195,8 +195,6 @@ Explicit omit-all / never-buy exclusions remain intentionally deferred. They are
 
 Start M4 with a semantics-first design before implementation. The first slice should define explicit retailer/basket economics evidence such as delivery/service fees and minimum-order constraints, how unknown values affect truthful comparison state, and when an effective checkout total may be exposed. It must preserve accepted package, completeness, uncertainty, production-access and no-hidden-winner invariants before any richer optimizer is introduced.
 
-Explicit omit-all / never-buy exclusions remain a separate future semantic decision rather than being encoded as zero/negative Pantry quantities.
-
 ## Magnit production state
 
 Decision: [`integrations/magnit-production-access-decision-2026-08-13.md`](integrations/magnit-production-access-decision-2026-08-13.md).
