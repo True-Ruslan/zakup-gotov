@@ -1,0 +1,35 @@
+name: M3.5.4 Acceptance Bootstrap
+
+on:
+  push:
+    branches:
+      - docs/m3-5-4-responsive-pantry-controls-acceptance
+
+permissions:
+  contents: write
+
+jobs:
+  sync-acceptance:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+      - name: Patch canonical acceptance docs
+        run: python .github/scripts/m3_5_4_acceptance_sync.py
+      - name: Commit canonical docs when changed
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add docs/PROJECT_STATE.md docs/ROADMAP.md CHANGELOG.md
+          if git diff --cached --quiet; then
+            echo "No canonical docs changes required."
+            exit 0
+          fi
+          git diff --cached --stat
+          git commit -m "docs(m3): finalize M3.5.4 acceptance state"
+          git push
