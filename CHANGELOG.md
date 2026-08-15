@@ -120,6 +120,13 @@ All notable project changes are recorded here. Zakup Gotov is pre-release; entri
 - `BasketEconomicsAssessment` self-validates minimum-order status, checkout knowledge and checkout amount so contradictory public states cannot be constructed.
 - M4.1 remains a pure basket-domain foundation with no optimizer, provider/browser/network acquisition, HTTP/OpenAPI/UI change or mutation of accepted M1 `SingleStoreBasketQuote` semantics.
 - M4.1 acceptance records final reviewed head `a0fcd626017f93e49fc6a70c4403b68404efe6d7`, squash merge `3ccaa7b2acc1e81d7360c55872882a4252c96cae`, issue #133 closure and 8/8 successful post-merge `main` workflows.
+- M4.2 adds a downstream retailer-checkout composition layer that preserves M1 merchandise subtotal while exposing explicit `ELIGIBLE / INELIGIBLE / UNKNOWN` checkout eligibility and `COMPARABLE / NOT_COMPARABLE` optimizer comparability.
+- Retailer-neutral M4.1 economics are bound to `RetailerId` at the M4.2 public boundary; cross-retailer fee/minimum evidence fails closed before checkout arithmetic and no raw service bypass remains.
+- Only `READY + ELIGIBLE + KNOWN checkout total` exposes `comparableCheckoutTotal`; known arithmetic totals for unmet/unknown/uncertain states remain inspectable but cannot support a cheapest claim.
+- `INCOMPLETE / UNAVAILABLE` retailer comparisons produce no fabricated checkout assessment, while known zero fees and M4.1 mixed-currency/fail-closed rules are preserved.
+- M4.2 public assessment/result records self-validate subtotal, eligibility, comparability, comparable-total and comparison identity relationships.
+- M4.2 architecture limits the new layer to accepted basket/comparison types plus finite `RetailerId`, with no provider/network/API/UI/ranking dependency.
+- M4.2 acceptance records final reviewed head `1d6dae470c04ab1d8279f891766fc16698286edb`, squash merge `69f9cb1afd1b16af938052bbca570cbd4ce52557`, issue #136 closure and 8/8 successful post-merge `main` workflows.
 
 #### Product and shopping core
 
@@ -185,7 +192,8 @@ All notable project changes are recorded here. Zakup Gotov is pre-release; entri
 - M3.5.4 responsive Pantry controls is **COMPLETE / ACCEPTED** after final reviewed head `d2fefd5391b9ec471192aff4120adfc4e7c0cb4c`, squash merge `7a437b612b4e0a36e10f2ae2a5708346f93431ce`, issue #130 closure and 8/8 successful post-merge `main` workflows.
 - M3 Weekly Planning / Pantry is **COMPLETE / ACCEPTED**.
 - M4.1 Basket economics foundation is **COMPLETE / ACCEPTED** after final reviewed head `a0fcd626017f93e49fc6a70c4403b68404efe6d7`, squash merge `3ccaa7b2acc1e81d7360c55872882a4252c96cae`, issue #133 closure and 8/8 successful post-merge `main` workflows.
-- The current deterministic target is **M4.2 One-retailer truthful total comparison**; arithmetic checkout-total knowledge must remain separate from retailer eligibility and no winner is selected in this slice.
+- M4.2 One-retailer truthful total comparison is **COMPLETE / ACCEPTED** after final reviewed head `1d6dae470c04ab1d8279f891766fc16698286edb`, squash merge `69f9cb1afd1b16af938052bbca570cbd4ce52557`, issue #136 closure and 8/8 successful post-merge `main` workflows.
+- The current deterministic target is **M4.3 Basket optimizer**; only explicit M4.2 `COMPARABLE` candidates may compete, and deterministic ordering/tie plus package/substitution/confidence/freshness policy must be defined before any cheapest/winner claim.
 - Recipe → ShoppingList merging is intentionally stricter than product matching: only exact normalized requirements with the same canonical unit merge; no case-folding/synonym/AI equivalence is introduced.
 - Recipe provenance remains conversion metadata rather than an optional Recipe field added to neutral `ShoppingItem`; M2.2 projects that provenance publicly as self-contained source ingredient IDs instead of modifying Shopping Core types.
 - Recipe lifecycle and Weekly Planning/Pantry composition remain stateless by default; persistence stays deferred until reusable saved plans/history demonstrate product value.
