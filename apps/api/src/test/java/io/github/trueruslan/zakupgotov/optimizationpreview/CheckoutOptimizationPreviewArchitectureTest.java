@@ -17,6 +17,7 @@ class CheckoutOptimizationPreviewArchitectureTest {
     private static final Set<String> ALLOWED_PROJECT_PACKAGES = Set.of(
             ROOT + "basket",
             ROOT + "basketoptimization",
+            ROOT + "comparison",
             ROOT + "location",
             ROOT + "preview",
             ROOT + "retailer",
@@ -33,6 +34,7 @@ class CheckoutOptimizationPreviewArchitectureTest {
                 .contains(
                         ROOT + "basket",
                         ROOT + "basketoptimization",
+                        ROOT + "comparison",
                         ROOT + "location",
                         ROOT + "preview",
                         ROOT + "retailer",
@@ -54,6 +56,7 @@ class CheckoutOptimizationPreviewArchitectureTest {
                 .that().resideInAnyPackage(
                         "..basket..",
                         "..basketoptimization..",
+                        "..comparison..",
                         "..retailercheckout..",
                         "..preview..")
                 .should().dependOnClassesThat().resideInAPackage("..optimizationpreview..")
