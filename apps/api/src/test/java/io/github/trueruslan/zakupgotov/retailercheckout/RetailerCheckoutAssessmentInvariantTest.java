@@ -124,7 +124,7 @@ class RetailerCheckoutAssessmentInvariantTest {
         var perekrestok = ready(RetailerId.PEREKRESTOK, money("1200.00", "RUB"));
         var assessment = service.assess(
                         pyaterochka,
-                        economics("100.00", "20.00", "1000.00", "RUB"))
+                        bound(RetailerId.PYATEROCHKA, economics("100.00", "20.00", "1000.00", "RUB")))
                 .assessment()
                 .orElseThrow();
 
@@ -141,9 +141,15 @@ class RetailerCheckoutAssessmentInvariantTest {
                 BasketFee.known(money("0", "RUB")),
                 MinimumOrderConstraint.known(money("1000.00", "RUB")));
 
-        assertThatThrownBy(() -> new RetailerCheckoutAssessmentService().assess(comparison, mixedCurrencyEconomics))
+        assertThatThrownBy(() -> new RetailerCheckoutAssessmentService().assess(
+                        comparison,
+                        bound(RetailerId.PYATEROCHKA, mixedCurrencyEconomics)))
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessageContaining("currency");
+    }
+
+    private static RetailerCheckoutEconomicsEvidence bound(RetailerId retailerId, BasketEconomics economics) {
+        return new RetailerCheckoutEconomicsEvidence(retailerId, economics);
     }
 
     private static BasketEconomics economics(
