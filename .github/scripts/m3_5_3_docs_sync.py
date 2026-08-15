@@ -155,7 +155,7 @@ Exit gate:
 
 
 def sync_changelog() -> None:
-    path = Path("docs/CHANGELOG.md")
+    path = Path("CHANGELOG.md")
     text = path.read_text(encoding="utf-8")
     anchor = "- M3.5.2 acceptance records final reviewed head `1e08ee4f5111bb493eeb100cfc2579d6fbafa708`, squash merge `0dfbef49d265069578968fdedd18828c9452baca`, issue #124 closure and 8/8 successful post-merge `main` workflows.\n"
     addition = """- Stateless M3.5.3 `POST /api/v1/weekly-plan-pantry-comparison-previews` composes accepted M3.5.2 remaining demand into accepted ComparisonPreview without modifying M3.3 or M3.5.2.
