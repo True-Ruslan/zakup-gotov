@@ -25,9 +25,10 @@ Milestone status:
 - M3.3 WeeklyPlan → Comparison composition — **COMPLETE / ACCEPTED**;
 - M3.4 Responsive Weekly Planning UI — **COMPLETE / ACCEPTED**;
 - M3.5.1 Pure Pantry subtraction semantics — **COMPLETE / ACCEPTED** (#121 / #122);
-- M3.5.2 Stateless Pantry-aware WeeklyPlan shopping preview API — **COMPLETE / ACCEPTED** (#124 / #125).
+- M3.5.2 Stateless Pantry-aware WeeklyPlan shopping preview API — **COMPLETE / ACCEPTED** (#124 / #125);
+- M3.5.3 Pantry-aware WeeklyPlan → Comparison composition — **COMPLETE / ACCEPTED** (#127 / #128).
 
-Current deterministic target: **M3.5.3 — Pantry-aware WeeklyPlan → Comparison composition**.
+Current deterministic target: **M3.5.4 — Responsive Pantry controls**.
 
 ## Permanent connectivity rule
 
@@ -128,22 +129,50 @@ Acceptance proof:
 - issue #124 closed `completed`;
 - exact merge SHA — **8/8 post-merge normal push workflows SUCCESS, 0 failures**.
 
-## Next deterministic target — M3.5.3 Pantry-aware WeeklyPlan → Comparison composition
+### M3.5.3 — Pantry-aware WeeklyPlan → Comparison composition — COMPLETE / ACCEPTED
 
-M3.5.3 should remain a **new explicit stateless boundary**, not mutate accepted M3.3.
+Authoritative design: [`superpowers/specs/2026-08-15-m3-5-3-pantry-weekly-plan-comparison-design.md`](superpowers/specs/2026-08-15-m3-5-3-pantry-weekly-plan-comparison-design.md)  
+Implementation plan: [`superpowers/plans/2026-08-15-m3-5-3-pantry-weekly-plan-comparison.md`](superpowers/plans/2026-08-15-m3-5-3-pantry-weekly-plan-comparison.md)  
+Shipping evidence: [`superpowers/plans/2026-08-15-m3-5-3-pantry-weekly-plan-comparison-shipping.md`](superpowers/plans/2026-08-15-m3-5-3-pantry-weekly-plan-comparison-shipping.md)  
+Acceptance: [`m3-5-3-pantry-weekly-plan-comparison-acceptance-2026-08-15.md`](m3-5-3-pantry-weekly-plan-comparison-acceptance-2026-08-15.md)  
+Accepted merge: `079a53be066fa488ee01da18a109f4f2b1484800`.
 
-Required design questions before production code:
+Accepted boundary:
 
-1. accept locality + WeeklyPlan + request-scoped Pantry while reusing accepted M3.5.2 input semantics;
-2. treat M3.5.2 as authoritative for original weekly projection, Pantry audit evidence and remaining demand;
-3. pass only remaining shopping demand to accepted ComparisonPreview when demand exists;
-4. preserve original weekly shopping + Pantry evidence + remaining demand beside retailer comparison evidence;
-5. fail closed on cross-boundary identity/order/quantity drift;
-6. explicitly define the truthful result when Pantry covers **all** shopping demand, because accepted ComparisonPreview currently assumes a non-empty request and must not receive fabricated demand;
-7. leave persistence, browser controls and provider acquisition out of this slice;
-8. keep existing M3.3 behavior unchanged with regression/architecture tests.
+`POST /api/v1/weekly-plan-pantry-comparison-previews`
 
-M3.5.4 remains the responsive Pantry-control/browser slice after M3.5.3 semantics are accepted.
+Accepted result:
+
+- accepted M3.5.2 remains authoritative for original WeeklyPlan projection, Pantry evidence and remaining demand;
+- only non-empty remaining demand enters accepted ComparisonPreview;
+- full Pantry coverage returns explicit `NO_REMAINING_DEMAND` and never invokes ComparisonPreviewService/runtime retailer acquisition;
+- zero-demand wire output omits `comparisonPreview` rather than serializing null;
+- locality is validated independently of Pantry coverage;
+- ShoppingItem identity/order/requirement/canonical quantity are preserved exactly and bridge drift fails closed;
+- derived ComparisonPreview validation is sanitized under the M3.5.3 problem boundary;
+- OpenAPI 3.1/generated TypeScript and architecture/regression gates are synchronized;
+- existing M3.3/M3.5.2 behavior remains unchanged.
+
+Acceptance proof:
+
+- final reviewed feature head `2a10d5dd3e28ce6ff4eec21dd3555e8838d6f789` — **9/9 PR workflow groups SUCCESS**, 0 failure/skipped/cancelled;
+- read-only review **Looks good**, no unresolved P0/P1/P2/P3/nitpicks or threads;
+- squash merge `079a53be066fa488ee01da18a109f4f2b1484800`;
+- issue #127 closed `completed`;
+- exact merge SHA — **8/8 post-merge normal push workflows SUCCESS, 0 failures**.
+
+## Next deterministic target — M3.5.4 Responsive Pantry controls
+
+M3.5.4 should extend the accepted WeeklyPlan-first browser journey with request-scoped Pantry editing and consume only the generated M3.5.3 comparison contract.
+
+Required boundary:
+
+1. keep Pantry input request-scoped and presentation-only in browser state;
+2. render original weekly demand, Pantry adjustment evidence and remaining demand before retailer comparison;
+3. handle `NO_REMAINING_DEMAND` explicitly without fabricating retailer results;
+4. perform no browser-side Pantry subtraction, canonicalization, comparison, package arithmetic or winner recomputation;
+5. preserve existing WeeklyPlan, Recipe and manual-list critical journeys;
+6. cover desktop/mobile/accessibility/fail-closed transport with deterministic Playwright and no live retailer requests.
 
 Explicit omit-all / never-buy exclusions remain a separate future semantic decision rather than being encoded as zero/negative Pantry quantities.
 

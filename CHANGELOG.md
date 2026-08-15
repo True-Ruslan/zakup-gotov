@@ -98,6 +98,12 @@ All notable project changes are recorded here. Zakup Gotov is pre-release; entri
 - OpenAPI 3.1 and generated TypeScript expose `createWeeklyPlanPantryShoppingPreview`, `WEEKLY_PLAN_PANTRY_SHOPPING_PREVIEWS_PATH` and synchronized Pantry request/response/problem types.
 - ArchUnit constrains `weeklyplanpantrypreview` to accepted M3.2 + Pantry + neutral Shopping dependencies and protects M3.2/M3.3 from reverse Pantry-composition coupling.
 - M3.5.2 acceptance records final reviewed head `1e08ee4f5111bb493eeb100cfc2579d6fbafa708`, squash merge `0dfbef49d265069578968fdedd18828c9452baca`, issue #124 closure and 8/8 successful post-merge `main` workflows.
+- Stateless M3.5.3 `POST /api/v1/weekly-plan-pantry-comparison-previews` composes accepted M3.5.2 remaining demand into accepted ComparisonPreview without modifying M3.3 or M3.5.2.
+- M3.5.3 returns explicit `COMPARED / NO_REMAINING_DEMAND`; full Pantry coverage skips ComparisonPreviewService/runtime retailer acquisition rather than fabricating non-empty demand.
+- Locality remains independently validated, only non-empty remaining demand reaches comparison, and ShoppingItem UUID/order/requirement/canonical quantity drift fails closed.
+- Zero-demand responses omit `comparisonPreview` on the wire; derived ComparisonPreview validation is translated into sanitized M3.5.3 problem details.
+- OpenAPI 3.1/generated TypeScript plus architecture/regression coverage protect the new boundary and existing M3.3/M3.5.2 behavior.
+- M3.5.3 acceptance records final reviewed head `2a10d5dd3e28ce6ff4eec21dd3555e8838d6f789`, squash merge `079a53be066fa488ee01da18a109f4f2b1484800`, issue #127 closure and 8/8 successful post-merge `main` workflows.
 
 #### Product and shopping core
 
