@@ -6,11 +6,9 @@ import io.github.trueruslan.zakupgotov.basket.MinimumOrderConstraint;
 import io.github.trueruslan.zakupgotov.basketoptimization.BasketOptimizer;
 import io.github.trueruslan.zakupgotov.preview.ComparisonPreviewComputation;
 import io.github.trueruslan.zakupgotov.retailer.RetailerId;
-import io.github.trueruslan.zakupgotov.retailercheckout.RetailerCheckoutAssessmentResult;
 import io.github.trueruslan.zakupgotov.retailercheckout.RetailerCheckoutAssessmentService;
 import io.github.trueruslan.zakupgotov.retailercheckout.RetailerCheckoutEconomicsEvidence;
 import java.util.EnumSet;
-import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
@@ -69,7 +67,7 @@ public final class CheckoutOptimizationPreviewService {
                 .map(RetailerCheckoutPreview::from)
                 .toList();
         var optimalRetailerIds = optimization.optimalCandidates().stream()
-                .map(RetailerCheckoutAssessmentResult::retailerId)
+                .map(candidate -> candidate.retailerId().canonicalId())
                 .toList();
 
         return new CheckoutOptimizationPreview(
