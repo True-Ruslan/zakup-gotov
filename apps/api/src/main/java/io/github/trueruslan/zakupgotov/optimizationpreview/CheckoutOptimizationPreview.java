@@ -2,7 +2,6 @@ package io.github.trueruslan.zakupgotov.optimizationpreview;
 
 import io.github.trueruslan.zakupgotov.basket.BasketTotal;
 import io.github.trueruslan.zakupgotov.basketoptimization.BasketOptimizationStatus;
-import io.github.trueruslan.zakupgotov.retailer.RetailerId;
 import io.github.trueruslan.zakupgotov.retailercheckout.RetailerCheckoutComparabilityStatus;
 import java.math.BigDecimal;
 import java.util.ArrayList;
@@ -14,7 +13,7 @@ import java.util.Optional;
 public record CheckoutOptimizationPreview(
         List<RetailerCheckoutPreview> retailers,
         BasketOptimizationStatus status,
-        List<RetailerId> optimalRetailerIds,
+        List<String> optimalRetailerIds,
         Optional<BasketTotal> lowestComparableCheckoutTotal) {
 
     public CheckoutOptimizationPreview {
@@ -30,14 +29,14 @@ public record CheckoutOptimizationPreview(
             throw new IllegalArgumentException("optimization preview retailers must not be empty");
         }
 
-        var seenRetailers = new HashSet<RetailerId>();
+        var seenRetailers = new HashSet<String>();
         for (var retailer : retailers) {
             if (!seenRetailers.add(retailer.retailerId())) {
                 throw new IllegalArgumentException("optimization preview retailers must be unique");
             }
         }
 
-        var expectedOptimalIds = new ArrayList<RetailerId>();
+        var expectedOptimalIds = new ArrayList<String>();
         BigDecimal lowestAmount = null;
         String currency = null;
         BasketTotal firstLowestTotal = null;
