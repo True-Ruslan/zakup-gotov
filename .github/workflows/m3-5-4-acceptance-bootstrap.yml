@@ -1,4 +1,4 @@
-name: M3.5.4 Acceptance Bootstrap
+name: M3.5.4 Acceptance Cleanup
 
 on:
   push:
@@ -9,7 +9,7 @@ permissions:
   contents: write
 
 jobs:
-  sync-acceptance:
+  cleanup-acceptance:
     if: github.actor != 'github-actions[bot]'
     runs-on: ubuntu-latest
     timeout-minutes: 5
@@ -18,32 +18,34 @@ jobs:
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           fetch-depth: 0
-      - name: Preflight PROJECT_STATE markers
+      - name: Clean canonical docs
         run: |
-          grep -Fq 'Current phase: **M3 — Weekly Planning / Pantry**' docs/PROJECT_STATE.md
-          grep -Fq 'Current deterministic target: **M3.5.4 — Responsive Pantry controls**.' docs/PROJECT_STATE.md
-          grep -Fq '## M3.5 — Pantry / exclusions semantics — IN PROGRESS' docs/PROJECT_STATE.md
-          grep -Fq '## Next deterministic target — M3.5.4 Responsive Pantry controls' docs/PROJECT_STATE.md
-      - name: Preflight ROADMAP markers
-        run: |
-          grep -Fq '## M3 — Weekly Planning / Pantry — CURRENT' docs/ROADMAP.md
-          grep -Fq '#### M3.5.4 — Responsive Pantry controls — NEXT' docs/ROADMAP.md
-          grep -Fq '#### Explicit omit-all exclusions — DEFERRED SEMANTIC DECISION' docs/ROADMAP.md
-          grep -Fq '## M4 — Basket Optimization' docs/ROADMAP.md
-      - name: Preflight CHANGELOG marker
-        run: grep -Fq 'Deterministic Playwright covers partial Pantry comparison, full Pantry coverage, mobile no-overflow, keyboard focus, unavailable service and Recipe/manual regressions with no live retailer requests.' CHANGELOG.md
-      - name: Patch canonical acceptance docs
-        run: python .github/scripts/m3_5_4_acceptance_sync.py
-      - name: Commit canonical docs when changed
+          python - <<'PY'
+          from pathlib import Path
+
+          state_path = Path('docs/PROJECT_STATE.md')
+          state = state_path.read_text(encoding='utf-8')
+          duplicate = 'Explicit omit-all / never-buy exclusions remain a separate future semantic decision rather than being encoded as zero/negative Pantry quantities.\n\n'
+          if state.count(duplicate) != 1:
+              raise SystemExit(f'PROJECT_STATE deferred marker count={state.count(duplicate)}')
+          state_path.write_text(state.replace(duplicate, '', 1), encoding='utf-8')
+
+          roadmap_path = Path('docs/ROADMAP.md')
+          roadmap = roadmap_path.read_text(encoding='utf-8')
+          old = 'Continue without blocking deterministic M3 work unless evidence invalidates accepted core assumptions:'
+          new = 'Continue without blocking deterministic M4 work unless evidence invalidates accepted core assumptions:'
+          if roadmap.count(old) != 1:
+              raise SystemExit(f'ROADMAP parallel-work marker count={roadmap.count(old)}')
+          roadmap_path.write_text(roadmap.replace(old, new, 1), encoding='utf-8')
+          PY
+      - name: Commit cleanup when changed
         run: |
           set -euo pipefail
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add docs/PROJECT_STATE.md docs/ROADMAP.md CHANGELOG.md
+          git add docs/PROJECT_STATE.md docs/ROADMAP.md
           if git diff --cached --quiet; then
-            echo "No canonical docs changes required."
             exit 0
           fi
-          git diff --cached --stat
-          git commit -m "docs(m3): finalize M3.5.4 acceptance state"
+          git commit -m "docs(m3): clean M3.5.4 canonical acceptance"
           git push
