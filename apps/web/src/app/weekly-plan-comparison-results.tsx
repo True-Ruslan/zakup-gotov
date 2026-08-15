@@ -17,13 +17,21 @@ function quantityText(quantity: components["schemas"]["CanonicalQuantity"]) {
   return `${quantity.amount} ${quantity.unit}`;
 }
 
-function ShoppingItems({ items, emptyText }: { items: ShoppingItem[]; emptyText: string }) {
+function ShoppingItems({
+  items,
+  emptyText,
+  ariaLabel,
+}: {
+  items: ShoppingItem[];
+  emptyText: string;
+  ariaLabel: string;
+}) {
   if (items.length === 0) {
     return <p className="mt-4 rounded-2xl border border-stone-200 bg-stone-50 px-4 py-3 text-sm text-stone-600">{emptyText}</p>;
   }
 
   return (
-    <ul className="mt-6 grid gap-3 sm:grid-cols-2">
+    <ul aria-label={ariaLabel} className="mt-6 grid gap-3 sm:grid-cols-2">
       {items.map((item) => (
         <li key={item.id} className="rounded-2xl border border-stone-200 bg-white p-4 shadow-sm">
           <p className="font-medium text-stone-950">{item.requirement}</p>
@@ -36,7 +44,7 @@ function ShoppingItems({ items, emptyText }: { items: ShoppingItem[]; emptyText:
 
 function PantryAdjustmentItems({ items }: { items: Adjustment[] }) {
   return (
-    <ul className="mt-6 grid gap-3 sm:grid-cols-2">
+    <ul aria-label="Учёт запасов дома" className="mt-6 grid gap-3 sm:grid-cols-2">
       {items.map((item) => (
         <li key={item.itemId} className="rounded-2xl border border-stone-200 bg-white p-4 shadow-sm">
           <div className="flex flex-wrap items-start justify-between gap-2">
@@ -61,7 +69,7 @@ export function WeeklyPlanComparisonResults({ preview }: { preview: Preview }) {
 
   return (
     <>
-      <section aria-labelledby="weekly-shopping-results" aria-label="Исходный список на неделю" className="mt-12">
+      <section aria-labelledby="weekly-shopping-results" className="mt-12">
         <div className="max-w-2xl">
           <h2 id="weekly-shopping-results" className="text-2xl font-semibold tracking-tight text-stone-950">
             Покупки на неделю
@@ -70,10 +78,14 @@ export function WeeklyPlanComparisonResults({ preview }: { preview: Preview }) {
             Это исходный канонический список до учёта домашних запасов. Порядок и количества получены от серверной WeeklyPlan-композиции.
           </p>
         </div>
-        <ShoppingItems items={pantryPreview.originalShoppingList.items} emptyText="Исходный недельный список пуст." />
+        <ShoppingItems
+          items={pantryPreview.originalShoppingList.items}
+          emptyText="Исходный недельный список пуст."
+          ariaLabel="Покупки на неделю"
+        />
       </section>
 
-      <section aria-labelledby="weekly-pantry-results" aria-label="Учёт запасов дома" className="mt-10">
+      <section aria-labelledby="weekly-pantry-results" className="mt-10">
         <div className="max-w-2xl">
           <h2 id="weekly-pantry-results" className="text-2xl font-semibold tracking-tight text-stone-950">
             Учтено из запасов дома
@@ -85,7 +97,7 @@ export function WeeklyPlanComparisonResults({ preview }: { preview: Preview }) {
         <PantryAdjustmentItems items={pantryPreview.pantryAdjustments} />
       </section>
 
-      <section aria-labelledby="weekly-remaining-results" aria-label="Осталось купить" className="mt-10">
+      <section aria-labelledby="weekly-remaining-results" className="mt-10">
         <div className="max-w-2xl">
           <h2 id="weekly-remaining-results" className="text-2xl font-semibold tracking-tight text-stone-950">
             Осталось купить
@@ -94,7 +106,11 @@ export function WeeklyPlanComparisonResults({ preview }: { preview: Preview }) {
             Только этот серверный список может участвовать в сравнении магазинов.
           </p>
         </div>
-        <ShoppingItems items={pantryPreview.remainingShoppingList.items} emptyText="После учёта запасов список покупок пуст." />
+        <ShoppingItems
+          items={pantryPreview.remainingShoppingList.items}
+          emptyText="После учёта запасов список покупок пуст."
+          ariaLabel="Осталось купить"
+        />
       </section>
 
       {preview.comparisonOutcome === "NO_REMAINING_DEMAND" ? (
