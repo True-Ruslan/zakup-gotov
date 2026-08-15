@@ -39,7 +39,7 @@ Accepted slices:
 
 Permanent direction: exact normalized requirement + canonical unit remains the only implicit Recipe merge rule. Fuzzy/synonym/AI equivalence is never introduced silently.
 
-## M3 — Weekly Planning / Pantry — CURRENT
+## M3 — Weekly Planning / Pantry — COMPLETE / ACCEPTED
 
 Goal: combine meals into one deterministic weekly shopping projection, compare it across retailers and subtract explicit request-scoped Pantry evidence without contaminating accepted Recipe, Shopping, planner or provider semantics.
 
@@ -161,29 +161,29 @@ Acceptance proof:
 - issue #127 closed `completed`;
 - exact merge — **8/8 post-merge normal push workflows SUCCESS, 0 failures**.
 
-#### M3.5.4 — Responsive Pantry controls — NEXT
+#### M3.5.4 — Responsive Pantry controls — COMPLETE / ACCEPTED
 
-Goal: extend the accepted WeeklyPlan browser journey with request-scoped Pantry editing and an inspectable original → Pantry-covered → remaining demand flow before retailer comparison.
+Authoritative design: [`superpowers/specs/2026-08-15-m3-5-4-responsive-pantry-controls-design.md`](superpowers/specs/2026-08-15-m3-5-4-responsive-pantry-controls-design.md)  
+Implementation plan: [`superpowers/plans/2026-08-15-m3-5-4-responsive-pantry-controls.md`](superpowers/plans/2026-08-15-m3-5-4-responsive-pantry-controls.md)  
+Shipping evidence: [`superpowers/plans/2026-08-15-m3-5-4-responsive-pantry-controls-shipping.md`](superpowers/plans/2026-08-15-m3-5-4-responsive-pantry-controls-shipping.md)  
+Acceptance: [`m3-5-4-responsive-pantry-controls-acceptance-2026-08-15.md`](m3-5-4-responsive-pantry-controls-acceptance-2026-08-15.md)  
+Accepted merge: `7a437b612b4e0a36e10f2ae2a5708346f93431ce`.
 
-Required boundary:
+Accepted result:
 
-1. consume only generated M3.5.3 request/response vocabulary for Pantry-aware weekly comparison;
-2. Pantry state remains request-scoped browser form state; no persistence/history in this slice;
-3. render original canonical weekly shopping, Pantry adjustment evidence and remaining canonical demand from server output rather than recomputing subtraction in the browser;
-4. show `NO_REMAINING_DEMAND` as a truthful terminal state with no fabricated retailer comparison;
-5. keep server-generated WeeklyPlan/Recipe/Shopping identities and provenance out of ordinary user-facing output;
-6. preserve current M3.4 WeeklyPlan ordering/day/servings/Recipe behavior and existing Recipe/manual-list journeys;
-7. fail closed on missing config, timeout, network, malformed/unexpected response or non-product-safe errors;
-8. add deterministic component + desktop/mobile/accessibility Playwright coverage with no live retailer requests.
+- primary WeeklyPlan browser transport uses generated M3.5.3 only;
+- request-scoped Pantry controls are optional and stateless;
+- server-owned original/audit/remaining demand is rendered without browser subtraction;
+- full Pantry coverage renders `NO_REMAINING_DEMAND` without retailer output;
+- mobile/accessibility/fail-closed and Recipe/manual regressions are deterministic and network-safe.
 
-Exit gate:
+Acceptance proof:
 
-- design/UX behavior documented first;
-- RED→GREEN transport/form/results/component/browser coverage;
-- generated M3.5.3 contract only; no browser-side Pantry/comparison semantics;
-- exact-head **9/9 PR workflows + clean review**;
-- squash merge + **8/8 post-merge workflows**;
-- canonical acceptance docs updated separately.
+- final reviewed head `d2fefd5391b9ec471192aff4120adfc4e7c0cb4c` — **9/9 PR workflows SUCCESS**, 0 failure/skipped/cancelled;
+- read-only review **Looks good**, no unresolved findings/threads;
+- squash merge `7a437b612b4e0a36e10f2ae2a5708346f93431ce`;
+- issue #130 closed `completed`;
+- exact merge — **8/8 post-merge normal push workflows SUCCESS, 0 failures**.
 
 #### Explicit omit-all exclusions — DEFERRED SEMANTIC DECISION
 
@@ -202,11 +202,15 @@ Continue without blocking deterministic M3 work unless evidence invalidates acce
 - retailer-specific production-access/right-to-operate decisions before activation;
 - successful real **`v0.1.0-rc.3`** release event with final image promotion, SBOM/attestation and digest smoke evidence.
 
-## M4 — Basket Optimization
+## M4 — Basket Optimization — CURRENT
 
 Goal: optimize real checkout cost rather than naive SKU sums.
 
 Scope: richer package/substitute optimization, fees, minimum orders, single-store convenience, future multi-store lowest-total-cost mode and confidence/freshness penalties.
+
+### M4.1 — Basket economics foundation — NEXT
+
+Begin with design/semantics rather than an optimizer. Define explicit delivery/service-fee and minimum-order evidence, unknown/unavailable handling, the relationship between merchandise subtotal and effective checkout total, and fail-closed comparison rules before ranking or multi-store optimization. Preserve existing package, completeness, uncertainty, retailer visibility and production-access invariants.
 
 ## M5 — Productization
 

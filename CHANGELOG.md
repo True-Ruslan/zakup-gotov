@@ -109,6 +109,7 @@ All notable project changes are recorded here. Zakup Gotov is pre-release; entri
 - Browser results render server-owned original weekly demand, ordered `UNCHANGED / PARTIALLY_COVERED / FULLY_COVERED` Pantry evidence and remaining demand without reimplementing matching, canonicalization or subtraction.
 - Explicit `NO_REMAINING_DEMAND` renders a truthful terminal state with no fabricated retailer comparison; `COMPARED` without comparison evidence fails closed.
 - Deterministic Playwright covers partial Pantry comparison, full Pantry coverage, mobile no-overflow, keyboard focus, unavailable service and Recipe/manual regressions with no live retailer requests.
+- M3.5.4 acceptance records final reviewed head `d2fefd5391b9ec471192aff4120adfc4e7c0cb4c`, squash merge `7a437b612b4e0a36e10f2ae2a5708346f93431ce`, issue #130 closure and 8/8 successful post-merge `main` workflows.
 
 #### Product and shopping core
 
