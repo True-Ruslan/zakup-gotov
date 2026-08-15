@@ -123,6 +123,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/weekly-plan-pantry-comparison-previews": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Create a transient Pantry-aware weekly-plan-to-retailer comparison preview */
+        post: operations["createWeeklyPlanPantryComparisonPreview"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/weekly-plan-comparison-previews": {
         parameters: {
             query?: never;
@@ -197,6 +214,11 @@ export interface components {
         WeeklyPlanComparisonPreviewRequest: {
             locality: string;
             weeklyPlan: components["schemas"]["WeeklyPlanShoppingPreviewRequest"];
+        };
+        WeeklyPlanPantryComparisonPreviewRequest: {
+            locality: string;
+            weeklyPlan: components["schemas"]["WeeklyPlanShoppingPreviewRequest"];
+            pantry: components["schemas"]["WeeklyPlanPantryItemInput"][];
         };
         /** @enum {string} */
         QuantityInputUnit: "PIECE" | "GRAM" | "KILOGRAM" | "MILLILITER" | "LITER";
@@ -379,6 +401,14 @@ export interface components {
             id: string;
             items: components["schemas"]["WeeklyPlanShoppingPreviewShoppingItem"][];
         };
+        /** @description comparisonPreview is present only when comparisonOutcome is COMPARED. */
+        WeeklyPlanPantryComparisonPreview: {
+            pantryShoppingPreview: components["schemas"]["WeeklyPlanPantryShoppingPreview"];
+            comparisonOutcome: components["schemas"]["WeeklyPlanPantryComparisonOutcome"];
+            comparisonPreview?: components["schemas"]["ComparisonPreviewResponse"];
+        };
+        /** @enum {string} */
+        WeeklyPlanPantryComparisonOutcome: "COMPARED" | "NO_REMAINING_DEMAND";
         WeeklyPlanComparisonPreview: {
             weeklyPlanShoppingPreview: components["schemas"]["WeeklyPlanShoppingPreviewResponse"];
             comparisonPreview: components["schemas"]["ComparisonPreviewResponse"];
@@ -455,6 +485,21 @@ export interface components {
             errors: components["schemas"]["WeeklyPlanPantryShoppingPreviewValidationError"][];
         };
         WeeklyPlanPantryShoppingPreviewValidationError: {
+            field: string;
+            message: string;
+        };
+        InvalidWeeklyPlanPantryComparisonPreviewProblem: {
+            /** @constant */
+            type: "https://zakup-gotov.dev/problems/invalid-weekly-plan-pantry-comparison-preview";
+            /** @constant */
+            title: "Invalid weekly plan pantry comparison preview request";
+            /** @constant */
+            status: 400;
+            /** @constant */
+            code: "INVALID_WEEKLY_PLAN_PANTRY_COMPARISON_PREVIEW";
+            errors: components["schemas"]["WeeklyPlanPantryComparisonPreviewValidationError"][];
+        };
+        WeeklyPlanPantryComparisonPreviewValidationError: {
             field: string;
             message: string;
         };
@@ -706,6 +751,39 @@ export interface operations {
                 };
                 content: {
                     "application/problem+json": components["schemas"]["InvalidWeeklyPlanPantryShoppingPreviewProblem"];
+                };
+            };
+        };
+    };
+    createWeeklyPlanPantryComparisonPreview: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["WeeklyPlanPantryComparisonPreviewRequest"];
+            };
+        };
+        responses: {
+            /** @description Pantry-aware WeeklyPlan shopping audit with explicit comparison outcome */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WeeklyPlanPantryComparisonPreview"];
+                };
+            };
+            /** @description Invalid Pantry-aware weekly plan comparison preview request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["InvalidWeeklyPlanPantryComparisonPreviewProblem"];
                 };
             };
         };
