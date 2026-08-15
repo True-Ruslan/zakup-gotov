@@ -46,7 +46,8 @@ class WeeklyPlanPantryOptimizationPreviewControllerTest {
                 .andExpect(jsonPath("$.optimizationPreview.status").value("NO_COMPARABLE_CANDIDATES"))
                 .andExpect(jsonPath("$.optimizationPreview.optimalRetailerIds.length()").value(0))
                 .andExpect(jsonPath("$.optimizationPreview.retailers.length()").value(8))
-                .andExpect(jsonPath("$.optimizationPreview.retailers[0].retailerId").value("pyaterochka"));
+                .andExpect(jsonPath("$.optimizationPreview.retailers[0].retailerId").value("pyaterochka"))
+                .andExpect(content().string(not(containsString("acceptedOptimizerResult"))));
     }
 
     @Test
