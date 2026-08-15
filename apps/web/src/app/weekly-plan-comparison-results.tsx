@@ -174,7 +174,9 @@ function OptimizationSummary({
     );
   }
 
-  const winnerNames = optimization.optimalRetailerIds.map((retailerId) => comparisonById.get(retailerId)!.displayName);
+  const winnerNames = optimization.optimalRetailerIds.map(
+    (retailerId: RetailerId) => comparisonById.get(retailerId)!.displayName,
+  );
   const lowest = money(optimization.lowestComparableCheckoutTotal!);
 
   if (optimization.status === "UNIQUE_WINNER") {
@@ -192,7 +194,9 @@ function OptimizationSummary({
       <h3 className="text-lg font-semibold text-stone-950">Одинаковая минимальная стоимость</h3>
       <p className="mt-2 text-sm text-stone-700">Подтверждённая стоимость оформления: {lowest}</p>
       <ul className="mt-3 list-disc space-y-1 pl-5 text-sm font-medium text-stone-950">
-        {winnerNames.map((name, index) => <li key={`${optimization.optimalRetailerIds[index]}-${name}`}>{name}</li>)}
+        {winnerNames.map((name: string, index: number) => (
+          <li key={`${optimization.optimalRetailerIds[index]}-${name}`}>{name}</li>
+        ))}
       </ul>
     </div>
   );
@@ -272,7 +276,7 @@ function OptimizationResults({
       </div>
 
       <div aria-label="Стоимость оформления по магазинам" className="mt-6 grid gap-4 sm:grid-cols-2">
-        {optimization.retailers.map((retailer) => (
+        {optimization.retailers.map((retailer: RetailerCheckout) => (
           <CheckoutCard
             key={retailer.retailerId}
             retailer={retailer}
