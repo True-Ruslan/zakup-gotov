@@ -5,6 +5,7 @@ import io.github.trueruslan.zakupgotov.preview.ComparisonPreviewItemRequest;
 import io.github.trueruslan.zakupgotov.preview.ComparisonPreviewQuantityRequest;
 import io.github.trueruslan.zakupgotov.preview.ComparisonPreviewRequest;
 import io.github.trueruslan.zakupgotov.preview.ComparisonPreviewService;
+import io.github.trueruslan.zakupgotov.preview.InvalidComparisonPreviewRequestException;
 import io.github.trueruslan.zakupgotov.weeklyplanpantrypreview.InvalidWeeklyPlanPantryShoppingPreviewRequestException;
 import io.github.trueruslan.zakupgotov.weeklyplanpantrypreview.WeeklyPlanPantryShoppingPreview;
 import io.github.trueruslan.zakupgotov.weeklyplanpantrypreview.WeeklyPlanPantryShoppingPreviewRequest;
@@ -80,9 +81,20 @@ public final class WeeklyPlanPantryComparisonPreviewService {
                                 item.quantity().amount(),
                                 item.quantity().unit())))
                 .toList();
-        var comparisonPreview = Objects.requireNonNull(
-                comparisonCreator.apply(new ComparisonPreviewRequest(locality, comparisonItems)),
-                "comparisonPreview must not be null");
+
+        final ComparisonPreview comparisonPreview;
+        try {
+            comparisonPreview = Objects.requireNonNull(
+                    comparisonCreator.apply(new ComparisonPreviewRequest(locality, comparisonItems)),
+                    "comparisonPreview must not be null");
+        } catch (InvalidComparisonPreviewRequestException exception) {
+            throw new InvalidWeeklyPlanPantryComparisonPreviewRequestException(
+                    exception.errors().stream()
+                            .map(error -> new WeeklyPlanPantryComparisonPreviewValidationError(
+                                    "comparison." + error.field(),
+                                    error.message()))
+                            .toList());
+        }
         verifyComposition(pantryShoppingPreview, comparisonPreview);
 
         return new WeeklyPlanPantryComparisonPreview(
