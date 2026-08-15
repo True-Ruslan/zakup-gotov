@@ -22,10 +22,9 @@ public record BasketEconomicsAssessment(
         if (checkoutTotalStatus == CheckoutTotalStatus.UNKNOWN && checkoutTotal.isPresent()) {
             throw new IllegalArgumentException("UNKNOWN checkout total must not carry an amount");
         }
-        checkoutTotal.ifPresent(total -> {
-            if (!merchandiseSubtotal.currencyCode().equals(total.currencyCode())) {
-                throw new IllegalArgumentException("checkout total currency must match merchandise subtotal currency");
-            }
-        });
+        if (checkoutTotal.isPresent()
+                && !merchandiseSubtotal.currencyCode().equals(checkoutTotal.orElseThrow().currencyCode())) {
+            throw new IllegalArgumentException("checkout total currency must match merchandise subtotal currency");
+        }
     }
 }
