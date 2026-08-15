@@ -1,19 +1,28 @@
 from pathlib import Path
-import re
 
 
-def sub_once(text: str, pattern: str, replacement: str, label: str) -> str:
-    updated, count = re.subn(pattern, replacement, text, count=1, flags=re.DOTALL)
+def replace_once(text: str, old: str, new: str, label: str) -> str:
+    count = text.count(old)
     if count != 1:
         raise SystemExit(f"{label}: expected exactly one match, got {count}")
-    return updated
+    return text.replace(old, new, 1)
+
+
+def replace_section(text: str, start: str, end: str, replacement: str, label: str) -> str:
+    start_count = text.count(start)
+    end_count = text.count(end)
+    if start_count != 1 or end_count != 1:
+        raise SystemExit(f"{label}: start={start_count}, end={end_count}")
+    start_index = text.index(start)
+    end_index = text.index(end, start_index)
+    return text[:start_index] + replacement + text[end_index:]
 
 
 state_path = Path("docs/PROJECT_STATE.md")
 state = state_path.read_text(encoding="utf-8")
-state = sub_once(
+state = replace_once(
     state,
-    r"- M3\.5\.2 Stateless Pantry-aware WeeklyPlan shopping preview API — \*\*COMPLETE / ACCEPTED\*\* \(#124 / #125\)\.\n\nCurrent deterministic target: \*\*M3\.5\.3 — Pantry-aware WeeklyPlan → Comparison composition\*\*\.",
+    "- M3.5.2 Stateless Pantry-aware WeeklyPlan shopping preview API — **COMPLETE / ACCEPTED** (#124 / #125).\n\nCurrent deterministic target: **M3.5.3 — Pantry-aware WeeklyPlan → Comparison composition**.",
     "- M3.5.2 Stateless Pantry-aware WeeklyPlan shopping preview API — **COMPLETE / ACCEPTED** (#124 / #125);\n- M3.5.3 Pantry-aware WeeklyPlan → Comparison composition — **COMPLETE / ACCEPTED** (#127 / #128).\n\nCurrent deterministic target: **M3.5.4 — Responsive Pantry controls**.",
     "PROJECT_STATE milestone",
 )
@@ -63,11 +72,12 @@ Required boundary:
 6. cover desktop/mobile/accessibility/fail-closed transport with deterministic Playwright and no live retailer requests.
 
 """
-state = sub_once(
+state = replace_section(
     state,
-    r"## Next deterministic target — M3\.5\.3 Pantry-aware WeeklyPlan → Comparison composition\n.*?(?=Explicit omit-all / never-buy exclusions remain)",
+    "## Next deterministic target — M3.5.3 Pantry-aware WeeklyPlan → Comparison composition\n",
+    "Explicit omit-all / never-buy exclusions remain",
     state_block,
-    "PROJECT_STATE M3.5.3 target block",
+    "PROJECT_STATE M3.5.3 section",
 )
 state_path.write_text(state, encoding="utf-8")
 
@@ -130,16 +140,18 @@ Exit gate:
 - canonical acceptance docs updated separately.
 
 """
-roadmap = sub_once(
+roadmap = replace_section(
     roadmap,
-    r"#### M3\.5\.3 — Pantry-aware WeeklyPlan → Comparison composition — NEXT\n.*?(?=#### Explicit omit-all exclusions — DEFERRED SEMANTIC DECISION)",
+    "#### M3.5.3 — Pantry-aware WeeklyPlan → Comparison composition — NEXT\n",
+    "#### Explicit omit-all exclusions — DEFERRED SEMANTIC DECISION\n",
     roadmap_block,
-    "ROADMAP M3.5.3/M3.5.4 block",
+    "ROADMAP M3.5.3/M3.5.4 section",
 )
 roadmap_path.write_text(roadmap, encoding="utf-8")
 
 changelog_path = Path("docs/CHANGELOG.md")
 changelog = changelog_path.read_text(encoding="utf-8")
+anchor = "- M3.5.2 acceptance records final reviewed head `1e08ee4f5111bb493eeb100cfc2579d6fbafa708`, squash merge `0dfbef49d265069578968fdedd18828c9452baca`, issue #124 closure and 8/8 successful post-merge `main` workflows.\n"
 addition = """- Stateless M3.5.3 `POST /api/v1/weekly-plan-pantry-comparison-previews` composes accepted M3.5.2 remaining demand into accepted ComparisonPreview without modifying M3.3 or M3.5.2.
 - M3.5.3 returns explicit `COMPARED / NO_REMAINING_DEMAND`; full Pantry coverage skips ComparisonPreviewService/runtime retailer acquisition rather than fabricating non-empty demand.
 - Locality remains independently validated, only non-empty remaining demand reaches comparison, and ShoppingItem UUID/order/requirement/canonical quantity drift fails closed.
@@ -147,10 +159,5 @@ addition = """- Stateless M3.5.3 `POST /api/v1/weekly-plan-pantry-comparison-pre
 - OpenAPI 3.1/generated TypeScript plus architecture/regression coverage protect the new boundary and existing M3.3/M3.5.2 behavior.
 - M3.5.3 acceptance records final reviewed head `2a10d5dd3e28ce6ff4eec21dd3555e8838d6f789`, squash merge `079a53be066fa488ee01da18a109f4f2b1484800`, issue #127 closure and 8/8 successful post-merge `main` workflows.
 """
-changelog = sub_once(
-    changelog,
-    r"(- M3\.5\.2 acceptance records final reviewed head `1e08ee4f5111bb493eeb100cfc2579d6fbafa708`, squash merge `0dfbef49d265069578968fdedd18828c9452baca`, issue #124 closure and 8/8 successful post-merge `main` workflows\.\n)",
-    r"\1" + addition,
-    "CHANGELOG M3.5.2 line",
-)
+changelog = replace_once(changelog, anchor, anchor + addition, "CHANGELOG M3.5.2 line")
 changelog_path.write_text(changelog, encoding="utf-8")
