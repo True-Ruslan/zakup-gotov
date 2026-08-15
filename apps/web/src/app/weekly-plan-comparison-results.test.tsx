@@ -101,21 +101,24 @@ describe("WeeklyPlan Pantry comparison results", () => {
   it("shows server-owned original demand, Pantry audit, remaining demand and comparison in order", () => {
     render(<WeeklyPlanComparisonResults preview={comparedPreview} />);
 
-    const original = screen.getByRole("region", { name: "Исходный список на неделю" });
+    const original = screen.getByRole("region", { name: "Покупки на неделю" });
     expect(within(original).getByText("Молоко")).toBeDefined();
     expect(within(original).getByText("1000 MILLILITER")).toBeDefined();
     expect(within(original).getByText("Яйца")).toBeDefined();
+    expect(within(original).getByRole("list", { name: "Покупки на неделю" })).toBeDefined();
 
-    const audit = screen.getByRole("region", { name: "Учёт запасов дома" });
+    const audit = screen.getByRole("region", { name: "Учтено из запасов дома" });
     expect(within(audit).getByText("Частично покрыто")).toBeDefined();
     expect(within(audit).getByText("Полностью покрыто")).toBeDefined();
     expect(within(audit).getByText("Из дома: 250 MILLILITER")).toBeDefined();
     expect(within(audit).getByText("Осталось: 750 MILLILITER")).toBeDefined();
+    expect(within(audit).getByRole("list", { name: "Учёт запасов дома" })).toBeDefined();
 
     const remaining = screen.getByRole("region", { name: "Осталось купить" });
     expect(within(remaining).getByText("Молоко")).toBeDefined();
     expect(within(remaining).getByText("750 MILLILITER")).toBeDefined();
     expect(within(remaining).queryByText("Яйца")).toBeNull();
+    expect(within(remaining).getByRole("list", { name: "Осталось купить" })).toBeDefined();
 
     expect(screen.getByRole("heading", { level: 2, name: "Результат для Москва" })).toBeDefined();
   });
