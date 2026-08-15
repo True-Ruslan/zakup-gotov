@@ -8,7 +8,7 @@ Updated: 2026-08-15
 
 Repository: `True-Ruslan/zakup-gotov`  
 Visibility: Public  
-Current phase: **M3 — Weekly Planning / Pantry**
+Current phase: **M4 — Basket Optimization**
 
 Milestone status:
 
@@ -26,9 +26,11 @@ Milestone status:
 - M3.4 Responsive Weekly Planning UI — **COMPLETE / ACCEPTED**;
 - M3.5.1 Pure Pantry subtraction semantics — **COMPLETE / ACCEPTED** (#121 / #122);
 - M3.5.2 Stateless Pantry-aware WeeklyPlan shopping preview API — **COMPLETE / ACCEPTED** (#124 / #125);
-- M3.5.3 Pantry-aware WeeklyPlan → Comparison composition — **COMPLETE / ACCEPTED** (#127 / #128).
+- M3.5.3 Pantry-aware WeeklyPlan → Comparison composition — **COMPLETE / ACCEPTED** (#127 / #128);
+- M3.5.4 Responsive Pantry controls — **COMPLETE / ACCEPTED** (#130 / #131);
+- M3 Weekly Planning / Pantry deterministic product slice — **COMPLETE / ACCEPTED**.
 
-Current deterministic target: **M3.5.4 — Responsive Pantry controls**.
+Current deterministic target: **M4.1 — Basket economics foundation**.
 
 ## Permanent connectivity rule
 
@@ -76,7 +78,7 @@ Accepted WeeklyPlan behavior includes:
 M3.4 acceptance: [`m3-4-responsive-weekly-planning-ui-acceptance-2026-08-15.md`](m3-4-responsive-weekly-planning-ui-acceptance-2026-08-15.md).  
 Accepted M3.4 merge: `1201030aed45075c676f796920b6268cdcf8e036`.
 
-## M3.5 — Pantry / exclusions semantics — IN PROGRESS
+## M3.5 — Pantry / exclusions semantics — COMPLETE / ACCEPTED
 
 ### M3.5.1 — Pure Pantry subtraction semantics — COMPLETE / ACCEPTED
 
@@ -161,20 +163,37 @@ Acceptance proof:
 - issue #127 closed `completed`;
 - exact merge SHA — **8/8 post-merge normal push workflows SUCCESS, 0 failures**.
 
-## Next deterministic target — M3.5.4 Responsive Pantry controls
+### M3.5.4 — Responsive Pantry controls — COMPLETE / ACCEPTED
 
-M3.5.4 should extend the accepted WeeklyPlan-first browser journey with request-scoped Pantry editing and consume only the generated M3.5.3 comparison contract.
+Authoritative design: [`superpowers/specs/2026-08-15-m3-5-4-responsive-pantry-controls-design.md`](superpowers/specs/2026-08-15-m3-5-4-responsive-pantry-controls-design.md)  
+Implementation plan: [`superpowers/plans/2026-08-15-m3-5-4-responsive-pantry-controls.md`](superpowers/plans/2026-08-15-m3-5-4-responsive-pantry-controls.md)  
+Shipping evidence: [`superpowers/plans/2026-08-15-m3-5-4-responsive-pantry-controls-shipping.md`](superpowers/plans/2026-08-15-m3-5-4-responsive-pantry-controls-shipping.md)  
+Acceptance: [`m3-5-4-responsive-pantry-controls-acceptance-2026-08-15.md`](m3-5-4-responsive-pantry-controls-acceptance-2026-08-15.md)  
+Accepted merge: `7a437b612b4e0a36e10f2ae2a5708346f93431ce`.
 
-Required boundary:
+Accepted browser result:
 
-1. keep Pantry input request-scoped and presentation-only in browser state;
-2. render original weekly demand, Pantry adjustment evidence and remaining demand before retailer comparison;
-3. handle `NO_REMAINING_DEMAND` explicitly without fabricating retailer results;
-4. perform no browser-side Pantry subtraction, canonicalization, comparison, package arithmetic or winner recomputation;
-5. preserve existing WeeklyPlan, Recipe and manual-list critical journeys;
-6. cover desktop/mobile/accessibility/fail-closed transport with deterministic Playwright and no live retailer requests.
+- primary WeeklyPlan journey consumes generated M3.5.3 Pantry-aware comparison only;
+- Pantry rows are optional request-scoped browser state with no persistence/history;
+- original demand, Pantry audit and remaining demand render directly from server evidence;
+- production browser performs no Pantry matching/canonicalization/subtraction;
+- `NO_REMAINING_DEMAND` is a truthful terminal state with no fabricated retailer comparison;
+- Recipe/manual-list journeys remain regression-covered;
+- deterministic desktop/mobile/accessibility acceptance makes no live retailer request.
 
-Explicit omit-all / never-buy exclusions remain a separate future semantic decision rather than being encoded as zero/negative Pantry quantities.
+Acceptance proof:
+
+- final reviewed feature head `d2fefd5391b9ec471192aff4120adfc4e7c0cb4c` — **9/9 PR workflow groups SUCCESS**, 0 failure/skipped/cancelled;
+- read-only review **Looks good**, no P0/P1/P2/P3/nitpicks or unresolved threads;
+- squash merge `7a437b612b4e0a36e10f2ae2a5708346f93431ce`;
+- issue #130 closed `completed`;
+- exact merge SHA — **8/8 post-merge normal push workflows SUCCESS, 0 failures**.
+
+Explicit omit-all / never-buy exclusions remain intentionally deferred. They are not Pantry stock and must not be represented as zero/negative quantities.
+
+## Next deterministic target — M4.1 Basket economics foundation
+
+Start M4 with a semantics-first design before implementation. The first slice should define explicit retailer/basket economics evidence such as delivery/service fees and minimum-order constraints, how unknown values affect truthful comparison state, and when an effective checkout total may be exposed. It must preserve accepted package, completeness, uncertainty, production-access and no-hidden-winner invariants before any richer optimizer is introduced.
 
 ## Magnit production state
 
