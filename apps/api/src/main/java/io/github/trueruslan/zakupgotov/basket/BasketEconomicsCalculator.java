@@ -13,34 +13,29 @@ public final class BasketEconomicsCalculator {
         Objects.requireNonNull(merchandiseSubtotal, "merchandiseSubtotal must not be null");
         Objects.requireNonNull(economics, "economics must not be null");
 
-        validateCurrency(merchandiseSubtotal, economics.deliveryFee().amount());
-        validateCurrency(merchandiseSubtotal, economics.serviceFee().amount());
-        validateCurrency(merchandiseSubtotal, economics.minimumOrder().threshold());
-
+        validateCurrencies(merchandiseSubtotal, economics);
         var minimumOrderStatus = minimumOrderStatus(merchandiseSubtotal, economics.minimumOrder());
-        if (economics.deliveryFee().status() == BasketEconomicsKnowledgeStatus.UNKNOWN
-                || economics.serviceFee().status() == BasketEconomicsKnowledgeStatus.UNKNOWN) {
-            return new BasketEconomicsAssessment(
-                    merchandiseSubtotal,
-                    economics,
-                    minimumOrderStatus,
-                    CheckoutTotalStatus.UNKNOWN,
-                    Optional.empty());
-        }
-
-        var checkoutAmount = merchandiseSubtotal.amount()
-                .add(economics.deliveryFee().amount().orElseThrow().amount())
-                .add(economics.serviceFee().amount().orElseThrow().amount());
-        var checkoutTotal = new BasketTotal(checkoutAmount, merchandiseSubtotal.currencyCode());
+        var checkoutTotal = checkoutTotal(merchandiseSubtotal, economics);
+        var checkoutTotalStatus = checkoutTotal.isPresent()
+                ? CheckoutTotalStatus.KNOWN
+                : CheckoutTotalStatus.UNKNOWN;
         return new BasketEconomicsAssessment(
                 merchandiseSubtotal,
                 economics,
                 minimumOrderStatus,
-                CheckoutTotalStatus.KNOWN,
-                Optional.of(checkoutTotal));
+                checkoutTotalStatus,
+                checkoutTotal);
     }
 
-    private static MinimumOrderStatus minimumOrderStatus(
+    static void validateCurrencies(
+            BasketTotal merchandiseSubtotal,
+            BasketEconomics economics) {
+        validateCurrency(merchandiseSubtotal, economics.deliveryFee().amount());
+        validateCurrency(merchandiseSubtotal, economics.serviceFee().amount());
+        validateCurrency(merchandiseSubtotal, economics.minimumOrder().threshold());
+    }
+
+    static MinimumOrderStatus minimumOrderStatus(
             BasketTotal merchandiseSubtotal,
             MinimumOrderConstraint minimumOrder) {
         if (minimumOrder.status() == BasketEconomicsKnowledgeStatus.UNKNOWN) {
@@ -51,13 +46,25 @@ public final class BasketEconomicsCalculator {
                 : MinimumOrderStatus.NOT_MET;
     }
 
+    static Optional<BasketTotal> checkoutTotal(
+            BasketTotal merchandiseSubtotal,
+            BasketEconomics economics) {
+        if (economics.deliveryFee().status() == BasketEconomicsKnowledgeStatus.UNKNOWN
+                || economics.serviceFee().status() == BasketEconomicsKnowledgeStatus.UNKNOWN) {
+            return Optional.empty();
+        }
+        var checkoutAmount = merchandiseSubtotal.amount()
+                .add(economics.deliveryFee().amount().orElseThrow().amount())
+                .add(economics.serviceFee().amount().orElseThrow().amount());
+        return Optional.of(new BasketTotal(checkoutAmount, merchandiseSubtotal.currencyCode()));
+    }
+
     private static void validateCurrency(
             BasketTotal merchandiseSubtotal,
             Optional<BasketTotal> component) {
-        component.ifPresent(amount -> {
-            if (!merchandiseSubtotal.currencyCode().equals(amount.currencyCode())) {
-                throw new IllegalArgumentException("basket economics currency must match merchandise subtotal currency");
-            }
-        });
+        if (component.isPresent()
+                && !merchandiseSubtotal.currencyCode().equals(component.orElseThrow().currencyCode())) {
+            throw new IllegalArgumentException("basket economics currency must match merchandise subtotal currency");
+        }
     }
 }

@@ -16,15 +16,24 @@ public record BasketEconomicsAssessment(
         minimumOrderStatus = Objects.requireNonNull(minimumOrderStatus, "minimumOrderStatus must not be null");
         checkoutTotalStatus = Objects.requireNonNull(checkoutTotalStatus, "checkoutTotalStatus must not be null");
         checkoutTotal = Objects.requireNonNull(checkoutTotal, "checkoutTotal must not be null");
-        if (checkoutTotalStatus == CheckoutTotalStatus.KNOWN && checkoutTotal.isEmpty()) {
-            throw new IllegalArgumentException("KNOWN checkout total requires an amount");
+
+        BasketEconomicsCalculator.validateCurrencies(merchandiseSubtotal, economics);
+        var expectedMinimumOrderStatus = BasketEconomicsCalculator.minimumOrderStatus(
+                merchandiseSubtotal,
+                economics.minimumOrder());
+        if (minimumOrderStatus != expectedMinimumOrderStatus) {
+            throw new IllegalArgumentException("minimum order status must match basket economics");
         }
-        if (checkoutTotalStatus == CheckoutTotalStatus.UNKNOWN && checkoutTotal.isPresent()) {
-            throw new IllegalArgumentException("UNKNOWN checkout total must not carry an amount");
+
+        var expectedCheckoutTotal = BasketEconomicsCalculator.checkoutTotal(merchandiseSubtotal, economics);
+        var expectedCheckoutTotalStatus = expectedCheckoutTotal.isPresent()
+                ? CheckoutTotalStatus.KNOWN
+                : CheckoutTotalStatus.UNKNOWN;
+        if (checkoutTotalStatus != expectedCheckoutTotalStatus) {
+            throw new IllegalArgumentException("checkout total status must match basket economics knowledge");
         }
-        if (checkoutTotal.isPresent()
-                && !merchandiseSubtotal.currencyCode().equals(checkoutTotal.orElseThrow().currencyCode())) {
-            throw new IllegalArgumentException("checkout total currency must match merchandise subtotal currency");
+        if (!checkoutTotal.equals(expectedCheckoutTotal)) {
+            throw new IllegalArgumentException("checkout total amount must match merchandise subtotal and known fees");
         }
     }
 }
