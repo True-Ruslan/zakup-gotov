@@ -36,7 +36,17 @@ async function fillWeeklyPlan(page: Page, locality = "Москва") {
   await second.getByRole("combobox", { name: "Единица", exact: true }).selectOption("PIECE");
 }
 
-async function addPantryRow(page: Page, requirement: string, amount: string, unit: "PIECE" | "GRAM" | "KILOGRAM" | "MILLILITER" | "LITER") {
+async function setWeeklyScenario(page: Page, title: string) {
+  const first = weeklyForm(page).getByRole("group", { name: "Блюдо 1", exact: true });
+  await first.getByRole("textbox", { name: "Название рецепта", exact: true }).fill(title);
+}
+
+async function addPantryRow(
+  page: Page,
+  requirement: string,
+  amount: string,
+  unit: "PIECE" | "GRAM" | "KILOGRAM" | "MILLILITER" | "LITER",
+) {
   const form = weeklyForm(page);
   await form.getByRole("button", { name: "Добавить запас" }).click();
   const groups = form.getByRole("group", { name: /Запас дома/ });
@@ -85,10 +95,11 @@ async function expectSafeComparisonResult(page: Page) {
   expect(body).not.toContain("acquisitionMode");
   expect(body).not.toContain("fulfillmentContextId");
   expect(body).not.toContain("sku-");
+  expect(body).not.toContain("acceptedOptimizerResult");
   expect(body).not.toMatch(/самый дешёвый|лучший выбор|рекомендуем/i);
 }
 
-test("runs desktop WeeklyPlan → Pantry audit → remaining shopping → retailer comparison", async ({ page }) => {
+test("runs desktop WeeklyPlan → Pantry → comparison → truthful no-comparable optimization", async ({ page }) => {
   await page.goto("/");
   await expect(page.getByText(/M3 · Weekly Planning/i)).toBeVisible();
   await expect(page.getByRole("heading", { level: 2, name: "Собрать неделю" })).toBeVisible();
@@ -113,7 +124,45 @@ test("runs desktop WeeklyPlan → Pantry audit → remaining shopping → retail
   await expect(remaining.getByText("10 PIECE", { exact: true })).toBeVisible();
   await expectSafeComparisonResult(page);
 
+  const optimization = page.getByRole("region", { name: "Стоимость оформления" });
+  await expect(optimization).toBeVisible();
+  await expect(optimization.getByRole("heading", { name: "Пока нельзя честно выбрать минимальную стоимость" })).toBeVisible();
+  await expect(optimization.getByText("Доставка: Неизвестно").first()).toBeVisible();
+  await expect(optimization.getByText("Нельзя включать в минимум").first()).toBeVisible();
+  await expect(optimization.getByText(/минимальная подтверждённая стоимость/i)).toHaveCount(0);
+
   expect(await page.evaluate(() => document.documentElement.scrollWidth > document.documentElement.clientWidth)).toBe(false);
+});
+
+test("renders server-owned unique winner without using retailer array order", async ({ page }) => {
+  await page.goto("/");
+  await fillWeeklyPlan(page);
+  await setWeeklyScenario(page, "Уникальный победитель");
+  await weeklyForm(page).getByRole("button", { name: "Сравнить план" }).click();
+
+  const summary = page.getByRole("group", { name: "Результат оптимизации" });
+  await expect(summary.getByRole("heading", { name: "Минимальная подтверждённая стоимость" })).toBeVisible();
+  await expect(summary.getByText("Перекрёсток", { exact: true })).toBeVisible();
+  await expect(summary.getByText("Пятёрочка", { exact: true })).toHaveCount(0);
+
+  const pyaterochka = page.getByRole("article", { name: "Стоимость оформления — Пятёрочка" });
+  await expect(pyaterochka.getByText("Доставка: Неизвестно", { exact: true })).toBeVisible();
+  await expect(pyaterochka.getByText(/Сервисный сбор:.*0/)).toBeVisible();
+
+  const perekrestok = page.getByRole("article", { name: "Стоимость оформления — Перекрёсток" });
+  await expect(perekrestok.getByText("Заказ доступен", { exact: true })).toBeVisible();
+  await expect(perekrestok.getByText("Можно сравнивать", { exact: true })).toBeVisible();
+});
+
+test("renders every exact server tie winner in server order", async ({ page }) => {
+  await page.goto("/");
+  await fillWeeklyPlan(page);
+  await setWeeklyScenario(page, "Точная ничья");
+  await weeklyForm(page).getByRole("button", { name: "Сравнить план" }).click();
+
+  const summary = page.getByRole("group", { name: "Результат оптимизации" });
+  await expect(summary.getByRole("heading", { name: "Одинаковая минимальная стоимость" })).toBeVisible();
+  await expect(summary.getByRole("listitem")).toHaveText(["Перекрёсток", "Пятёрочка"]);
 });
 
 test("renders explicit zero-demand state when Pantry covers the whole week", async ({ page }) => {
@@ -127,6 +176,7 @@ test("renders explicit zero-demand state when Pantry covers the whole week", asy
   await expect(page.getByText("Запасы дома полностью покрывают недельный список.")).toBeVisible();
   await expect(page.getByRole("list", { name: "Сравнение магазинов" })).toHaveCount(0);
   await expect(page.getByRole("heading", { name: /Результат для/ })).toHaveCount(0);
+  await expect(page.getByRole("heading", { name: "Стоимость оформления" })).toHaveCount(0);
 });
 
 test("keeps explicit occurrence order independent from day metadata", async ({ page }) => {
@@ -139,13 +189,15 @@ test("keeps explicit occurrence order independent from day metadata", async ({ p
   await expect(first.getByRole("combobox", { name: "День", exact: true })).toHaveValue("SUNDAY");
 });
 
-test("WeeklyPlan Pantry journey remains usable without horizontal overflow on mobile", async ({ page }) => {
+test("WeeklyPlan optimization journey remains usable without horizontal overflow on mobile", async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 });
   await page.goto("/");
   await fillWeeklyPlan(page);
   await addPantryRow(page, "Молоко", "250", "MILLILITER");
   await weeklyForm(page).getByRole("button", { name: "Сравнить план" }).click();
   await expect(page.getByRole("heading", { level: 2, name: "Учтено из запасов дома" })).toBeVisible();
+  await expect(page.getByRole("heading", { level: 2, name: "Стоимость оформления" })).toBeVisible();
+  await expect(page.getByText("Пока нельзя честно выбрать минимальную стоимость")).toBeVisible();
   const dimensions = await page.evaluate(() => ({ scrollWidth: document.documentElement.scrollWidth, clientWidth: document.documentElement.clientWidth }));
   expect(dimensions.scrollWidth).toBeLessThanOrEqual(dimensions.clientWidth);
 });
