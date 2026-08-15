@@ -61,8 +61,9 @@ For non-empty remaining demand, accepted `ComparisonPreviewService` remains auth
 3. If the M3.5.2 remaining list is empty, return the zero-demand outcome without invoking comparison.
 4. Otherwise adapt only remaining ShoppingItems into `ComparisonPreviewItemRequest` using their exact UUID, requirement and canonical quantity.
 5. Invoke accepted `ComparisonPreviewService` exactly once with the request locality and remaining items.
-6. Verify the returned `ComparisonPreview.items` against the remaining list by cardinality, UUID/order, requirement and quantity.
-7. Return the complete M3.5.2 preview plus explicit outcome and accepted comparison result.
+6. Map accepted caller-facing `InvalidComparisonPreviewRequestException` validation into the M3.5.3 sanitized problem namespace using `comparison.*` field paths; this covers derived limits such as more than 100 remaining comparison items without turning them into 500 responses.
+7. Verify the returned `ComparisonPreview.items` against the remaining list by cardinality, UUID/order, requirement and quantity.
+8. Return the complete M3.5.2 preview plus explicit outcome and accepted comparison result.
 
 ## Invariants
 
@@ -73,6 +74,7 @@ For non-empty remaining demand, accepted `ComparisonPreviewService` remains auth
 - Only remaining ShoppingItems may enter ComparisonPreview.
 - Non-empty comparison input preserves remaining UUID/order/requirement/canonical quantity exactly.
 - Comparison item cardinality/order/identity/requirement/quantity drift fails closed.
+- Caller-facing accepted comparison validation is sanitized; internal bridge drift is never downgraded into caller validation.
 - Zero remaining demand never enters ComparisonPreview.
 - `COMPARED` requires a non-null ComparisonPreview and non-empty remaining demand.
 - `NO_REMAINING_DEMAND` requires a null/absent ComparisonPreview and an empty remaining list.
@@ -83,6 +85,7 @@ For non-empty remaining demand, accepted `ComparisonPreviewService` remains auth
 
 - Null request and invalid locality produce a new sanitized M3.5.3 validation problem.
 - M3.5.2 validation errors are mapped into the new boundary without leaking implementation exceptions and retain their `weeklyPlan.*` / `pantry[*]` field paths.
+- Accepted ComparisonPreview validation errors caused by the derived remaining demand are mapped into the same boundary with `comparison.*` field paths.
 - Unknown top-level fields, malformed JSON and deserialization/enum failures return one sanitized `$request: malformed JSON request` error.
 - Internal bridge drift is not converted into caller validation; it remains a fail-closed server defect.
 - Error payload code: `INVALID_WEEKLY_PLAN_PANTRY_COMPARISON_PREVIEW`.
@@ -111,12 +114,14 @@ Allowed production dependencies:
 - `weeklyplanpantrypreview` for accepted M3.5.2 composition and Pantry request/response vocabulary;
 - `weeklyplanpreview` only for the accepted WeeklyPlan request vocabulary used by the flattened HTTP request;
 - `preview` for accepted ComparisonPreview request/result/service;
+- read-only canonical `shopping` quantity vocabulary exposed by accepted M3.5.2 output; this does not grant M3.5.3 ownership of Shopping aggregation or Pantry semantics;
 - Java/Spring/Jackson support.
 
 Forbidden direct dependencies:
 
 - `pantry` domain implementation;
-- `recipe`, `weeklyplan` or `shopping` domain internals;
+- `recipe` or `weeklyplan` domain owners;
+- Shopping mutation/aggregation logic beyond reading the canonical quantity vocabulary already exposed by M3.5.2;
 - `retailer`, `provider`, acquisition bridges;
 - persistence/database;
 - browser/web UI.
@@ -139,6 +144,7 @@ Critical deterministic proofs:
 - full Pantry coverage returns `NO_REMAINING_DEMAND` and the comparison invoker call count remains zero;
 - empty Pantry preserves all accepted weekly demand into comparison;
 - invalid locality remains invalid even under full Pantry coverage;
+- accepted derived comparison validation cannot leak as a 500;
 - ordinary tests/CI make no live retailer request.
 
 Final gate: exact-head 9/9 PR workflows + clean read-only review, squash merge, exact main 8/8 post-merge workflows, then a separate canonical acceptance docs PR.
