@@ -143,6 +143,29 @@ paths:
             application/problem+json:
               schema:
                 $ref: '#/components/schemas/InvalidWeeklyPlanPantryShoppingPreviewProblem'
+  /api/v1/weekly-plan-pantry-comparison-previews:
+    post:
+      operationId: createWeeklyPlanPantryComparisonPreview
+      summary: Create a transient Pantry-aware weekly-plan-to-retailer comparison preview
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/WeeklyPlanPantryComparisonPreviewRequest'
+      responses:
+        '200':
+          description: Pantry-aware WeeklyPlan shopping audit with explicit comparison outcome
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/WeeklyPlanPantryComparisonPreview'
+        '400':
+          description: Invalid Pantry-aware weekly plan comparison preview request
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/InvalidWeeklyPlanPantryComparisonPreviewProblem'
   /api/v1/weekly-plan-comparison-previews:
     post:
       operationId: createWeeklyPlanComparisonPreview
@@ -345,6 +368,24 @@ components:
           maxLength: 160
         weeklyPlan:
           $ref: '#/components/schemas/WeeklyPlanShoppingPreviewRequest'
+    WeeklyPlanPantryComparisonPreviewRequest:
+      type: object
+      additionalProperties: false
+      required:
+        - locality
+        - weeklyPlan
+        - pantry
+      properties:
+        locality:
+          type: string
+          minLength: 1
+          maxLength: 160
+        weeklyPlan:
+          $ref: '#/components/schemas/WeeklyPlanShoppingPreviewRequest'
+        pantry:
+          type: array
+          items:
+            $ref: '#/components/schemas/WeeklyPlanPantryItemInput'
     QuantityInputUnit:
       type: string
       enum:
@@ -912,6 +953,25 @@ components:
           type: array
           items:
             $ref: '#/components/schemas/WeeklyPlanShoppingPreviewShoppingItem'
+    WeeklyPlanPantryComparisonPreview:
+      type: object
+      additionalProperties: false
+      required:
+        - pantryShoppingPreview
+        - comparisonOutcome
+      properties:
+        pantryShoppingPreview:
+          $ref: '#/components/schemas/WeeklyPlanPantryShoppingPreview'
+        comparisonOutcome:
+          $ref: '#/components/schemas/WeeklyPlanPantryComparisonOutcome'
+        comparisonPreview:
+          $ref: '#/components/schemas/ComparisonPreviewResponse'
+      description: comparisonPreview is present only when comparisonOutcome is COMPARED.
+    WeeklyPlanPantryComparisonOutcome:
+      type: string
+      enum:
+        - COMPARED
+        - NO_REMAINING_DEMAND
     WeeklyPlanComparisonPreview:
       type: object
       additionalProperties: false
@@ -1123,6 +1183,46 @@ components:
           items:
             $ref: '#/components/schemas/WeeklyPlanPantryShoppingPreviewValidationError'
     WeeklyPlanPantryShoppingPreviewValidationError:
+      type: object
+      additionalProperties: false
+      required:
+        - field
+        - message
+      properties:
+        field:
+          type: string
+          minLength: 1
+        message:
+          type: string
+          minLength: 1
+    InvalidWeeklyPlanPantryComparisonPreviewProblem:
+      type: object
+      additionalProperties: false
+      required:
+        - type
+        - title
+        - status
+        - code
+        - errors
+      properties:
+        type:
+          type: string
+          const: https://zakup-gotov.dev/problems/invalid-weekly-plan-pantry-comparison-preview
+        title:
+          type: string
+          const: Invalid weekly plan pantry comparison preview request
+        status:
+          type: integer
+          const: 400
+        code:
+          type: string
+          const: INVALID_WEEKLY_PLAN_PANTRY_COMPARISON_PREVIEW
+        errors:
+          type: array
+          minItems: 1
+          items:
+            $ref: '#/components/schemas/WeeklyPlanPantryComparisonPreviewValidationError'
+    WeeklyPlanPantryComparisonPreviewValidationError:
       type: object
       additionalProperties: false
       required:

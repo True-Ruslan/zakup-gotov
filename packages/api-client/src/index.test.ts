@@ -7,6 +7,7 @@ import {
   RETAILERS_PATH,
   SYSTEM_INFO_PATH,
   WEEKLY_PLAN_COMPARISON_PREVIEWS_PATH,
+  WEEKLY_PLAN_PANTRY_COMPARISON_PREVIEWS_PATH,
   WEEKLY_PLAN_PANTRY_SHOPPING_PREVIEWS_PATH,
   WEEKLY_PLAN_SHOPPING_PREVIEWS_PATH,
   createZakupGotovClient,
@@ -141,6 +142,32 @@ describe("Zakup Gotov API client", () => {
     expect(operationExists).toBeUndefined();
     expect(requestExists).toBeUndefined();
     expect(responseExists).toBeUndefined();
+    expect(problemExists).toBeUndefined();
+  });
+
+  it("exposes the Pantry-aware weekly comparison endpoint and explicit outcome through the generated contract", () => {
+    const path: keyof paths = WEEKLY_PLAN_PANTRY_COMPARISON_PREVIEWS_PATH;
+    const client = createZakupGotovClient("https://api.example.test");
+    type PantryComparisonPost = paths["/api/v1/weekly-plan-pantry-comparison-previews"]["post"];
+    type PantryComparisonOperation = operations["createWeeklyPlanPantryComparisonPreview"];
+    type PantryComparisonRequest = components["schemas"]["WeeklyPlanPantryComparisonPreviewRequest"];
+    type PantryComparisonResponse = components["schemas"]["WeeklyPlanPantryComparisonPreview"];
+    type PantryComparisonOutcome = components["schemas"]["WeeklyPlanPantryComparisonOutcome"];
+    type PantryComparisonProblem = components["schemas"]["InvalidWeeklyPlanPantryComparisonPreviewProblem"];
+    const postExists: PantryComparisonPost | undefined = undefined;
+    const operationExists: PantryComparisonOperation | undefined = undefined;
+    const requestExists: PantryComparisonRequest | undefined = undefined;
+    const responseExists: PantryComparisonResponse | undefined = undefined;
+    const outcomeExists: PantryComparisonOutcome | undefined = undefined;
+    const problemExists: PantryComparisonProblem | undefined = undefined;
+
+    expect(path).toBe("/api/v1/weekly-plan-pantry-comparison-previews");
+    expect(client.POST).toBeTypeOf("function");
+    expect(postExists).toBeUndefined();
+    expect(operationExists).toBeUndefined();
+    expect(requestExists).toBeUndefined();
+    expect(responseExists).toBeUndefined();
+    expect(outcomeExists).toBeUndefined();
     expect(problemExists).toBeUndefined();
   });
 });
