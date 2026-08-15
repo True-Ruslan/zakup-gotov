@@ -9,23 +9,41 @@ def replace_once(text: str, old: str, new: str, label: str) -> str:
 
 
 def replace_section(text: str, start: str, end: str, replacement: str, label: str) -> str:
-    if text.count(start) != 1 or text.count(end) != 1:
-        raise SystemExit(f"{label}: section markers are not unique")
+    if text.count(start) != 1:
+        raise SystemExit(f"{label}: start marker count={text.count(start)}")
     start_index = text.index(start)
-    end_index = text.index(end, start_index)
+    end_index = text.find(end, start_index + len(start))
+    if end_index < 0:
+        raise SystemExit(f"{label}: end marker not found")
     return text[:start_index] + replacement + text[end_index:]
 
 
 state_path = Path("docs/PROJECT_STATE.md")
 state = state_path.read_text(encoding="utf-8")
-state = replace_once(state, "Current phase: **M3 — Weekly Planning / Pantry**", "Current phase: **M4 — Basket Optimization**", "PROJECT_STATE phase")
 state = replace_once(
     state,
-    "- M3.5.3 Pantry-aware WeeklyPlan → Comparison composition — **COMPLETE / ACCEPTED** (#127 / #128).\n\nCurrent deterministic target: **M3.5.4 — Responsive Pantry controls**.",
-    "- M3.5.3 Pantry-aware WeeklyPlan → Comparison composition — **COMPLETE / ACCEPTED** (#127 / #128);\n- M3.5.4 Responsive Pantry controls — **COMPLETE / ACCEPTED** (#130 / #131);\n- M3 Weekly Planning / Pantry deterministic product slice — **COMPLETE / ACCEPTED**.\n\nCurrent deterministic target: **M4.1 — Basket economics foundation**.",
-    "PROJECT_STATE milestone",
+    "Current phase: **M3 — Weekly Planning / Pantry**",
+    "Current phase: **M4 — Basket Optimization**",
+    "PROJECT_STATE phase",
 )
-state = replace_once(state, "## M3.5 — Pantry / exclusions semantics — IN PROGRESS", "## M3.5 — Pantry / exclusions semantics — COMPLETE / ACCEPTED", "PROJECT_STATE M3.5 status")
+state = replace_once(
+    state,
+    "- M3.5.3 Pantry-aware WeeklyPlan → Comparison composition — **COMPLETE / ACCEPTED** (#127 / #128).",
+    "- M3.5.3 Pantry-aware WeeklyPlan → Comparison composition — **COMPLETE / ACCEPTED** (#127 / #128);\n- M3.5.4 Responsive Pantry controls — **COMPLETE / ACCEPTED** (#130 / #131);\n- M3 Weekly Planning / Pantry deterministic product slice — **COMPLETE / ACCEPTED**.",
+    "PROJECT_STATE milestone line",
+)
+state = replace_once(
+    state,
+    "Current deterministic target: **M3.5.4 — Responsive Pantry controls**.",
+    "Current deterministic target: **M4.1 — Basket economics foundation**.",
+    "PROJECT_STATE target",
+)
+state = replace_once(
+    state,
+    "## M3.5 — Pantry / exclusions semantics — IN PROGRESS",
+    "## M3.5 — Pantry / exclusions semantics — COMPLETE / ACCEPTED",
+    "PROJECT_STATE M3.5 status",
+)
 state_block = """### M3.5.4 — Responsive Pantry controls — COMPLETE / ACCEPTED
 
 Authoritative design: [`superpowers/specs/2026-08-15-m3-5-4-responsive-pantry-controls-design.md`](superpowers/specs/2026-08-15-m3-5-4-responsive-pantry-controls-design.md)  
@@ -62,7 +80,7 @@ Start M4 with a semantics-first design before implementation. The first slice sh
 state = replace_section(
     state,
     "## Next deterministic target — M3.5.4 Responsive Pantry controls\n",
-    "Explicit omit-all / never-buy exclusions remain a separate future semantic decision rather than being encoded as zero/negative Pantry quantities.\n",
+    "Explicit omit-all / never-buy exclusions remain",
     state_block,
     "PROJECT_STATE M3.5.4 section",
 )
@@ -70,7 +88,12 @@ state_path.write_text(state, encoding="utf-8")
 
 roadmap_path = Path("docs/ROADMAP.md")
 roadmap = roadmap_path.read_text(encoding="utf-8")
-roadmap = replace_once(roadmap, "## M3 — Weekly Planning / Pantry — CURRENT", "## M3 — Weekly Planning / Pantry — COMPLETE / ACCEPTED", "ROADMAP M3 status")
+roadmap = replace_once(
+    roadmap,
+    "## M3 — Weekly Planning / Pantry — CURRENT",
+    "## M3 — Weekly Planning / Pantry — COMPLETE / ACCEPTED",
+    "ROADMAP M3 status",
+)
 roadmap_block = """#### M3.5.4 — Responsive Pantry controls — COMPLETE / ACCEPTED
 
 Authoritative design: [`superpowers/specs/2026-08-15-m3-5-4-responsive-pantry-controls-design.md`](superpowers/specs/2026-08-15-m3-5-4-responsive-pantry-controls-design.md)  
@@ -103,11 +126,23 @@ roadmap = replace_section(
     roadmap_block,
     "ROADMAP M3.5.4 section",
 )
-roadmap = replace_once(roadmap, "## M4 — Basket Optimization", "## M4 — Basket Optimization — CURRENT", "ROADMAP M4 status")
-roadmap = replace_once(
+m4_block = """## M4 — Basket Optimization — CURRENT
+
+Goal: optimize real checkout cost rather than naive SKU sums.
+
+Scope: richer package/substitute optimization, fees, minimum orders, single-store convenience, future multi-store lowest-total-cost mode and confidence/freshness penalties.
+
+### M4.1 — Basket economics foundation — NEXT
+
+Begin with design/semantics rather than an optimizer. Define explicit delivery/service-fee and minimum-order evidence, unknown/unavailable handling, the relationship between merchandise subtotal and effective checkout total, and fail-closed comparison rules before ranking or multi-store optimization. Preserve existing package, completeness, uncertainty, retailer visibility and production-access invariants.
+
+"""
+roadmap = replace_section(
     roadmap,
-    "Goal: optimize real checkout cost rather than naive SKU sums.\n\nScope: richer package/substitute optimization, fees, minimum orders, single-store convenience, future multi-store lowest-total-cost mode and confidence/freshness penalties.",
-    "Goal: optimize real checkout cost rather than naive SKU sums.\n\nScope: richer package/substitute optimization, fees, minimum orders, single-store convenience, future multi-store lowest-total-cost mode and confidence/freshness penalties.\n\n### M4.1 — Basket economics foundation — NEXT\n\nBegin with design/semantics rather than an optimizer. Define explicit delivery/service-fee and minimum-order evidence, unknown/unavailable handling, the relationship between merchandise subtotal and effective checkout total, and fail-closed comparison rules before ranking or multi-store optimization. Preserve existing package, completeness, uncertainty, retailer visibility and production-access invariants."
+    "## M4 — Basket Optimization\n",
+    "## M5 — Productization\n",
+    m4_block,
+    "ROADMAP M4 section",
 )
 roadmap_path.write_text(roadmap, encoding="utf-8")
 
