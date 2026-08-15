@@ -1,0 +1,186 @@
+from pathlib import Path
+
+
+def replace_exact(text: str, old: str, new: str, label: str) -> str:
+    if old not in text:
+        raise SystemExit(f"{label} anchor not found")
+    return text.replace(old, new, 1)
+
+
+state_path = Path("docs/PROJECT_STATE.md")
+state = state_path.read_text()
+state = replace_exact(
+    state,
+    "- M3.5.2 Stateless Pantry-aware WeeklyPlan shopping preview API — **COMPLETE / ACCEPTED** (#124 / #125).\n\nCurrent deterministic target: **M3.5.3 — Pantry-aware WeeklyPlan → Comparison composition**.",
+    "- M3.5.2 Stateless Pantry-aware WeeklyPlan shopping preview API — **COMPLETE / ACCEPTED** (#124 / #125);\n- M3.5.3 Pantry-aware WeeklyPlan → Comparison composition — **COMPLETE / ACCEPTED** (#127 / #128).\n\nCurrent deterministic target: **M3.5.4 — Responsive Pantry controls**.",
+    "PROJECT_STATE milestone",
+)
+old_state = """## Next deterministic target — M3.5.3 Pantry-aware WeeklyPlan → Comparison composition
+
+M3.5.3 should remain a **new explicit stateless boundary**, not mutate accepted M3.3.
+
+Required design questions before production code:
+
+1. accept locality + WeeklyPlan + request-scoped Pantry while reusing accepted M3.5.2 input semantics;
+2. treat M3.5.2 as authoritative for original weekly projection, Pantry audit evidence and remaining demand;
+3. pass only remaining shopping demand to accepted ComparisonPreview when demand exists;
+4. preserve original weekly shopping + Pantry evidence + remaining demand beside retailer comparison evidence;
+5. fail closed on cross-boundary identity/order/quantity drift;
+6. explicitly define the truthful result when Pantry covers **all** shopping demand, because accepted ComparisonPreview currently assumes a non-empty request and must not receive fabricated demand;
+7. leave persistence, browser controls and provider acquisition out of this slice;
+8. keep existing M3.3 behavior unchanged with regression/architecture tests.
+
+M3.5.4 remains the responsive Pantry-control/browser slice after M3.5.3 semantics are accepted.
+"""
+new_state = """### M3.5.3 — Pantry-aware WeeklyPlan → Comparison composition — COMPLETE / ACCEPTED
+
+Authoritative design: [`superpowers/specs/2026-08-15-m3-5-3-pantry-weekly-plan-comparison-design.md`](superpowers/specs/2026-08-15-m3-5-3-pantry-weekly-plan-comparison-design.md)  
+Implementation plan: [`superpowers/plans/2026-08-15-m3-5-3-pantry-weekly-plan-comparison.md`](superpowers/plans/2026-08-15-m3-5-3-pantry-weekly-plan-comparison.md)  
+Shipping evidence: [`superpowers/plans/2026-08-15-m3-5-3-pantry-weekly-plan-comparison-shipping.md`](superpowers/plans/2026-08-15-m3-5-3-pantry-weekly-plan-comparison-shipping.md)  
+Acceptance: [`m3-5-3-pantry-weekly-plan-comparison-acceptance-2026-08-15.md`](m3-5-3-pantry-weekly-plan-comparison-acceptance-2026-08-15.md)  
+Accepted merge: `079a53be066fa488ee01da18a109f4f2b1484800`.
+
+Accepted boundary:
+
+`POST /api/v1/weekly-plan-pantry-comparison-previews`
+
+Accepted result:
+
+- accepted M3.5.2 remains authoritative for original WeeklyPlan projection, Pantry evidence and remaining demand;
+- only non-empty remaining demand enters accepted ComparisonPreview;
+- full Pantry coverage returns explicit `NO_REMAINING_DEMAND` and never invokes ComparisonPreviewService/runtime retailer acquisition;
+- zero-demand wire output omits `comparisonPreview` rather than serializing null;
+- locality is validated independently of Pantry coverage;
+- ShoppingItem identity/order/requirement/canonical quantity are preserved exactly and bridge drift fails closed;
+- derived ComparisonPreview validation is sanitized under the M3.5.3 problem boundary;
+- OpenAPI 3.1/generated TypeScript and architecture/regression gates are synchronized;
+- existing M3.3/M3.5.2 behavior remains unchanged.
+
+Acceptance proof:
+
+- final reviewed feature head `2a10d5dd3e28ce6ff4eec21dd3555e8838d6f789` — **9/9 PR workflow groups SUCCESS**, 0 failure/skipped/cancelled;
+- read-only review **Looks good**, no unresolved P0/P1/P2/P3/nitpicks or threads;
+- squash merge `079a53be066fa488ee01da18a109f4f2b1484800`;
+- issue #127 closed `completed`;
+- exact merge SHA — **8/8 post-merge normal push workflows SUCCESS, 0 failures**.
+
+## Next deterministic target — M3.5.4 Responsive Pantry controls
+
+M3.5.4 should extend the accepted WeeklyPlan-first browser journey with request-scoped Pantry editing and consume only the generated M3.5.3 comparison contract.
+
+Required boundary:
+
+1. keep Pantry input request-scoped and presentation-only in browser state;
+2. render original weekly demand, Pantry adjustment evidence and remaining demand before retailer comparison;
+3. handle `NO_REMAINING_DEMAND` explicitly without fabricating retailer results;
+4. perform no browser-side Pantry subtraction, canonicalization, comparison, package arithmetic or winner recomputation;
+5. preserve existing WeeklyPlan, Recipe and manual-list critical journeys;
+6. cover desktop/mobile/accessibility/fail-closed transport with deterministic Playwright and no live retailer requests.
+"""
+state = replace_exact(state, old_state, new_state, "PROJECT_STATE M3.5.3 block")
+state_path.write_text(state)
+
+roadmap_path = Path("docs/ROADMAP.md")
+roadmap = roadmap_path.read_text()
+old_roadmap = """#### M3.5.3 — Pantry-aware WeeklyPlan → Comparison composition — NEXT
+
+Goal: compare only the shopping demand that remains after accepted Pantry adjustment while preserving the full pre-/post-adjustment audit trail.
+
+Required design boundary before production code:
+
+1. introduce a **new stateless composition endpoint**; do not silently change accepted M3.3;
+2. accept provider-neutral locality plus the accepted M3.5.2 WeeklyPlan + Pantry request vocabulary;
+3. reuse M3.5.2 as the sole owner of original WeeklyPlan shopping projection, Pantry adjustment evidence and remaining shopping demand;
+4. when remaining demand is non-empty, adapt only those remaining ShoppingItems into accepted ComparisonPreview while preserving UUID/order/requirement/canonical quantity exactly;
+5. return original weekly projection + Pantry evidence + remaining demand together with retailer comparison evidence;
+6. fail closed on cardinality, identity/order, requirement or quantity drift across the M3.5.2 → ComparisonPreview bridge;
+7. explicitly design the **zero-remaining-demand** result before production implementation: accepted ComparisonPreview requires non-empty demand, so M3.5.3 must not fabricate a shopping item or invoke retailer acquisition merely to satisfy that contract;
+8. keep current M3.3 endpoint behavior unchanged with regression/architecture coverage;
+9. keep persistence, browser Pantry controls and provider/acquisition changes out of this slice;
+10. ordinary tests/CI must make no live retailer request.
+
+Exit gate:
+
+- authoritative design first, including zero-demand semantics;
+- deterministic RED→GREEN application, HTTP, OpenAPI/generated-client and architecture/regression coverage;
+- exact-head **9/9 PR workflows + clean review**;
+- squash merge + **8/8 post-merge workflows**;
+- canonical acceptance docs updated separately.
+
+#### M3.5.4 — Responsive Pantry controls — PLANNED
+
+Goal: extend the accepted WeeklyPlan browser journey with request-scoped Pantry editing and inspectable original → Pantry-covered → remaining shopping output before retailer comparison.
+
+Must consume generated M3.5.3 contracts and must not reimplement Pantry subtraction or comparison semantics in browser code.
+"""
+new_roadmap = """#### M3.5.3 — Pantry-aware WeeklyPlan → Comparison composition — COMPLETE / ACCEPTED
+
+Authoritative design: [`superpowers/specs/2026-08-15-m3-5-3-pantry-weekly-plan-comparison-design.md`](superpowers/specs/2026-08-15-m3-5-3-pantry-weekly-plan-comparison-design.md)  
+Implementation plan: [`superpowers/plans/2026-08-15-m3-5-3-pantry-weekly-plan-comparison.md`](superpowers/plans/2026-08-15-m3-5-3-pantry-weekly-plan-comparison.md)  
+Shipping evidence: [`superpowers/plans/2026-08-15-m3-5-3-pantry-weekly-plan-comparison-shipping.md`](superpowers/plans/2026-08-15-m3-5-3-pantry-weekly-plan-comparison-shipping.md)  
+Acceptance: [`m3-5-3-pantry-weekly-plan-comparison-acceptance-2026-08-15.md`](m3-5-3-pantry-weekly-plan-comparison-acceptance-2026-08-15.md)  
+Accepted merge: `079a53be066fa488ee01da18a109f4f2b1484800`.
+
+Boundary:
+
+`POST /api/v1/weekly-plan-pantry-comparison-previews`
+
+Accepted result:
+
+- accepted M3.5.2 owns original weekly projection, Pantry evidence and remaining demand;
+- only remaining demand enters accepted ComparisonPreview;
+- `NO_REMAINING_DEMAND` is explicit and skips ComparisonPreviewService/runtime acquisition entirely;
+- zero-demand responses omit the comparison payload on the wire;
+- locality validation is independent of Pantry coverage;
+- UUID/order/requirement/canonical quantity preservation is fail-closed;
+- downstream comparison validation is sanitized;
+- OpenAPI/generated TypeScript and architecture/regression gates are synchronized;
+- M3.3 and M3.5.2 remain unchanged.
+
+Acceptance proof:
+
+- final reviewed head `2a10d5dd3e28ce6ff4eec21dd3555e8838d6f789` — **9/9 PR workflows SUCCESS**, 0 failure/skipped/cancelled;
+- read-only review **Looks good**, no unresolved review findings/threads;
+- squash merge `079a53be066fa488ee01da18a109f4f2b1484800`;
+- issue #127 closed `completed`;
+- exact merge — **8/8 post-merge normal push workflows SUCCESS, 0 failures**.
+
+#### M3.5.4 — Responsive Pantry controls — NEXT
+
+Goal: extend the accepted WeeklyPlan browser journey with request-scoped Pantry editing and an inspectable original → Pantry-covered → remaining demand flow before retailer comparison.
+
+Required boundary:
+
+1. consume only generated M3.5.3 request/response vocabulary for Pantry-aware weekly comparison;
+2. Pantry state remains request-scoped browser form state; no persistence/history in this slice;
+3. render original canonical weekly shopping, Pantry adjustment evidence and remaining canonical demand from server output rather than recomputing subtraction in the browser;
+4. show `NO_REMAINING_DEMAND` as a truthful terminal state with no fabricated retailer comparison;
+5. keep server-generated WeeklyPlan/Recipe/Shopping identities and provenance out of ordinary user-facing output;
+6. preserve current M3.4 WeeklyPlan ordering/day/servings/Recipe behavior and existing Recipe/manual-list journeys;
+7. fail closed on missing config, timeout, network, malformed/unexpected response or non-product-safe errors;
+8. add deterministic component + desktop/mobile/accessibility Playwright coverage with no live retailer requests.
+
+Exit gate:
+
+- design/UX behavior documented first;
+- RED→GREEN transport/form/results/component/browser coverage;
+- generated M3.5.3 contract only; no browser-side Pantry/comparison semantics;
+- exact-head **9/9 PR workflows + clean review**;
+- squash merge + **8/8 post-merge workflows**;
+- canonical acceptance docs updated separately.
+"""
+roadmap = replace_exact(roadmap, old_roadmap, new_roadmap, "ROADMAP M3.5.3/M3.5.4 block")
+roadmap_path.write_text(roadmap)
+
+changelog_path = Path("docs/CHANGELOG.md")
+changelog = changelog_path.read_text()
+anchor = "- M3.5.2 acceptance records final reviewed head `1e08ee4f5111bb493eeb100cfc2579d6fbafa708`, squash merge `0dfbef49d265069578968fdedd18828c9452baca`, issue #124 closure and 8/8 successful post-merge `main` workflows.\n"
+addition = """- Stateless M3.5.3 `POST /api/v1/weekly-plan-pantry-comparison-previews` composes accepted M3.5.2 remaining demand into accepted ComparisonPreview without modifying M3.3 or M3.5.2.
+- M3.5.3 returns explicit `COMPARED / NO_REMAINING_DEMAND`; full Pantry coverage skips ComparisonPreviewService/runtime retailer acquisition rather than fabricating non-empty demand.
+- Locality remains independently validated, only non-empty remaining demand reaches comparison, and ShoppingItem UUID/order/requirement/canonical quantity drift fails closed.
+- Zero-demand responses omit `comparisonPreview` on the wire; derived ComparisonPreview validation is translated into sanitized M3.5.3 problem details.
+- OpenAPI 3.1/generated TypeScript plus architecture/regression coverage protect the new boundary and existing M3.3/M3.5.2 behavior.
+- M3.5.3 acceptance records final reviewed head `2a10d5dd3e28ce6ff4eec21dd3555e8838d6f789`, squash merge `079a53be066fa488ee01da18a109f4f2b1484800`, issue #127 closure and 8/8 successful post-merge `main` workflows.
+"""
+changelog = replace_exact(changelog, anchor, anchor + addition, "CHANGELOG M3.5.2 line")
+changelog_path.write_text(changelog)
