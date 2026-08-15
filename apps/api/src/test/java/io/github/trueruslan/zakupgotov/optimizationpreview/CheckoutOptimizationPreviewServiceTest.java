@@ -54,7 +54,7 @@ class CheckoutOptimizationPreviewServiceTest {
         assertThat(result.optimalRetailerIds()).isEmpty();
         assertThat(result.lowestComparableCheckoutTotal()).isEmpty();
         assertThat(result.retailers()).extracting(RetailerCheckoutPreview::retailerId)
-                .containsExactly(RetailerId.PYATEROCHKA, RetailerId.PEREKRESTOK);
+                .containsExactly("pyaterochka", "perekrestok");
 
         for (var retailer : result.retailers()) {
             var assessment = retailer.assessment().orElseThrow();
@@ -79,7 +79,7 @@ class CheckoutOptimizationPreviewServiceTest {
                 ready(RetailerId.PEREKRESTOK, "Перекрёсток", "900.00")));
 
         assertThat(result.status()).isEqualTo(BasketOptimizationStatus.UNIQUE_WINNER);
-        assertThat(result.optimalRetailerIds()).containsExactly(RetailerId.PEREKRESTOK);
+        assertThat(result.optimalRetailerIds()).containsExactly("perekrestok");
         assertThat(result.lowestComparableCheckoutTotal()).contains(total("900.00"));
         assertThat(result.retailers().get(1).assessment().orElseThrow().comparableCheckoutTotal())
                 .contains(total("900.00"));
@@ -97,7 +97,7 @@ class CheckoutOptimizationPreviewServiceTest {
 
         assertThat(result.status()).isEqualTo(BasketOptimizationStatus.TIE);
         assertThat(result.optimalRetailerIds())
-                .containsExactly(RetailerId.PYATEROCHKA, RetailerId.PEREKRESTOK);
+                .containsExactly("pyaterochka", "perekrestok");
         assertThat(result.lowestComparableCheckoutTotal()).contains(total("1000.0"));
     }
 
