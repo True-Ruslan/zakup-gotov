@@ -10,6 +10,7 @@ permissions:
 
 jobs:
   sync-docs:
+    if: github.actor != 'github-actions[bot]'
     name: M3.5.3 Docs Bootstrap
     runs-on: ubuntu-latest
     timeout-minutes: 5
@@ -29,7 +30,7 @@ jobs:
           set -euo pipefail
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add docs/PROJECT_STATE.md docs/ROADMAP.md docs/CHANGELOG.md
+          git add docs/PROJECT_STATE.md docs/ROADMAP.md CHANGELOG.md
           git diff --cached --check
           if git diff --cached --quiet; then
             echo "No canonical docs changes required."
