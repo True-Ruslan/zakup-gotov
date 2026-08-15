@@ -111,6 +111,16 @@ All notable project changes are recorded here. Zakup Gotov is pre-release; entri
 - Deterministic Playwright covers partial Pantry comparison, full Pantry coverage, mobile no-overflow, keyboard focus, unavailable service and Recipe/manual regressions with no live retailer requests.
 - M3.5.4 acceptance records final reviewed head `d2fefd5391b9ec471192aff4120adfc4e7c0cb4c`, squash merge `7a437b612b4e0a36e10f2ae2a5708346f93431ce`, issue #130 closure and 8/8 successful post-merge `main` workflows.
 
+#### Basket economics
+
+- M4.1 adds explicit `KNOWN / UNKNOWN` delivery and service fees while preserving known zero as real evidence rather than treating absence as free checkout.
+- Minimum-order evidence is explicit and evaluates to `MET / NOT_MET / UNKNOWN` against merchandise subtotal only; delivery/service fees cannot satisfy a merchandise minimum.
+- Merchandise subtotal remains separate from checkout-total knowledge; any unknown material fee fails closed without fabricating a zero fee or hiding known merchandise cost.
+- Known economics components must share currency and exact `BigDecimal` arithmetic performs no implicit checkout rounding/rescaling.
+- `BasketEconomicsAssessment` self-validates minimum-order status, checkout knowledge and checkout amount so contradictory public states cannot be constructed.
+- M4.1 remains a pure basket-domain foundation with no optimizer, provider/browser/network acquisition, HTTP/OpenAPI/UI change or mutation of accepted M1 `SingleStoreBasketQuote` semantics.
+- M4.1 acceptance records final reviewed head `a0fcd626017f93e49fc6a70c4403b68404efe6d7`, squash merge `3ccaa7b2acc1e81d7360c55872882a4252c96cae`, issue #133 closure and 8/8 successful post-merge `main` workflows.
+
 #### Product and shopping core
 
 - Canonical eight-retailer registry with independent technical-connectivity and production-access states.
@@ -156,7 +166,7 @@ All notable project changes are recorded here. Zakup Gotov is pre-release; entri
 
 ### Changed
 
-- Project phase advanced from M0 Product & Integration Discovery to M1 Shopping Core, then M2 Recipes, and now **M3 Weekly Planning / Pantry**.
+- Project phase advanced from M0 Product & Integration Discovery through M1 Shopping Core, M2 Recipes and M3 Weekly Planning / Pantry; the current deterministic phase is **M4 Basket Optimization**.
 - M1 Shopping Core is **COMPLETE / ACCEPTED** on the post-merge pre-acquisition-gate baseline `779d0b219a13e0bf82263a1e655fb732553ed5fe`.
 - The M1→M2 decision is **GO for deterministic product/core development**; it does not claim every retailer is production-ready.
 - M2.1 `Recipe → explicit ingredients → canonical quantities → ShoppingList` is **COMPLETE / ACCEPTED** after squash merge `423eb14f7c565bbe264257a92df89a6b42d0d158` and 8/8 successful post-merge `main` workflows.
@@ -171,7 +181,11 @@ All notable project changes are recorded here. Zakup Gotov is pre-release; entri
 - M3.4 Responsive Weekly Planning UI is **COMPLETE / ACCEPTED** after final reviewed head `12973650f274f76ec54865be41963843afcb4558`, squash merge `1201030aed45075c676f796920b6268cdcf8e036`, issue #118 closure and 8/8 successful post-merge `main` workflows.
 - M3.5.1 pure Pantry subtraction semantics is **COMPLETE / ACCEPTED** after final reviewed head `b48a88e4ded457f81245223b75477be16ccf3051`, squash merge `bcc644bb243a63941e7629755f1b3196d94332c2`, issue #121 closure and 8/8 successful post-merge `main` workflows.
 - M3.5.2 stateless Pantry-aware WeeklyPlan shopping preview is **COMPLETE / ACCEPTED** after final reviewed head `1e08ee4f5111bb493eeb100cfc2579d6fbafa708`, squash merge `0dfbef49d265069578968fdedd18828c9452baca`, issue #124 closure and 8/8 successful post-merge `main` workflows.
-- The current deterministic target is **M3.5.3 Pantry-aware WeeklyPlan → Comparison composition**; accepted M3.3 remains unchanged and zero-remaining-demand semantics must be designed explicitly before production code.
+- M3.5.3 Pantry-aware WeeklyPlan → Comparison composition is **COMPLETE / ACCEPTED** after final reviewed head `2a10d5dd3e28ce6ff4eec21dd3555e8838d6f789`, squash merge `079a53be066fa488ee01da18a109f4f2b1484800`, issue #127 closure and 8/8 successful post-merge `main` workflows.
+- M3.5.4 responsive Pantry controls is **COMPLETE / ACCEPTED** after final reviewed head `d2fefd5391b9ec471192aff4120adfc4e7c0cb4c`, squash merge `7a437b612b4e0a36e10f2ae2a5708346f93431ce`, issue #130 closure and 8/8 successful post-merge `main` workflows.
+- M3 Weekly Planning / Pantry is **COMPLETE / ACCEPTED**.
+- M4.1 Basket economics foundation is **COMPLETE / ACCEPTED** after final reviewed head `a0fcd626017f93e49fc6a70c4403b68404efe6d7`, squash merge `3ccaa7b2acc1e81d7360c55872882a4252c96cae`, issue #133 closure and 8/8 successful post-merge `main` workflows.
+- The current deterministic target is **M4.2 One-retailer truthful total comparison**; arithmetic checkout-total knowledge must remain separate from retailer eligibility and no winner is selected in this slice.
 - Recipe → ShoppingList merging is intentionally stricter than product matching: only exact normalized requirements with the same canonical unit merge; no case-folding/synonym/AI equivalence is introduced.
 - Recipe provenance remains conversion metadata rather than an optional Recipe field added to neutral `ShoppingItem`; M2.2 projects that provenance publicly as self-contained source ingredient IDs instead of modifying Shopping Core types.
 - Recipe lifecycle and Weekly Planning/Pantry composition remain stateless by default; persistence stays deferred until reusable saved plans/history demonstrate product value.

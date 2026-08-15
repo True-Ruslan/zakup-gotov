@@ -204,13 +204,46 @@ Continue without blocking deterministic M4 work unless evidence invalidates acce
 
 ## M4 — Basket Optimization — CURRENT
 
-Goal: optimize real checkout cost rather than naive SKU sums.
+Goal: optimize real checkout cost rather than naive SKU sums while preserving truthful eligibility, completeness, uncertainty, retailer visibility and production-access semantics.
 
-Scope: richer package/substitute optimization, fees, minimum orders, single-store convenience, future multi-store lowest-total-cost mode and confidence/freshness penalties.
+Scope: explicit checkout economics, one-retailer truthful totals, richer package/substitute optimization, single-store convenience, future multi-store lowest-total-cost mode and confidence/freshness penalties.
 
-### M4.1 — Basket economics foundation — NEXT
+### M4.1 — Basket economics foundation — COMPLETE / ACCEPTED
 
-Begin with design/semantics rather than an optimizer. Define explicit delivery/service-fee and minimum-order evidence, unknown/unavailable handling, the relationship between merchandise subtotal and effective checkout total, and fail-closed comparison rules before ranking or multi-store optimization. Preserve existing package, completeness, uncertainty, retailer visibility and production-access invariants.
+Acceptance: [`m4-1-basket-economics-foundation-acceptance-2026-08-15.md`](m4-1-basket-economics-foundation-acceptance-2026-08-15.md)  
+Accepted implementation merge: `3ccaa7b2acc1e81d7360c55872882a4252c96cae`.
+
+Accepted result:
+
+- explicit known/unknown delivery and service fees with known zero preserved;
+- explicit known/unknown minimum-order threshold and `MET / NOT_MET / UNKNOWN` assessment from merchandise subtotal only;
+- merchandise subtotal remains inspectable independently from checkout-total knowledge;
+- unknown material fee fails closed rather than becoming zero;
+- exact currency-compatible `BigDecimal` checkout arithmetic with no hidden rounding;
+- self-validating assessment prevents contradictory economics state;
+- pure basket-domain boundary with no provider acquisition, optimizer, HTTP/OpenAPI/UI or M1 quote mutation.
+
+### M4.2 — One-retailer truthful total comparison — NEXT
+
+Compose accepted `SingleStoreBasketQuote` merchandise evidence with M4.1 economics and expose a deterministic retailer-level assessment without choosing a winner.
+
+Required semantics:
+
+- checkout-total knowledge and retailer eligibility are independent;
+- minimum order `MET` may be eligible subject to accepted basket/access state;
+- minimum order `NOT_MET` is ineligible even when checkout arithmetic is known;
+- minimum order `UNKNOWN` yields unknown eligibility and is never silently eligible;
+- an unknown material fee keeps checkout total unknown and cannot support a cheapest claim;
+- accepted `COMPLETE / UNCERTAIN / INCOMPLETE / UNAVAILABLE`, matching ambiguity, retailer visibility and production-access rules remain authoritative;
+- deterministic acceptance uses supplied/sanitized evidence only and makes no live retailer requests.
+
+### M4.3 — Basket optimizer
+
+After M4.2 establishes truthful comparable retailer assessments, define deterministic optimizer eligibility, candidate ordering/tie semantics, package/substitution policy and confidence/freshness handling. Do not let an unknown/ineligible/incomplete candidate become a hidden winner.
+
+### M4.4 — Optimization UX
+
+Project accepted optimizer evidence into responsive browser flows with explainable subtotal/fees/minimum-order/eligibility/total states. Browser code must render server-owned decisions rather than recomputing economics or winners.
 
 ## M5 — Productization
 
