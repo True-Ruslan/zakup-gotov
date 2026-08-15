@@ -1,6 +1,6 @@
 # Project State
 
-Updated: 2026-08-15
+Updated: 2026-08-16
 
 ## Project
 
@@ -32,8 +32,9 @@ Milestone status:
 - M4.1 Basket economics foundation — **COMPLETE / ACCEPTED** (#133 / #134).
 - M4.2 One-retailer truthful total comparison — **COMPLETE / ACCEPTED** (#136 / #137).
 - M4.3 Deterministic basket optimizer — **COMPLETE / ACCEPTED** (#139 / #140).
+- M4.4.1 Server-owned optimization preview API — **COMPLETE / ACCEPTED** (#142 / #143).
 
-Current deterministic target: **M4.4 — Optimization UX**.
+Current deterministic target: **M4.4.2 — Responsive Optimization UX**.
 
 ## Permanent connectivity rule
 
@@ -273,9 +274,42 @@ Acceptance proof:
 - issue #139 closed `completed`;
 - exact implementation merge — **8/8 normal push workflows SUCCESS**.
 
-## Next deterministic target — M4.4 Optimization UX
+## M4.4.1 — Server-owned optimization preview API — COMPLETE / ACCEPTED
 
-Project accepted M4.1–M4.3 evidence into responsive browser flows. The browser must render server-owned merchandise subtotal, known/unknown fees, minimum-order state, eligibility/comparability and `NO_COMPARABLE_CANDIDATES / UNIQUE_WINNER / TIE` outcomes without recomputing economics or choosing a winner client-side. Browser acceptance remains deterministic and must make no live retailer requests.
+Acceptance: [`m4-4-1-server-owned-optimization-preview-acceptance-2026-08-16.md`](m4-4-1-server-owned-optimization-preview-acceptance-2026-08-16.md).  
+Authoritative design: [`superpowers/specs/2026-08-15-m4-4-1-server-owned-optimization-preview-design.md`](superpowers/specs/2026-08-15-m4-4-1-server-owned-optimization-preview-design.md).  
+Implementation plan: [`superpowers/plans/2026-08-15-m4-4-1-server-owned-optimization-preview.md`](superpowers/plans/2026-08-15-m4-4-1-server-owned-optimization-preview.md).  
+Accepted implementation merge: `67679282a388da16706c46a3caf3ff46b2b67d54`.
+
+Accepted boundary:
+
+`POST /api/v1/weekly-plan-pantry-optimization-previews`
+
+Accepted semantics:
+
+- accepted M3.5.3 projection remains unchanged and is returned as the Pantry/comparison audit;
+- additive detailed-computation seams expose accepted comparison/catalog state to downstream server composition without reconstructing it from presentation DTOs;
+- full Pantry coverage remains `NO_REMAINING_DEMAND`, omits `optimizationPreview` on the wire and stops before checkout-economics source or optimizer work;
+- provider-neutral checkout economics are scoped only to assessable retailers; absent evidence is explicit `UNKNOWN`, never fabricated zero fees/minimum;
+- M4.2 remains authoritative for eligibility/comparability and M4.3 remains authoritative for winner/tie/lowest comparable total;
+- the M4.4.1 projection validates itself against the accepted `BasketOptimizationResult` instead of implementing a second minima algorithm;
+- public retailer IDs are canonical product IDs and internal optimizer authority/provider/acquisition/fulfillment details remain off the wire;
+- OpenAPI 3.1 and generated TypeScript client are synchronized;
+- architecture guards reject provider/database/persistence coupling and reverse dependencies into accepted lower layers;
+- production default checkout economics is intentionally no-op/unknown until a separately accepted evidence path exists;
+- deterministic CI and browser acceptance make no live retailer request.
+
+Acceptance proof:
+
+- final reviewed feature head `9d343f18e1391a9d249625e2cdab6de02b13e913` — **9/9 PR workflow groups SUCCESS**, 0 failure/skipped/cancelled;
+- read-only Change Review **Looks good**, no P0/P1/P2/P3/nitpicks and no unresolved review threads;
+- squash merge `67679282a388da16706c46a3caf3ff46b2b67d54` with expected-head protection;
+- issue #142 closed `completed`;
+- exact implementation merge — **8/8 normal push workflows SUCCESS**, including CodeQL Java and JavaScript/TypeScript.
+
+## Next deterministic target — M4.4.2 Responsive Optimization UX
+
+Consume only the generated M4.4.1 contract in the primary WeeklyPlan/Pantry browser flow. Render server-owned merchandise subtotal, known/unknown fees, minimum-order state, eligibility/comparability, optimizer status, exact ties and truthful no-comparable/no-demand states without client-side M4.1 arithmetic, M4.2 assessment or M4.3 winner selection. Browser acceptance remains deterministic, responsive, accessible and must make no live retailer requests.
 
 ## Magnit production state
 
@@ -329,6 +363,7 @@ Continue without blocking deterministic M4 work unless evidence invalidates acce
 26. Exact numeric minimum ties remain explicit ties; retailer order/ID, freshness, timestamps and package/SKU metadata never select a hidden winner.
 27. M4.3 never recomputes accepted package/SKU selections or converts freshness into a monetary penalty/confidence score.
 28. Browser optimization UX must render server-owned economics and optimizer decisions rather than recomputing them client-side.
+29. M4.4.1 is the server-owned browser contract for checkout optimization: missing economics stays UNKNOWN, full Pantry coverage skips optimization entirely and accepted M4.2/M4.3 remain the sole assessment/optimizer authorities.
 
 ## Platform baseline
 
