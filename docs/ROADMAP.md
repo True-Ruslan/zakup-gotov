@@ -1,6 +1,6 @@
 # Roadmap
 
-Updated: 2026-08-15
+Updated: 2026-08-16
 
 The roadmap is evidence-driven. Milestones change when integration evidence, product behavior or production constraints contradict an earlier assumption.
 
@@ -277,9 +277,39 @@ Acceptance proof:
 - issue #139 closed `completed`;
 - exact merge — **8/8 normal push workflows SUCCESS**.
 
-### M4.4 — Optimization UX — NEXT
+### M4.4 — Optimization UX — IN PROGRESS
 
-Project accepted M4.1–M4.3 evidence into responsive browser flows with explainable merchandise subtotal, known/unknown fees, minimum-order state, eligibility/comparability and optimizer outcome. Browser code must consume server-owned decisions through generated contracts rather than recomputing economics, comparability or winner/tie semantics. `NO_COMPARABLE_CANDIDATES`, `UNIQUE_WINNER` and `TIE` must remain distinct and user-explainable. Deterministic browser acceptance must not make live retailer requests.
+Goal: project accepted M4.1–M4.3 evidence into responsive browser flows with explainable merchandise subtotal, known/unknown fees, minimum-order state, eligibility/comparability and optimizer outcome. Browser code must consume server-owned decisions through generated contracts rather than recomputing economics, comparability or winner/tie semantics. `NO_COMPARABLE_CANDIDATES`, `UNIQUE_WINNER` and `TIE` remain distinct and user-explainable. Deterministic browser acceptance must not make live retailer requests.
+
+#### M4.4.1 — Server-owned Optimization Preview API — COMPLETE / ACCEPTED
+
+Acceptance: [`m4-4-1-server-owned-optimization-preview-acceptance-2026-08-16.md`](m4-4-1-server-owned-optimization-preview-acceptance-2026-08-16.md)  
+Authoritative design: [`superpowers/specs/2026-08-15-m4-4-1-server-owned-optimization-preview-design.md`](superpowers/specs/2026-08-15-m4-4-1-server-owned-optimization-preview-design.md)  
+Implementation plan: [`superpowers/plans/2026-08-15-m4-4-1-server-owned-optimization-preview.md`](superpowers/plans/2026-08-15-m4-4-1-server-owned-optimization-preview.md)  
+Accepted implementation merge: `67679282a388da16706c46a3caf3ff46b2b67d54`.
+
+Accepted result:
+
+- new `POST /api/v1/weekly-plan-pantry-optimization-previews` application/API boundary;
+- accepted M3.5.3 wire behavior remains unchanged and is embedded as the Pantry/comparison audit;
+- full Pantry coverage stays `NO_REMAINING_DEMAND`, omits optimization payload and skips checkout-economics/optimizer work;
+- provider-neutral checkout economics are requested only for assessable retailers and missing evidence stays explicit `UNKNOWN`;
+- M4.2 remains the sole eligibility/comparability authority and M4.3 remains the sole optimizer authority;
+- canonical product retailer IDs are exposed while internal optimizer/provider/acquisition/fulfillment data stays off the wire;
+- OpenAPI/generated TypeScript and architecture/regression guards are synchronized;
+- production default economics source is intentionally no-op/unknown; no live retailer acquisition is introduced.
+
+Acceptance proof:
+
+- final reviewed head `9d343f18e1391a9d249625e2cdab6de02b13e913` — **9/9 PR workflows SUCCESS**;
+- read-only Change Review **Looks good**, no P0/P1/P2/P3/nitpicks and no unresolved threads;
+- squash merge `67679282a388da16706c46a3caf3ff46b2b67d54` with expected-head protection;
+- issue #142 closed `completed`;
+- exact merge — **8/8 normal push workflows SUCCESS**, including CodeQL Java and JavaScript/TypeScript.
+
+#### M4.4.2 — Responsive Optimization UX — NEXT
+
+Update the primary WeeklyPlan/Pantry browser journey to consume the generated M4.4.1 endpoint and render only server-owned optimization evidence. Required browser states include `NO_REMAINING_DEMAND`, `NO_COMPARABLE_CANDIDATES`, `UNIQUE_WINNER` and `TIE`; per-retailer merchandise subtotal, known/unknown fees, minimum-order state, eligibility/comparability and checkout total must remain explainable. The browser must not perform M4.1 arithmetic, M4.2 assessment or M4.3 winner/tie selection. Preserve Recipe/manual-list regressions, responsive mobile behavior, keyboard/accessibility coverage, fail-closed transport and deterministic no-live-retailer Playwright acceptance.
 
 ## M5 — Productization
 
