@@ -18,6 +18,20 @@ jobs:
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           fetch-depth: 0
+      - name: Preflight PROJECT_STATE markers
+        run: |
+          grep -Fq 'Current phase: **M3 — Weekly Planning / Pantry**' docs/PROJECT_STATE.md
+          grep -Fq 'Current deterministic target: **M3.5.4 — Responsive Pantry controls**.' docs/PROJECT_STATE.md
+          grep -Fq '## M3.5 — Pantry / exclusions semantics — IN PROGRESS' docs/PROJECT_STATE.md
+          grep -Fq '## Next deterministic target — M3.5.4 Responsive Pantry controls' docs/PROJECT_STATE.md
+      - name: Preflight ROADMAP markers
+        run: |
+          grep -Fq '## M3 — Weekly Planning / Pantry — CURRENT' docs/ROADMAP.md
+          grep -Fq '#### M3.5.4 — Responsive Pantry controls — NEXT' docs/ROADMAP.md
+          grep -Fq '#### Explicit omit-all exclusions — DEFERRED SEMANTIC DECISION' docs/ROADMAP.md
+          grep -Fq '## M4 — Basket Optimization' docs/ROADMAP.md
+      - name: Preflight CHANGELOG marker
+        run: grep -Fq 'Deterministic Playwright covers partial Pantry comparison, full Pantry coverage, mobile no-overflow, keyboard focus, unavailable service and Recipe/manual regressions with no live retailer requests.' CHANGELOG.md
       - name: Patch canonical acceptance docs
         run: python .github/scripts/m3_5_4_acceptance_sync.py
       - name: Commit canonical docs when changed
