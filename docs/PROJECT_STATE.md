@@ -30,8 +30,9 @@ Milestone status:
 - M3.5.4 Responsive Pantry controls — **COMPLETE / ACCEPTED** (#130 / #131);
 - M3 Weekly Planning / Pantry deterministic product slice — **COMPLETE / ACCEPTED**.
 - M4.1 Basket economics foundation — **COMPLETE / ACCEPTED** (#133 / #134).
+- M4.2 One-retailer truthful total comparison — **COMPLETE / ACCEPTED** (#136 / #137).
 
-Current deterministic target: **M4.2 — One-retailer truthful total comparison**.
+Current deterministic target: **M4.3 — Basket optimizer**.
 
 ## Permanent connectivity rule
 
@@ -217,9 +218,35 @@ Acceptance proof:
 - issue #133 closed `completed`;
 - exact implementation merge — **8/8 normal push workflows SUCCESS**.
 
-## Next deterministic target — M4.2 One-retailer truthful total comparison
+## M4.2 — One-retailer truthful total comparison — COMPLETE / ACCEPTED
 
-Compose accepted M1 single-retailer basket evidence with accepted M4.1 economics without ranking a winner yet. M4.2 must keep arithmetic checkout-total knowledge separate from retailer eligibility: a known total with minimum order `NOT_MET` is ineligible, a known total with minimum order `UNKNOWN` has unknown eligibility, and an unknown material fee cannot become a cheapest claim. Existing `COMPLETE / UNCERTAIN / INCOMPLETE / UNAVAILABLE`, retailer visibility and production-access semantics remain authoritative. No live retailer request is required for deterministic acceptance.
+Acceptance: [`m4-2-one-retailer-truthful-total-acceptance-2026-08-15.md`](m4-2-one-retailer-truthful-total-acceptance-2026-08-15.md).  
+Accepted implementation merge: `69f9cb1afd1b16af938052bbca570cbd4ce52557`.
+
+Accepted semantics:
+
+- accepted M1 `RetailerComparisonView.total` remains merchandise subtotal and is never silently redefined as checkout total;
+- M4.1 economics are bound to `RetailerId` at the M4.2 public composition boundary and cross-retailer fee/minimum evidence fails closed before arithmetic;
+- checkout eligibility is explicit `ELIGIBLE / INELIGIBLE / UNKNOWN` and remains independent from arithmetic checkout-total knowledge;
+- known minimum `NOT_MET` is ineligible even when checkout arithmetic is fully known; upstream `UNCERTAIN` or unknown minimum never becomes silently eligible;
+- comparability is explicit `COMPARABLE / NOT_COMPARABLE` and requires `READY + ELIGIBLE + KNOWN checkout total`;
+- only comparable assessments expose `comparableCheckoutTotal`, exactly equal to the accepted M4.1 checkout total;
+- known arithmetic totals for ineligible/unknown/uncertain states remain inspectable but cannot support a cheapest claim;
+- `INCOMPLETE / UNAVAILABLE` produce no fabricated checkout assessment;
+- public assessment/result objects reject subtotal, eligibility, comparability and cross-comparison drift;
+- architecture permits only accepted `basket`, accepted `comparison` and the finite `RetailerId` bridge, with no provider/network/API/UI or winner/ranking behavior.
+
+Acceptance proof:
+
+- final reviewed feature head `1d6dae470c04ab1d8279f891766fc16698286edb` — **9/9 PR workflow groups SUCCESS**, 0 failure/skipped/cancelled;
+- read-only review **Looks good**, no P0/P1/P2/P3/nitpicks and no unresolved threads;
+- squash merge `69f9cb1afd1b16af938052bbca570cbd4ce52557` with expected-head protection;
+- issue #136 closed `completed`;
+- exact implementation merge — **8/8 normal push workflows SUCCESS**, including CodeQL Java and JavaScript/TypeScript.
+
+## Next deterministic target — M4.3 Basket optimizer
+
+Define deterministic optimizer eligibility over accepted M4.2 checkout assessments. Only `COMPARABLE` candidates may compete for a winner. M4.3 must define deterministic candidate ordering and tie semantics, keep `INELIGIBLE / UNKNOWN / NOT_COMPARABLE / INCOMPLETE / UNAVAILABLE` candidates out of winner selection, and explicitly define package/substitution plus confidence/freshness policy before exposing any cheapest/winner claim. Deterministic acceptance remains supplied-evidence-only with no live retailer request.
 
 ## Magnit production state
 
@@ -266,6 +293,10 @@ Continue without blocking deterministic M4 work unless evidence invalidates acce
 19. M3.5.1 owns Pantry subtraction semantics; higher layers compose it rather than reimplementing subtraction.
 20. M3.5.2 preserves original weekly demand and audit evidence even when remaining demand is empty.
 21. Pantry-aware comparison must never fabricate shopping demand solely to satisfy a downstream non-empty comparison contract.
+22. Merchandise subtotal, checkout-total knowledge, checkout eligibility and optimizer comparability are separate facts; one must never be silently substituted for another.
+23. Retailer checkout economics must be bound to the same `RetailerId` as the retailer comparison before arithmetic; cross-retailer economics evidence fails closed.
+24. A known arithmetic checkout total does not imply an eligible or comparable candidate.
+25. Future winner selection may consider only explicit M4.2 `COMPARABLE` candidates; uncertain, ineligible, incomplete or unavailable evidence cannot become a hidden winner.
 
 ## Platform baseline
 

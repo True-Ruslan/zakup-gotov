@@ -223,23 +223,33 @@ Accepted result:
 - self-validating assessment prevents contradictory economics state;
 - pure basket-domain boundary with no provider acquisition, optimizer, HTTP/OpenAPI/UI or M1 quote mutation.
 
-### M4.2 — One-retailer truthful total comparison — NEXT
+### M4.2 — One-retailer truthful total comparison — COMPLETE / ACCEPTED
 
-Compose accepted `SingleStoreBasketQuote` merchandise evidence with M4.1 economics and expose a deterministic retailer-level assessment without choosing a winner.
+Acceptance: [`m4-2-one-retailer-truthful-total-acceptance-2026-08-15.md`](m4-2-one-retailer-truthful-total-acceptance-2026-08-15.md)  
+Accepted implementation merge: `69f9cb1afd1b16af938052bbca570cbd4ce52557`.
 
-Required semantics:
+Accepted result:
 
-- checkout-total knowledge and retailer eligibility are independent;
-- minimum order `MET` may be eligible subject to accepted basket/access state;
-- minimum order `NOT_MET` is ineligible even when checkout arithmetic is known;
-- minimum order `UNKNOWN` yields unknown eligibility and is never silently eligible;
-- an unknown material fee keeps checkout total unknown and cannot support a cheapest claim;
-- accepted `COMPLETE / UNCERTAIN / INCOMPLETE / UNAVAILABLE`, matching ambiguity, retailer visibility and production-access rules remain authoritative;
-- deterministic acceptance uses supplied/sanitized evidence only and makes no live retailer requests.
+- existing M1 merchandise subtotal remains unchanged;
+- retailer-bound M4.1 economics fail closed on cross-retailer identity mismatch before arithmetic;
+- eligibility is `ELIGIBLE / INELIGIBLE / UNKNOWN` and independent from checkout-total knowledge;
+- comparability is `COMPARABLE / NOT_COMPARABLE`; only `READY + ELIGIBLE + KNOWN checkout total` is comparable;
+- `INCOMPLETE / UNAVAILABLE` receive no fabricated checkout assessment;
+- known zero fees and known arithmetic totals remain inspectable without upgrading ineligible/uncertain candidates;
+- self-validating public objects and architecture guards reject contradictory/cross-boundary evidence;
+- no winner/ranking, provider acquisition, HTTP/OpenAPI/UI or live retailer request is introduced.
 
-### M4.3 — Basket optimizer
+Acceptance proof:
 
-After M4.2 establishes truthful comparable retailer assessments, define deterministic optimizer eligibility, candidate ordering/tie semantics, package/substitution policy and confidence/freshness handling. Do not let an unknown/ineligible/incomplete candidate become a hidden winner.
+- final reviewed head `1d6dae470c04ab1d8279f891766fc16698286edb` — **9/9 PR workflows SUCCESS**;
+- clean read-only review, no unresolved threads;
+- squash merge `69f9cb1afd1b16af938052bbca570cbd4ce52557`;
+- issue #136 closed `completed`;
+- exact merge — **8/8 normal push workflows SUCCESS**.
+
+### M4.3 — Basket optimizer — NEXT
+
+Define deterministic optimizer behavior over accepted M4.2 assessments. Only `COMPARABLE` candidates may compete. Specify candidate ordering, exact tie semantics, package/substitution policy and confidence/freshness handling before producing a winner. `INELIGIBLE / UNKNOWN / NOT_COMPARABLE / INCOMPLETE / UNAVAILABLE` candidates must remain visible but cannot become a hidden winner. Deterministic acceptance uses supplied/sanitized evidence only and makes no live retailer requests.
 
 ### M4.4 — Optimization UX
 
