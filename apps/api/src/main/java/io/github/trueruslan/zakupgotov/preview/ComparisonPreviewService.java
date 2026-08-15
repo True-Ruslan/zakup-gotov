@@ -33,6 +33,10 @@ public final class ComparisonPreviewService {
     }
 
     public ComparisonPreview create(ComparisonPreviewRequest request) {
+        return compute(request).preview();
+    }
+
+    public ComparisonPreviewComputation compute(ComparisonPreviewRequest request) {
         var input = ComparisonPreviewRequestFactory.create(request);
         var requestedRetailers = retailerRegistry.entries().stream()
                 .filter(entry -> entry.isProductionReady())
@@ -91,8 +95,9 @@ public final class ComparisonPreviewService {
         var retailers = catalog.retailers().stream()
                 .map(view -> projectRetailer(view, quotes.get(view.retailerId())))
                 .toList();
+        var preview = new ComparisonPreview(input.productLocation().locality(), requestedItems, retailers);
 
-        return new ComparisonPreview(input.productLocation().locality(), requestedItems, retailers);
+        return new ComparisonPreviewComputation(input, preview, catalog);
     }
 
     private static ComparisonPreviewRetailer projectRetailer(
