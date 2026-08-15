@@ -1,6 +1,7 @@
 package io.github.trueruslan.zakupgotov.retailercheckout;
 
 import io.github.trueruslan.zakupgotov.comparison.RetailerComparisonView;
+import io.github.trueruslan.zakupgotov.retailer.RetailerId;
 import java.util.Objects;
 import java.util.Optional;
 
@@ -19,5 +20,9 @@ public record RetailerCheckoutAssessmentResult(
         if (assessment.isPresent() && !assessment.orElseThrow().comparison().equals(comparison)) {
             throw new IllegalArgumentException("checkout assessment must reference the same retailer comparison");
         }
+    }
+
+    public RetailerId retailerId() {
+        return comparison.retailerId();
     }
 }
