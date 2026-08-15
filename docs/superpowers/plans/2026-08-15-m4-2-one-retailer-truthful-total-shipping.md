@@ -65,18 +65,7 @@ API CI run `31899826664`, job `95048709488`:
 
 Invariant-test commit: `07a9c023de646f6d96cefdf26363b50de657b2f3`.
 
-`RetailerCheckoutAssessmentInvariantTest` proves public objects reject:
-
-- economics/comparison merchandise-subtotal drift;
-- forged eligibility;
-- forged comparability;
-- comparable-total drift;
-- checkout assessment for an INCOMPLETE comparison;
-- missing assessment for an assessable comparison;
-- assessment/result cross-comparison drift;
-- mixed-currency M4.1 economics through the M4.2 service.
-
-The existing self-validating production constructors already rejected these states, so this hardening suite was GREEN without a production correction. No artificial second RED was introduced.
+`RetailerCheckoutAssessmentInvariantTest` proves public objects reject economics/subtotal drift, forged eligibility/comparability/comparable totals, invalid assessment/result relationships and mixed-currency M4.1 economics. The existing self-validating production constructors already rejected these states, so the hardening suite was GREEN without a production correction; no artificial second RED was introduced.
 
 ### Initial architecture proof
 
@@ -94,10 +83,7 @@ Read-only review found a correctness gap: the first public service signature acc
 
 Test-only finding checkpoint: `fea5e00e8bcd333dc0b66c8792777da6cfee1a97`.
 
-`RetailerCheckoutEconomicsBindingTest` requires:
-
-- matching retailer-bound economics compose normally;
-- cross-retailer economics fail closed before checkout arithmetic.
+`RetailerCheckoutEconomicsBindingTest` requires matching retailer-bound economics to compose normally and cross-retailer economics to fail closed before checkout arithmetic.
 
 API CI run `31900225908`, job `95049704905`:
 
@@ -114,15 +100,22 @@ Corrective implementation chain:
 - `076b9b2a35fbb538bada70f95e28324ac26f2849` — make the public service boundary require retailer-bound economics and reject identity mismatch before arithmetic;
 - `ac876811f2a3696c9160765a0b4f872ce058a146` — harden architecture so the only direct retailer-domain dependency is `RetailerId`, while `basket`, `comparison` and `retailer` remain free of reverse `retailercheckout` dependencies.
 
-The former bare-economics overload is no longer public; it remains package-private only as the internal arithmetic/test seam after the public binding check.
-
 API CI run `31900314015`, job `95049960731` on `ac876811...`: **SUCCESS**.
+
+Final structural hardening then removed the remaining package-visible raw-economics seam entirely:
+
+- `b8ce1d38bce578f43c7d3c491efdb1cdd5e37a6f` — bound public method delegates only to a `private` arithmetic helper;
+- `22addde45c792f4ec62644351c24acfd3f1173a2` — behavior suite routes exclusively through retailer-bound evidence;
+- `239e1e774d7217e61e5d5959092e8dafede2c19f` — invariant suite routes service checks through the same public boundary.
+
+API CI run `31900558028`, job `95050551636` on `239e1e77...`: **SUCCESS**.
 
 No provider, acquisition or fulfillment identifier was introduced.
 
 ## Final implementation semantics awaiting immutable PR gate
 
 - retailer-bound economics must match `RetailerComparisonView.retailerId` before calculation;
+- there is no public or package-visible service path that can bypass retailer binding;
 - READY + minimum MET + known fees -> ELIGIBLE and COMPARABLE with exact M4.1 checkout total;
 - READY + minimum NOT_MET -> INELIGIBLE even when arithmetic checkout total is known;
 - READY + minimum UNKNOWN -> UNKNOWN eligibility and NOT_COMPARABLE;
