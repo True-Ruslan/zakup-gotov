@@ -19,4 +19,18 @@ class BasketBoundaryArchitectureTest {
                 .should().dependOnClassesThat().resideInAPackage("..basket..")
                 .check(classes);
     }
+
+    @Test
+    void basketEconomicsFoundationDoesNotAcquireOrCompareRetailerData() {
+        var classes = new ClassFileImporter()
+                .withImportOption(ImportOption.Predefined.DO_NOT_INCLUDE_TESTS)
+                .importPackages("io.github.trueruslan.zakupgotov");
+
+        noClasses()
+                .that().haveSimpleNameMatching(
+                        "BasketEconomics.*|BasketFee|MinimumOrderConstraint|MinimumOrderStatus|CheckoutTotalStatus")
+                .should().dependOnClassesThat().resideInAnyPackage(
+                        "..provider..", "..matching..", "..retailer..", "..comparison..")
+                .check(classes);
+    }
 }
