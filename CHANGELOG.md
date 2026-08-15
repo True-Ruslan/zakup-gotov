@@ -83,6 +83,22 @@ All notable project changes are recorded here. Zakup Gotov is pre-release; entri
 - Deterministic E2E-only `/api/v1/weekly-plan-comparison-previews` fixture creates server-owned test identities and canonical weekly shopping for browser-contract verification; production browser acceptance makes no live retailer request and carries no credential/provider internals.
 - M3.4 design, implementation plan, shipping evidence and acceptance decision document explicit RED→GREEN transport/results/form/homepage/browser checkpoints, reviewed head `12973650f274f76ec54865be41963843afcb4558`, squash merge `1201030aed45075c676f796920b6268cdcf8e036`, issue #118 closure and 8/8 successful post-merge `main` workflows.
 
+#### Pantry-aware weekly planning
+
+- M3.5.1 pure `pantry` domain layer subtracts request-scoped known-at-home stock from an already canonical ShoppingList using only exact `(ShoppingRequirement, canonical QuantityUnit)` semantics and accepted kg→g / l→ml canonicalization.
+- Duplicate Pantry rows aggregate by exact key, stock is consumed once in source ShoppingList order, and each row consumes `min(required, available)` without producing zero/negative remaining quantities.
+- Pantry adjustment retains ordered immutable `UNCHANGED / PARTIALLY_COVERED / FULLY_COVERED` evidence; partial coverage preserves ShoppingItem identity/order and full coverage removes only remaining demand while retaining audit evidence.
+- M3.5.1 remains provider-neutral and introduces no endpoint, persistence, browser UI, fuzzy/AI matching or boolean omit-all semantics.
+- M3.5.1 acceptance records reviewed head `b48a88e4ded457f81245223b75477be16ccf3051`, squash merge `bcc644bb243a63941e7629755f1b3196d94332c2`, issue #121 closure and 8/8 successful post-merge `main` workflows.
+- Stateless M3.5.2 `POST /api/v1/weekly-plan-pantry-shopping-previews` composes the accepted M3.2 WeeklyPlan shopping projection with accepted M3.5.1 Pantry subtraction without silently modifying M3.2 or M3.3.
+- M3.5.2 returns original WeeklyPlan projection, original canonical ShoppingList/provenance, ordered Pantry adjustment evidence and zero-or-more remaining ShoppingItems in one inspectable response.
+- Request-scoped Pantry may be empty; full Pantry coverage may produce an empty remaining list while original demand and full-coverage evidence remain explicit.
+- M3.5.2 preserves ShoppingList/ShoppingItem UUID, order, normalized requirement, canonical quantity and planner provenance across the composition bridge and fails closed on identity/order/quantity/evidence drift.
+- Sanitized M3.5.2 validation handles nested WeeklyPlan errors, invalid Pantry quantities, malformed JSON, unknown top-level fields and unsupported units without exposing parser internals.
+- OpenAPI 3.1 and generated TypeScript expose `createWeeklyPlanPantryShoppingPreview`, `WEEKLY_PLAN_PANTRY_SHOPPING_PREVIEWS_PATH` and synchronized Pantry request/response/problem types.
+- ArchUnit constrains `weeklyplanpantrypreview` to accepted M3.2 + Pantry + neutral Shopping dependencies and protects M3.2/M3.3 from reverse Pantry-composition coupling.
+- M3.5.2 acceptance records final reviewed head `1e08ee4f5111bb493eeb100cfc2579d6fbafa708`, squash merge `0dfbef49d265069578968fdedd18828c9452baca`, issue #124 closure and 8/8 successful post-merge `main` workflows.
+
 #### Product and shopping core
 
 - Canonical eight-retailer registry with independent technical-connectivity and production-access states.
@@ -128,7 +144,7 @@ All notable project changes are recorded here. Zakup Gotov is pre-release; entri
 
 ### Changed
 
-- Project phase advanced from M0 Product & Integration Discovery to M1 Shopping Core, then M2 Recipes, and now **M3 Weekly Planning**.
+- Project phase advanced from M0 Product & Integration Discovery to M1 Shopping Core, then M2 Recipes, and now **M3 Weekly Planning / Pantry**.
 - M1 Shopping Core is **COMPLETE / ACCEPTED** on the post-merge pre-acquisition-gate baseline `779d0b219a13e0bf82263a1e655fb732553ed5fe`.
 - The M1→M2 decision is **GO for deterministic product/core development**; it does not claim every retailer is production-ready.
 - M2.1 `Recipe → explicit ingredients → canonical quantities → ShoppingList` is **COMPLETE / ACCEPTED** after squash merge `423eb14f7c565bbe264257a92df89a6b42d0d158` and 8/8 successful post-merge `main` workflows.
@@ -141,16 +157,18 @@ All notable project changes are recorded here. Zakup Gotov is pre-release; entri
 - M3.2 stateless WeeklyPlan shopping-preview application/API boundary is **COMPLETE / ACCEPTED** after final reviewed head `250aedb85b675036ffcb20e96a67db1afc03167a`, squash merge `9682ad1230910fc268ca3cddd8601a3fad7b100e`, issue #112 closure and 8/8 successful post-merge `main` workflows.
 - M3.3 WeeklyPlan → Comparison composition is **COMPLETE / ACCEPTED** after final reviewed head `396445c333ea369bed6d428b33f38f37765eff20`, squash merge `89b9ef2ca95d07a7e4c964fdef38a9af1c5c3a43`, issue #115 closure and 8/8 successful post-merge `main` workflows.
 - M3.4 Responsive Weekly Planning UI is **COMPLETE / ACCEPTED** after final reviewed head `12973650f274f76ec54865be41963843afcb4558`, squash merge `1201030aed45075c676f796920b6268cdcf8e036`, issue #118 closure and 8/8 successful post-merge `main` workflows.
-- The base Weekly Planning browser flow is accepted; the current deterministic target is **M3.5 Pantry / exclusions semantics**. Persistence remains deferred unless reuse/history evidence proves it necessary.
+- M3.5.1 pure Pantry subtraction semantics is **COMPLETE / ACCEPTED** after final reviewed head `b48a88e4ded457f81245223b75477be16ccf3051`, squash merge `bcc644bb243a63941e7629755f1b3196d94332c2`, issue #121 closure and 8/8 successful post-merge `main` workflows.
+- M3.5.2 stateless Pantry-aware WeeklyPlan shopping preview is **COMPLETE / ACCEPTED** after final reviewed head `1e08ee4f5111bb493eeb100cfc2579d6fbafa708`, squash merge `0dfbef49d265069578968fdedd18828c9452baca`, issue #124 closure and 8/8 successful post-merge `main` workflows.
+- The current deterministic target is **M3.5.3 Pantry-aware WeeklyPlan → Comparison composition**; accepted M3.3 remains unchanged and zero-remaining-demand semantics must be designed explicitly before production code.
 - Recipe → ShoppingList merging is intentionally stricter than product matching: only exact normalized requirements with the same canonical unit merge; no case-folding/synonym/AI equivalence is introduced.
 - Recipe provenance remains conversion metadata rather than an optional Recipe field added to neutral `ShoppingItem`; M2.2 projects that provenance publicly as self-contained source ingredient IDs instead of modifying Shopping Core types.
-- Recipe lifecycle and the first Weekly Planning direction remain stateless by default; persistence stays deferred until reusable saved plans/history demonstrate product value.
+- Recipe lifecycle and Weekly Planning/Pantry composition remain stateless by default; persistence stays deferred until reusable saved plans/history demonstrate product value.
 - Recipe → Comparison has an accepted primary product boundary at `/api/v1/recipe-comparison-previews`; M2.4 consumes it directly as the primary Recipe-first browser journey.
 - Multi-Recipe aggregation distinguishes Recipe identity from occurrence identity; repeated Recipe use is valid only through distinct occurrence IDs and does not weaken accepted exact merge semantics.
 - WeeklyPlan distinguishes planner occurrence identity from Recipe identity and keeps day metadata outside Recipe/Shopping merge and quantity semantics.
 - WeeklyPlan shopping preview remains locality/retailer-independent; retailer comparison is an explicit composition concern owned by M3.3 rather than hidden planner behavior.
 - M3.4 browser composition consumes the accepted M3.3 endpoint directly; generated contract types and server output remain authoritative and Recipe/manual-list critical journeys remain regression-covered.
-- Pantry/exclusion subtraction is now the next explicit semantics layer; it must preserve inspectable original/result quantities and provenance rather than silently deleting or mutating weekly requirements.
+- Pantry subtraction preserves inspectable original/result quantities and evidence rather than silently deleting or mutating weekly requirements; M3.5.2 exposes this behavior as a separate stateless API without mutating M3.2/M3.3.
 - Retailer onboarding remains transport-neutral and universal; a failed direct path changes acquisition mode rather than retailer scope.
 - `ObservedOffer` is the provider trust boundary and `OfferSnapshot` the immutable comparison record.
 - Observation time and provider-side update time remain distinct.
@@ -185,6 +203,8 @@ All notable project changes are recorded here. Zakup Gotov is pre-release; entri
 - WeeklyPlan composition rejects missing/orphan/empty ShoppingItem provenance, unknown internal aggregation lineage and deterministic internal aggregation-ID collisions rather than repairing or silently dropping evidence.
 - WeeklyPlan shopping preview preserves independent nested Recipe validation errors even when target servings are also invalid instead of stopping validation at the planner wrapper.
 - WeeklyPlan shopping preview rejects missing/orphan/mismatched occurrence/Recipe/ingredient lineage and sanitizes unreadable JSON instead of exposing or repairing invalid provenance/parser state.
+- Pantry-aware WeeklyPlan preview fails closed on original/remaining ShoppingList identity, order, requirement, canonical-quantity or evidence drift instead of silently adapting mismatched Pantry output.
+- Full Pantry coverage remains valid without fabricating a zero-quantity ShoppingItem; the remaining shopping list may be empty while original demand and audit evidence remain visible.
 - Provider offer validation rejects provenance/context mismatches before comparison logic.
 - Precise addresses are excluded from default string representations and provider routing.
 - Snapshot freshness rejects provider timestamps after observation time.
