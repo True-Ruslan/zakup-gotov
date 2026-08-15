@@ -10,6 +10,7 @@ import io.github.trueruslan.zakupgotov.shopping.ShoppingItemId;
 import io.github.trueruslan.zakupgotov.shopping.ShoppingList;
 import io.github.trueruslan.zakupgotov.shopping.ShoppingListId;
 import io.github.trueruslan.zakupgotov.shopping.ShoppingRequirement;
+import io.github.trueruslan.zakupgotov.weeklyplanpreview.InvalidWeeklyPlanShoppingPreviewRequestException;
 import io.github.trueruslan.zakupgotov.weeklyplanpreview.WeeklyPlanShoppingPreview;
 import io.github.trueruslan.zakupgotov.weeklyplanpreview.WeeklyPlanShoppingPreviewService;
 import io.github.trueruslan.zakupgotov.weeklyplanpreview.WeeklyPlanShoppingPreviewShoppingItem;
@@ -43,22 +44,69 @@ public final class WeeklyPlanPantryShoppingPreviewService {
     }
 
     public WeeklyPlanPantryShoppingPreview create(WeeklyPlanPantryShoppingPreviewRequest request) {
-        Objects.requireNonNull(request, "request must not be null");
+        if (request == null) {
+            throw invalid("$request", "request must not be null");
+        }
         if (request.weeklyPlan() == null) {
-            throw new IllegalArgumentException("weeklyPlan must not be null");
+            throw invalid("weeklyPlan", "weeklyPlan must not be null");
         }
         if (request.pantry() == null) {
-            throw new IllegalArgumentException("pantry must not be null");
+            throw invalid("pantry", "pantry must not be null");
         }
 
-        var original = weeklyPlanShoppingPreviewService.create(request.weeklyPlan());
-        var source = toShoppingList(original.shoppingList());
-        var pantryItems = request.pantry().stream()
-                .map(WeeklyPlanPantryShoppingPreviewService::toPantryItem)
-                .toList();
-        var adjustment = pantryShoppingListAdjuster.adjust(source, pantryItems);
+        var pantryItems = validatePantry(request.pantry());
+        final WeeklyPlanShoppingPreview original;
+        try {
+            original = weeklyPlanShoppingPreviewService.create(request.weeklyPlan());
+        } catch (InvalidWeeklyPlanShoppingPreviewRequestException exception) {
+            var errors = exception.errors().stream()
+                    .map(error -> new WeeklyPlanPantryShoppingPreviewValidationError(
+                            "weeklyPlan." + error.field(),
+                            error.message()))
+                    .toList();
+            throw new InvalidWeeklyPlanPantryShoppingPreviewRequestException(errors);
+        }
 
+        var source = toShoppingList(original.shoppingList());
+        var adjustment = pantryShoppingListAdjuster.adjust(source, pantryItems);
         return project(original, adjustment);
+    }
+
+    private static List<PantryItem> validatePantry(List<WeeklyPlanPantryItemRequest> requests) {
+        var result = new ArrayList<PantryItem>(requests.size());
+        for (var index = 0; index < requests.size(); index++) {
+            var request = requests.get(index);
+            var prefix = "pantry[" + index + "]";
+            if (request == null) {
+                throw invalid(prefix, "pantry item must not be null");
+            }
+            if (request.requirement() == null || request.requirement().isBlank()) {
+                throw invalid(prefix + ".requirement", "requirement must not be blank");
+            }
+            if (request.quantity() == null) {
+                throw invalid(prefix + ".quantity", "quantity must not be null");
+            }
+            if (request.quantity().amount() == null) {
+                throw invalid(prefix + ".quantity.amount", "amount must not be null");
+            }
+            if (request.quantity().amount().signum() <= 0) {
+                throw invalid(prefix + ".quantity.amount", "amount must be positive");
+            }
+            if (request.quantity().unit() == null) {
+                throw invalid(prefix + ".quantity.unit", "unit must not be null");
+            }
+            result.add(new PantryItem(
+                    new ShoppingRequirement(request.requirement()),
+                    new Quantity(request.quantity().amount(), request.quantity().unit())));
+        }
+        return List.copyOf(result);
+    }
+
+    private static InvalidWeeklyPlanPantryShoppingPreviewRequestException invalid(
+            String field,
+            String message) {
+        return new InvalidWeeklyPlanPantryShoppingPreviewRequestException(
+                List.of(new WeeklyPlanPantryShoppingPreviewValidationError(field, message)));
     }
 
     private static ShoppingList toShoppingList(WeeklyPlanShoppingPreviewShoppingList projection) {
@@ -70,14 +118,6 @@ public final class WeeklyPlanPantryShoppingPreviewService {
                     item.quantity()));
         }
         return shoppingList;
-    }
-
-    private static PantryItem toPantryItem(WeeklyPlanPantryItemRequest request) {
-        Objects.requireNonNull(request, "pantry item must not be null");
-        var quantity = Objects.requireNonNull(request.quantity(), "pantry quantity must not be null");
-        return new PantryItem(
-                new ShoppingRequirement(request.requirement()),
-                new Quantity(quantity.amount(), quantity.unit()));
     }
 
     private static WeeklyPlanPantryShoppingPreview project(
