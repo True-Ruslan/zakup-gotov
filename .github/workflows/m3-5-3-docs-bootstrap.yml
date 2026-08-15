@@ -18,8 +18,12 @@ jobs:
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           fetch-depth: 0
-      - name: Patch canonical docs
-        run: python .github/scripts/m3_5_3_docs_sync.py
+      - name: Patch PROJECT_STATE
+        run: python .github/scripts/m3_5_3_docs_sync.py state
+      - name: Patch ROADMAP
+        run: python .github/scripts/m3_5_3_docs_sync.py roadmap
+      - name: Patch CHANGELOG
+        run: python .github/scripts/m3_5_3_docs_sync.py changelog
       - name: Commit canonical docs when changed
         run: |
           set -euo pipefail
