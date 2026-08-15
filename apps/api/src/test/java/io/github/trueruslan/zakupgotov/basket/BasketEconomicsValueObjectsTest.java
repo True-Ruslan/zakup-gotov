@@ -62,6 +62,60 @@ class BasketEconomicsValueObjectsTest {
                 .hasMessageContaining("minimumOrder");
     }
 
+    @Test
+    void assessmentRejectsMinimumOrderStatusThatContradictsKnownThreshold() {
+        var subtotal = money("950.00", "RUB");
+        var economics = new BasketEconomics(
+                BasketFee.known(money("100.00", "RUB")),
+                BasketFee.known(money("50.00", "RUB")),
+                MinimumOrderConstraint.known(money("1000.00", "RUB")));
+
+        assertThatThrownBy(() -> new BasketEconomicsAssessment(
+                        subtotal,
+                        economics,
+                        MinimumOrderStatus.MET,
+                        CheckoutTotalStatus.KNOWN,
+                        Optional.of(money("1100.00", "RUB"))))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("minimum order status");
+    }
+
+    @Test
+    void assessmentRejectsCheckoutKnowledgeThatContradictsUnknownFee() {
+        var subtotal = money("900.00", "RUB");
+        var economics = new BasketEconomics(
+                BasketFee.unknown(),
+                BasketFee.known(money("20.00", "RUB")),
+                MinimumOrderConstraint.unknown());
+
+        assertThatThrownBy(() -> new BasketEconomicsAssessment(
+                        subtotal,
+                        economics,
+                        MinimumOrderStatus.UNKNOWN,
+                        CheckoutTotalStatus.KNOWN,
+                        Optional.of(money("920.00", "RUB"))))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("checkout total status");
+    }
+
+    @Test
+    void assessmentRejectsCheckoutAmountThatContradictsKnownFees() {
+        var subtotal = money("1200.00", "RUB");
+        var economics = new BasketEconomics(
+                BasketFee.known(money("149.00", "RUB")),
+                BasketFee.known(money("39.00", "RUB")),
+                MinimumOrderConstraint.known(money("1000.00", "RUB")));
+
+        assertThatThrownBy(() -> new BasketEconomicsAssessment(
+                        subtotal,
+                        economics,
+                        MinimumOrderStatus.MET,
+                        CheckoutTotalStatus.KNOWN,
+                        Optional.of(money("1387.99", "RUB"))))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("checkout total amount");
+    }
+
     private static BasketTotal money(String amount, String currency) {
         return new BasketTotal(new BigDecimal(amount), currency);
     }
