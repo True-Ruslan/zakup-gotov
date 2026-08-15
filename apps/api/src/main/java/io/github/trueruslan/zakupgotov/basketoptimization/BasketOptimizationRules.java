@@ -71,7 +71,7 @@ final class BasketOptimizationRules {
         Set<RetailerId> retailers = new HashSet<>();
         for (var candidate : candidates) {
             Objects.requireNonNull(candidate, "optimizer candidate must not be null");
-            var retailerId = candidate.comparison().retailerId();
+            var retailerId = candidate.retailerId();
             if (!retailers.add(retailerId)) {
                 throw new IllegalArgumentException("optimizer candidates must contain unique retailer ids");
             }
