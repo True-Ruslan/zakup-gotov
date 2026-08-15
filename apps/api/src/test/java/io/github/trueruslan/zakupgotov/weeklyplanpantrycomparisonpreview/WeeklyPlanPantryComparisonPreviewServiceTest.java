@@ -6,6 +6,8 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import io.github.trueruslan.zakupgotov.preview.ComparisonPreview;
 import io.github.trueruslan.zakupgotov.preview.ComparisonPreviewRequest;
 import io.github.trueruslan.zakupgotov.preview.ComparisonPreviewRequestedItem;
+import io.github.trueruslan.zakupgotov.preview.ComparisonPreviewValidationError;
+import io.github.trueruslan.zakupgotov.preview.InvalidComparisonPreviewRequestException;
 import io.github.trueruslan.zakupgotov.recipe.RecipeId;
 import io.github.trueruslan.zakupgotov.recipe.RecipeIngredientId;
 import io.github.trueruslan.zakupgotov.recipepreview.RecipeShoppingPreviewIdGenerator;
@@ -121,6 +123,22 @@ class WeeklyPlanPantryComparisonPreviewServiceTest {
                         .containsExactly(new WeeklyPlanPantryComparisonPreviewValidationError(
                                 "locality",
                                 "must not be blank")));
+    }
+
+    @Test
+    void mapsDerivedComparisonValidationIntoTheSanitizedCompositionBoundary() {
+        var service = service(request -> {
+            throw new InvalidComparisonPreviewRequestException(List.of(
+                    new ComparisonPreviewValidationError("items", "must not exceed 100 items")));
+        });
+
+        assertThatThrownBy(() -> service.create(request("Москва", List.of())))
+                .isInstanceOf(InvalidWeeklyPlanPantryComparisonPreviewRequestException.class)
+                .satisfies(error -> assertThat(((InvalidWeeklyPlanPantryComparisonPreviewRequestException) error)
+                                .errors())
+                        .containsExactly(new WeeklyPlanPantryComparisonPreviewValidationError(
+                                "comparison.items",
+                                "must not exceed 100 items")));
     }
 
     @Test
