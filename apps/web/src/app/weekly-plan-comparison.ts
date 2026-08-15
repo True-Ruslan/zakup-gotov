@@ -1,48 +1,44 @@
 "use server";
 
 import {
-  WEEKLY_PLAN_PANTRY_COMPARISON_PREVIEWS_PATH,
+  WEEKLY_PLAN_PANTRY_OPTIMIZATION_PREVIEWS_PATH,
   createZakupGotovClient,
   type components,
 } from "@zakup-gotov/api-client";
 
-const WEEKLY_PLAN_COMPARISON_PREVIEW_TIMEOUT_MS = 3_000;
+const WEEKLY_PLAN_OPTIMIZATION_PREVIEW_TIMEOUT_MS = 3_000;
 
-export type WeeklyPlanComparisonPreviewRequest =
-  components["schemas"]["WeeklyPlanPantryComparisonPreviewRequest"];
-export type WeeklyPlanComparisonPreviewResponse =
-  components["schemas"]["WeeklyPlanPantryComparisonPreview"];
-export type WeeklyPlanComparisonPreviewValidationError =
-  | components["schemas"]["WeeklyPlanPantryComparisonPreviewValidationError"]
-  | components["schemas"]["WeeklyPlanPantryShoppingPreviewValidationError"]
-  | components["schemas"]["WeeklyPlanShoppingPreviewValidationError"]
-  | components["schemas"]["RecipeShoppingPreviewValidationError"]
-  | components["schemas"]["ComparisonPreviewValidationError"];
+export type WeeklyPlanOptimizationPreviewRequest =
+  components["schemas"]["WeeklyPlanPantryOptimizationPreviewRequest"];
+export type WeeklyPlanOptimizationPreviewResponse =
+  components["schemas"]["WeeklyPlanPantryOptimizationPreview"];
+export type WeeklyPlanOptimizationPreviewValidationError =
+  components["schemas"]["WeeklyPlanPantryOptimizationPreviewValidationError"];
 
-export type WeeklyPlanComparisonState =
-  | { kind: "ready"; data: WeeklyPlanComparisonPreviewResponse }
-  | { kind: "invalid"; errors: WeeklyPlanComparisonPreviewValidationError[] }
+export type WeeklyPlanOptimizationState =
+  | { kind: "ready"; data: WeeklyPlanOptimizationPreviewResponse }
+  | { kind: "invalid"; errors: WeeklyPlanOptimizationPreviewValidationError[] }
   | { kind: "unavailable" };
 
-export async function createWeeklyPlanComparisonPreview(
-  request: WeeklyPlanComparisonPreviewRequest,
-): Promise<WeeklyPlanComparisonState> {
+export async function createWeeklyPlanOptimizationPreview(
+  request: WeeklyPlanOptimizationPreviewRequest,
+): Promise<WeeklyPlanOptimizationState> {
   const baseUrl = process.env.API_BASE_URL;
   if (!baseUrl) return { kind: "unavailable" };
 
   const controller = new AbortController();
-  const timeout = setTimeout(() => controller.abort(), WEEKLY_PLAN_COMPARISON_PREVIEW_TIMEOUT_MS);
+  const timeout = setTimeout(() => controller.abort(), WEEKLY_PLAN_OPTIMIZATION_PREVIEW_TIMEOUT_MS);
 
   try {
     const client = createZakupGotovClient(baseUrl);
-    const { data, error, response } = await client.POST(WEEKLY_PLAN_PANTRY_COMPARISON_PREVIEWS_PATH, {
+    const { data, error, response } = await client.POST(WEEKLY_PLAN_PANTRY_OPTIMIZATION_PREVIEWS_PATH, {
       body: request,
       signal: controller.signal,
     });
 
     if (data) return { kind: "ready", data };
     if (response.status === 400 && error && "errors" in error) {
-      const errors = error.errors as WeeklyPlanComparisonPreviewValidationError[];
+      const errors = error.errors as WeeklyPlanOptimizationPreviewValidationError[];
       return {
         kind: "invalid",
         errors: errors.map(({ field, message }) => ({ field, message })),
@@ -54,4 +50,16 @@ export async function createWeeklyPlanComparisonPreview(
   } finally {
     clearTimeout(timeout);
   }
+}
+
+// Compatibility aliases keep the accepted form behavior stable while M4.4.2 migrates its presentation layer.
+export type WeeklyPlanComparisonPreviewRequest = WeeklyPlanOptimizationPreviewRequest;
+export type WeeklyPlanComparisonPreviewResponse = WeeklyPlanOptimizationPreviewResponse;
+export type WeeklyPlanComparisonPreviewValidationError = WeeklyPlanOptimizationPreviewValidationError;
+export type WeeklyPlanComparisonState = WeeklyPlanOptimizationState;
+
+export async function createWeeklyPlanComparisonPreview(
+  request: WeeklyPlanComparisonPreviewRequest,
+): Promise<WeeklyPlanComparisonState> {
+  return createWeeklyPlanOptimizationPreview(request);
 }
