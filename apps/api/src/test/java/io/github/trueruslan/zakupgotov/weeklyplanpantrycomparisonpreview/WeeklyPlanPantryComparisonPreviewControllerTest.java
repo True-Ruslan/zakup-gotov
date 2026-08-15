@@ -1,5 +1,7 @@
 package io.github.trueruslan.zakupgotov.weeklyplanpantrycomparisonpreview;
 
+import static org.hamcrest.Matchers.containsString;
+import static org.hamcrest.Matchers.not;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
@@ -51,7 +53,7 @@ class WeeklyPlanPantryComparisonPreviewControllerTest {
                 .andExpect(jsonPath("$.comparisonOutcome").value("NO_REMAINING_DEMAND"))
                 .andExpect(jsonPath("$.pantryShoppingPreview.pantryAdjustments[0].status").value("FULLY_COVERED"))
                 .andExpect(jsonPath("$.pantryShoppingPreview.remainingShoppingList.items.length()").value(0))
-                .andExpect(jsonPath("$.comparisonPreview").doesNotExist());
+                .andExpect(content().string(not(containsString("\"comparisonPreview\""))));
     }
 
     @Test
