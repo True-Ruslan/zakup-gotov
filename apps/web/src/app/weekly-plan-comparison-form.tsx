@@ -29,6 +29,13 @@ type OccurrenceRow = {
   ingredients: IngredientRow[];
 };
 
+type PantryRow = {
+  key: number;
+  requirement: string;
+  amount: string;
+  unit: QuantityUnit;
+};
+
 const days: Array<{ value: WeeklyPlanDay; label: string }> = [
   { value: "MONDAY", label: "Понедельник" },
   { value: "TUESDAY", label: "Вторник" },
@@ -62,7 +69,11 @@ function newOccurrence(key: number): OccurrenceRow {
   };
 }
 
-function clientErrors(locality: string, occurrences: OccurrenceRow[]) {
+function newPantryRow(key: number): PantryRow {
+  return { key, requirement: "", amount: "1", unit: "PIECE" };
+}
+
+function clientErrors(locality: string, occurrences: OccurrenceRow[], pantryRows: PantryRow[]) {
   const errors: string[] = [];
   if (!locality.trim()) errors.push("Укажите населённый пункт.");
 
@@ -94,12 +105,22 @@ function clientErrors(locality: string, occurrences: OccurrenceRow[]) {
     });
   });
 
+  pantryRows.forEach((pantry, pantryIndex) => {
+    const number = pantryIndex + 1;
+    if (!pantry.requirement.trim()) errors.push(`Укажите продукт для запаса дома ${number}.`);
+    const amount = Number(pantry.amount);
+    if (!Number.isFinite(amount) || amount <= 0) {
+      errors.push(`Количество запаса дома ${number} должно быть больше 0.`);
+    }
+  });
+
   return errors;
 }
 
 export function WeeklyPlanComparisonForm() {
   const [locality, setLocality] = useState("");
   const [occurrences, setOccurrences] = useState<OccurrenceRow[]>(() => [newOccurrence(1)]);
+  const [pantryRows, setPantryRows] = useState<PantryRow[]>([]);
   const [state, setState] = useState<WeeklyPlanComparisonState | null>(null);
   const [clientMessages, setClientMessages] = useState<string[]>([]);
   const [pending, setPending] = useState(false);
@@ -157,11 +178,26 @@ export function WeeklyPlanComparisonForm() {
     }));
   }
 
+  function addPantryRow() {
+    setPantryRows((current) => {
+      const key = current.length === 0 ? 1 : Math.max(...current.map((item) => item.key)) + 1;
+      return [...current, newPantryRow(key)];
+    });
+  }
+
+  function updatePantryRow(key: number, patch: Partial<PantryRow>) {
+    setPantryRows((current) => current.map((item) => item.key === key ? { ...item, ...patch } : item));
+  }
+
+  function removePantryRow(key: number) {
+    setPantryRows((current) => current.filter((item) => item.key !== key));
+  }
+
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     if (pending) return;
 
-    const validationErrors = clientErrors(locality, occurrences);
+    const validationErrors = clientErrors(locality, occurrences, pantryRows);
     if (validationErrors.length > 0) {
       setState(null);
       setClientMessages(validationErrors);
@@ -184,6 +220,10 @@ export function WeeklyPlanComparisonForm() {
           },
         })),
       },
+      pantry: pantryRows.map((pantry) => ({
+        requirement: pantry.requirement.trim(),
+        quantity: { amount: Number(pantry.amount), unit: pantry.unit },
+      })),
     };
 
     setClientMessages([]);
@@ -206,12 +246,12 @@ export function WeeklyPlanComparisonForm() {
   return (
     <section aria-labelledby="weekly-plan-comparison" className="mt-12">
       <div className="max-w-2xl">
-        <p className="text-xs font-semibold uppercase tracking-[0.18em] text-stone-500">Неделя → покупки → магазины</p>
+        <p className="text-xs font-semibold uppercase tracking-[0.18em] text-stone-500">Неделя → запасы дома → покупки → магазины</p>
         <h2 id="weekly-plan-comparison" className="mt-2 text-2xl font-semibold tracking-tight text-stone-950">
           Собрать неделю
         </h2>
         <p className="mt-2 text-sm leading-6 text-stone-600">
-          Добавьте блюда в нужном порядке, выберите дни и порции. Сервис объединит ингредиенты в один список покупок и сравнит корзину по доступным данным магазинов.
+          Добавьте блюда в нужном порядке, выберите дни и порции. При желании укажите продукты, которые уже есть дома: сервер учтёт их и сравнит в магазинах только оставшийся список покупок.
         </p>
       </div>
 
@@ -287,6 +327,42 @@ export function WeeklyPlanComparisonForm() {
               </div>
             </fieldset>
           ))}
+        </div>
+
+        <div>
+          <div className="max-w-2xl">
+            <h3 className="text-lg font-semibold text-stone-950">Что уже есть дома</h3>
+            <p className="mt-1 text-sm leading-6 text-stone-600">
+              Необязательно. Укажите только известные запасы: сервер сопоставит их с недельным списком по точному названию и совместимой единице и покажет, что осталось купить.
+            </p>
+          </div>
+
+          <div className="mt-4 space-y-3" aria-label="Запасы дома">
+            {pantryRows.map((pantry, pantryIndex) => (
+              <fieldset key={pantry.key} className="rounded-2xl border border-stone-200 bg-stone-50 p-4">
+                <legend className="px-1 text-sm font-medium text-stone-800">Запас дома {pantryIndex + 1}</legend>
+                <div className="grid gap-3 sm:grid-cols-[minmax(0,1fr)_7rem_7rem_auto] sm:items-end">
+                  <div>
+                    <label htmlFor={`weekly-pantry-requirement-${pantry.key}`} className="block text-sm font-medium text-stone-700">Продукт дома</label>
+                    <input id={`weekly-pantry-requirement-${pantry.key}`} value={pantry.requirement} onChange={(event) => updatePantryRow(pantry.key, { requirement: event.target.value })} maxLength={240} className="mt-2 min-h-11 w-full rounded-xl border border-stone-300 bg-white px-3 py-2 outline-none focus:border-stone-700 focus:ring-2 focus:ring-stone-200" />
+                  </div>
+                  <div>
+                    <label htmlFor={`weekly-pantry-amount-${pantry.key}`} className="block text-sm font-medium text-stone-700">Количество дома</label>
+                    <input id={`weekly-pantry-amount-${pantry.key}`} type="number" inputMode="decimal" min="0" step="any" value={pantry.amount} onChange={(event) => updatePantryRow(pantry.key, { amount: event.target.value })} className="mt-2 min-h-11 w-full rounded-xl border border-stone-300 bg-white px-3 py-2 outline-none focus:border-stone-700 focus:ring-2 focus:ring-stone-200" />
+                  </div>
+                  <div>
+                    <label htmlFor={`weekly-pantry-unit-${pantry.key}`} className="block text-sm font-medium text-stone-700">Единица дома</label>
+                    <select id={`weekly-pantry-unit-${pantry.key}`} value={pantry.unit} onChange={(event) => updatePantryRow(pantry.key, { unit: event.target.value as QuantityUnit })} className="mt-2 min-h-11 w-full rounded-xl border border-stone-300 bg-white px-3 py-2 outline-none focus:border-stone-700 focus:ring-2 focus:ring-stone-200">
+                      {units.map((unit) => <option key={unit.value} value={unit.value}>{unit.label}</option>)}
+                    </select>
+                  </div>
+                  <button type="button" onClick={() => removePantryRow(pantry.key)} aria-label={`Удалить запас дома ${pantryIndex + 1}`} className="min-h-11 rounded-xl border border-stone-300 bg-white px-3 text-sm font-medium text-stone-700 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-stone-900">Удалить</button>
+                </div>
+              </fieldset>
+            ))}
+          </div>
+
+          <button type="button" onClick={addPantryRow} className="mt-4 min-h-10 rounded-full border border-stone-300 bg-white px-4 text-sm font-medium focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-stone-900">Добавить запас</button>
         </div>
 
         <div className="flex flex-wrap gap-3">
