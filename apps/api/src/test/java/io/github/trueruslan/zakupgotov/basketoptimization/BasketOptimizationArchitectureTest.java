@@ -6,7 +6,6 @@ import static org.assertj.core.api.Assertions.assertThat;
 import com.tngtech.archunit.core.importer.ClassFileImporter;
 import com.tngtech.archunit.core.importer.ImportOption;
 import io.github.trueruslan.zakupgotov.basket.BasketTotal;
-import io.github.trueruslan.zakupgotov.retailer.RetailerId;
 import java.util.LinkedHashSet;
 import org.junit.jupiter.api.Test;
 
@@ -26,6 +25,7 @@ class BasketOptimizationArchitectureTest {
                         "..shopping..",
                         "..location..",
                         "..comparison..",
+                        "..retailer..",
                         "..preview..",
                         "..database..",
                         "..recipe..",
@@ -48,11 +48,6 @@ class BasketOptimizationArchitectureTest {
     @Test
     void basketDependencyIsLimitedToBasketTotal() {
         assertDirectProjectDependencies("io.github.trueruslan.zakupgotov.basket", BasketTotal.class.getName());
-    }
-
-    @Test
-    void retailerDependencyIsLimitedToRetailerIdentity() {
-        assertDirectProjectDependencies("io.github.trueruslan.zakupgotov.retailer", RetailerId.class.getName());
     }
 
     @Test
