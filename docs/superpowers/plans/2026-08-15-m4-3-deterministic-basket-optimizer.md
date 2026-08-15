@@ -40,7 +40,7 @@ Rules:
 
 - input list required, non-empty, defensive-copy;
 - null candidate rejected;
-- duplicate retailer IDs rejected;
+- duplicate retailer IDs rejected through the M4.2 result abstraction;
 - only M4.2 COMPARABLE candidates enter monetary comparison;
 - mixed comparable currencies rejected;
 - numeric ordering uses exact `BigDecimal.compareTo`, no rounding/rescaling;
@@ -71,9 +71,17 @@ If shared deterministic rules already reject all states, record GREEN proof with
 
 Add `BasketOptimizationArchitectureTest` proving:
 
-- production package has no provider, matching, shopping, location, comparison-direct, preview, persistence/database, Spring, jOOQ, Recipe, WeeklyPlan or Pantry dependency;
-- allowed project dependencies are accepted `retailercheckout`, neutral `basket.BasketTotal` and finite `retailer.RetailerId` only;
+- production package has no provider, matching, shopping, location, direct comparison, direct retailer, preview, persistence/database, Spring, jOOQ, Recipe, WeeklyPlan or Pantry dependency;
+- the only direct basket dependency is neutral `BasketTotal`;
+- retailer identity is consumed through accepted M4.2 `RetailerCheckoutAssessmentResult` rather than by reaching through to M1 comparison;
 - `basket`, `comparison`, `retailer`, and `retailercheckout` do not depend back on `basketoptimization`.
+
+If the first architecture proof finds direct M4.3 access to `RetailerComparisonView`, treat it as a real abstraction leak rather than weakening the guard:
+
+1. add a test-first M4.2 identity projection requirement;
+2. expose non-semantic `RetailerCheckoutAssessmentResult.retailerId()` returning its embedded accepted comparison identity;
+3. consume only that M4.2 projection from M4.3;
+4. require final M4.3 bytecode to have no direct `comparison` or `retailer` dependency.
 
 Run full API verification.
 
@@ -91,7 +99,8 @@ Open/maintain draft PR linked to #139. Perform read-only review for:
 - package/substitution recomputation;
 - preservation of non-comparable candidates;
 - constructor forgeability;
-- architecture direction.
+- architecture direction;
+- whether the additive M4.2 identity projection changes accepted M4.2 semantics (it must not).
 
 Correct verified findings through additional TDD only.
 
