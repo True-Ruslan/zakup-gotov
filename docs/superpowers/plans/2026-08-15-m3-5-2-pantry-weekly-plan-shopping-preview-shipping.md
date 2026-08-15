@@ -1,7 +1,7 @@
 # M3.5.2 Pantry-aware WeeklyPlan Shopping Preview — Shipping Evidence
 
 Date: 2026-08-15  
-Status: IMPLEMENTED / FINAL PR GATE PENDING
+Status: READY FOR FINAL EXACT-HEAD REVALIDATION
 
 Baseline: `b94ad6779ea58384e01f262355c99843458b4820`  
 Branch: `feat/m3-5-2-pantry-weekly-plan-shopping-preview`  
@@ -94,15 +94,20 @@ ArchUnit guards establish that:
 
 Temporary implementation/TDD breadcrumb files used while preserving the RED-first sequence were removed before the final PR candidate. They are not part of the shipping surface.
 
-## Final PR gate
+## Pre-final PR gate
 
-Pending on the exact final feature head after this shipping-evidence update:
+Exact implementation-and-shipping candidate `2184b9aaab5b033b63fa709a631d98b828352b55` was verified before this final evidence-only update:
 
-- exactly 9 normal PR workflow groups;
-- 9/9 SUCCESS, 0 failures/skips/cancellations;
-- clean read-only review with no P0/P1/P2/P3 findings or unresolved threads;
-- mergeability true before ready/merge transition.
+- exactly **9 normal PR workflow groups**;
+- **9/9 SUCCESS**;
+- **0 failures, 0 skipped, 0 cancelled**;
+- read-only review verdict: **Looks good**;
+- P0/P1/P2/P3/nitpicks: none;
+- unresolved inline review threads: **0**;
+- PR mergeability: **true**.
+
+The review changed no repository files. This shipping-evidence update is documentation-only and intentionally creates a newer PR head, so the merge must still be gated on a fresh 9/9 + clean review for that final exact SHA.
 
 ## Merge gate
 
-To be filled only after the accepted exact feature head is squash-merged and all normal `main` push workflows complete. Until then M3.5.2 is implemented but not yet accepted.
+The accepted squash-merge SHA and exact `main` post-merge workflow proof are recorded only after they exist, in the canonical M3.5.2 acceptance document. M3.5.2 is not considered accepted until that post-merge gate succeeds.
