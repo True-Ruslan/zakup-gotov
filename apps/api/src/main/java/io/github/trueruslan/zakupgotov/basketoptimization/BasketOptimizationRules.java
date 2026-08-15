@@ -1,6 +1,5 @@
 package io.github.trueruslan.zakupgotov.basketoptimization;
 
-import io.github.trueruslan.zakupgotov.retailer.RetailerId;
 import io.github.trueruslan.zakupgotov.retailercheckout.RetailerCheckoutAssessmentResult;
 import io.github.trueruslan.zakupgotov.retailercheckout.RetailerCheckoutComparabilityStatus;
 import java.math.BigDecimal;
@@ -8,7 +7,6 @@ import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Objects;
-import java.util.Set;
 
 final class BasketOptimizationRules {
 
@@ -68,11 +66,10 @@ final class BasketOptimizationRules {
     }
 
     private static void validateUniqueRetailers(List<RetailerCheckoutAssessmentResult> candidates) {
-        Set<RetailerId> retailers = new HashSet<>();
+        var retailers = new HashSet<>();
         for (var candidate : candidates) {
             Objects.requireNonNull(candidate, "optimizer candidate must not be null");
-            var retailerId = candidate.retailerId();
-            if (!retailers.add(retailerId)) {
+            if (!retailers.add(candidate.retailerId())) {
                 throw new IllegalArgumentException("optimizer candidates must contain unique retailer ids");
             }
         }
