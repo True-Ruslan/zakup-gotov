@@ -106,6 +106,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/weekly-plan-pantry-shopping-previews": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Create a transient Pantry-aware weekly-plan shopping preview */
+        post: operations["createWeeklyPlanPantryShoppingPreview"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/weekly-plan-comparison-previews": {
         parameters: {
             query?: never;
@@ -312,6 +329,18 @@ export interface components {
         WeeklyPlanShoppingPreviewRequest: {
             occurrences: components["schemas"]["WeeklyPlanShoppingPreviewOccurrenceInput"][];
         };
+        WeeklyPlanPantryShoppingPreviewRequest: {
+            weeklyPlan: components["schemas"]["WeeklyPlanShoppingPreviewRequest"];
+            pantry: components["schemas"]["WeeklyPlanPantryItemInput"][];
+        };
+        WeeklyPlanPantryItemInput: {
+            requirement: string;
+            quantity: components["schemas"]["WeeklyPlanPantryQuantityInput"];
+        };
+        WeeklyPlanPantryQuantityInput: {
+            amount: number;
+            unit: components["schemas"]["QuantityInputUnit"];
+        };
         WeeklyPlanShoppingPreviewOccurrenceInput: {
             day: components["schemas"]["WeeklyPlanDay"];
             targetServings: number;
@@ -327,6 +356,28 @@ export interface components {
         WeeklyPlanShoppingPreviewResponse: {
             weeklyPlan: components["schemas"]["WeeklyPlanShoppingPreviewPlan"];
             shoppingList: components["schemas"]["WeeklyPlanShoppingPreviewShoppingList"];
+        };
+        WeeklyPlanPantryShoppingPreview: {
+            weeklyPlan: components["schemas"]["WeeklyPlanShoppingPreviewPlan"];
+            originalShoppingList: components["schemas"]["WeeklyPlanShoppingPreviewShoppingList"];
+            pantryAdjustments: components["schemas"]["WeeklyPlanPantryAdjustmentEvidence"][];
+            remainingShoppingList: components["schemas"]["WeeklyPlanPantryRemainingShoppingList"];
+        };
+        WeeklyPlanPantryAdjustmentEvidence: {
+            /** Format: uuid */
+            itemId: string;
+            requirement: string;
+            required: components["schemas"]["CanonicalQuantity"];
+            pantryUsed?: components["schemas"]["CanonicalQuantity"];
+            remaining?: components["schemas"]["CanonicalQuantity"];
+            status: components["schemas"]["PantryAdjustmentStatus"];
+        };
+        /** @enum {string} */
+        PantryAdjustmentStatus: "UNCHANGED" | "PARTIALLY_COVERED" | "FULLY_COVERED";
+        WeeklyPlanPantryRemainingShoppingList: {
+            /** Format: uuid */
+            id: string;
+            items: components["schemas"]["WeeklyPlanShoppingPreviewShoppingItem"][];
         };
         WeeklyPlanComparisonPreview: {
             weeklyPlanShoppingPreview: components["schemas"]["WeeklyPlanShoppingPreviewResponse"];
@@ -389,6 +440,21 @@ export interface components {
             errors: components["schemas"]["WeeklyPlanShoppingPreviewValidationError"][];
         };
         WeeklyPlanShoppingPreviewValidationError: {
+            field: string;
+            message: string;
+        };
+        InvalidWeeklyPlanPantryShoppingPreviewProblem: {
+            /** @constant */
+            type: "https://zakup-gotov.dev/problems/invalid-weekly-plan-pantry-shopping-preview";
+            /** @constant */
+            title: "Invalid weekly plan pantry shopping preview request";
+            /** @constant */
+            status: 400;
+            /** @constant */
+            code: "INVALID_WEEKLY_PLAN_PANTRY_SHOPPING_PREVIEW";
+            errors: components["schemas"]["WeeklyPlanPantryShoppingPreviewValidationError"][];
+        };
+        WeeklyPlanPantryShoppingPreviewValidationError: {
             field: string;
             message: string;
         };
@@ -607,6 +673,39 @@ export interface operations {
                 };
                 content: {
                     "application/problem+json": components["schemas"]["InvalidWeeklyPlanShoppingPreviewProblem"];
+                };
+            };
+        };
+    };
+    createWeeklyPlanPantryShoppingPreview: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["WeeklyPlanPantryShoppingPreviewRequest"];
+            };
+        };
+        responses: {
+            /** @description Original WeeklyPlan shopping projection, Pantry adjustment evidence and remaining shopping projection */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WeeklyPlanPantryShoppingPreview"];
+                };
+            };
+            /** @description Invalid Pantry-aware weekly plan shopping preview request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["InvalidWeeklyPlanPantryShoppingPreviewProblem"];
                 };
             };
         };
