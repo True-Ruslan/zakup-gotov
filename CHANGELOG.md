@@ -127,6 +127,12 @@ All notable project changes are recorded here. Zakup Gotov is pre-release; entri
 - M4.2 public assessment/result records self-validate subtotal, eligibility, comparability, comparable-total and comparison identity relationships.
 - M4.2 architecture limits the new layer to accepted basket/comparison types plus finite `RetailerId`, with no provider/network/API/UI/ranking dependency.
 - M4.2 acceptance records final reviewed head `1d6dae470c04ab1d8279f891766fc16698286edb`, squash merge `69f9cb1afd1b16af938052bbca570cbd4ce52557`, issue #136 closure and 8/8 successful post-merge `main` workflows.
+- M4.3 adds a pure deterministic `basketoptimization` layer over accepted M4.2 checkout assessments; only explicit `COMPARABLE` candidates enter cheapest-basket selection while every input candidate remains inspectable in original order.
+- Optimizer outcomes are explicit `NO_COMPARABLE_CANDIDATES / UNIQUE_WINNER / TIE`; exact numeric minima are compared with `BigDecimal.compareTo` and all equal minima remain tied without hidden retailer-order, retailer-ID, freshness, timestamp, SKU/package or iteration-order tie-breaks.
+- Comparable candidates must use one currency; mixed comparable currencies fail closed, while a non-comparable candidate in another currency cannot poison a valid comparable set.
+- Accepted M1 package/basket decisions are immutable optimizer inputs; M4.3 does not search substitutes, change package counts, split across stores or fabricate freshness/confidence pricing policy.
+- `BasketOptimizationResult` recomputes deterministic evaluation from its candidates and rejects forged status/minimum sets; architecture keeps M4.3 behind the accepted M4.2 result boundary with no direct `comparison`/`retailer`, provider, API, UI or persistence coupling.
+- M4.3 acceptance records final reviewed head `ddc5fed0d3bb98d9c17e5f1ec739ffad9ba77ad5`, squash merge `c854526c30a1b0b1b6b435ae37608da0d9501955`, issue #139 closure and 8/8 successful post-merge `main` workflows.
 
 #### Product and shopping core
 
@@ -193,7 +199,8 @@ All notable project changes are recorded here. Zakup Gotov is pre-release; entri
 - M3 Weekly Planning / Pantry is **COMPLETE / ACCEPTED**.
 - M4.1 Basket economics foundation is **COMPLETE / ACCEPTED** after final reviewed head `a0fcd626017f93e49fc6a70c4403b68404efe6d7`, squash merge `3ccaa7b2acc1e81d7360c55872882a4252c96cae`, issue #133 closure and 8/8 successful post-merge `main` workflows.
 - M4.2 One-retailer truthful total comparison is **COMPLETE / ACCEPTED** after final reviewed head `1d6dae470c04ab1d8279f891766fc16698286edb`, squash merge `69f9cb1afd1b16af938052bbca570cbd4ce52557`, issue #136 closure and 8/8 successful post-merge `main` workflows.
-- The current deterministic target is **M4.3 Basket optimizer**; only explicit M4.2 `COMPARABLE` candidates may compete, and deterministic ordering/tie plus package/substitution/confidence/freshness policy must be defined before any cheapest/winner claim.
+- M4.3 deterministic basket optimizer is **COMPLETE / ACCEPTED** after final reviewed head `ddc5fed0d3bb98d9c17e5f1ec739ffad9ba77ad5`, squash merge `c854526c30a1b0b1b6b435ae37608da0d9501955`, issue #139 closure and 8/8 successful post-merge `main` workflows.
+- The current deterministic target is **M4.4 Optimization UX**; browser code must project accepted server-owned economics/comparability/optimizer decisions without recomputing totals, eligibility, winner or tie semantics.
 - Recipe → ShoppingList merging is intentionally stricter than product matching: only exact normalized requirements with the same canonical unit merge; no case-folding/synonym/AI equivalence is introduced.
 - Recipe provenance remains conversion metadata rather than an optional Recipe field added to neutral `ShoppingItem`; M2.2 projects that provenance publicly as self-contained source ingredient IDs instead of modifying Shopping Core types.
 - Recipe lifecycle and Weekly Planning/Pantry composition remain stateless by default; persistence stays deferred until reusable saved plans/history demonstrate product value.

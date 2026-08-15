@@ -31,8 +31,9 @@ Milestone status:
 - M3 Weekly Planning / Pantry deterministic product slice — **COMPLETE / ACCEPTED**.
 - M4.1 Basket economics foundation — **COMPLETE / ACCEPTED** (#133 / #134).
 - M4.2 One-retailer truthful total comparison — **COMPLETE / ACCEPTED** (#136 / #137).
+- M4.3 Deterministic basket optimizer — **COMPLETE / ACCEPTED** (#139 / #140).
 
-Current deterministic target: **M4.3 — Basket optimizer**.
+Current deterministic target: **M4.4 — Optimization UX**.
 
 ## Permanent connectivity rule
 
@@ -244,9 +245,37 @@ Acceptance proof:
 - issue #136 closed `completed`;
 - exact implementation merge — **8/8 normal push workflows SUCCESS**, including CodeQL Java and JavaScript/TypeScript.
 
-## Next deterministic target — M4.3 Basket optimizer
+## M4.3 — Deterministic basket optimizer — COMPLETE / ACCEPTED
 
-Define deterministic optimizer eligibility over accepted M4.2 checkout assessments. Only `COMPARABLE` candidates may compete for a winner. M4.3 must define deterministic candidate ordering and tie semantics, keep `INELIGIBLE / UNKNOWN / NOT_COMPARABLE / INCOMPLETE / UNAVAILABLE` candidates out of winner selection, and explicitly define package/substitution plus confidence/freshness policy before exposing any cheapest/winner claim. Deterministic acceptance remains supplied-evidence-only with no live retailer request.
+Acceptance: [`m4-3-deterministic-basket-optimizer-acceptance-2026-08-15.md`](m4-3-deterministic-basket-optimizer-acceptance-2026-08-15.md).  
+Accepted implementation merge: `c854526c30a1b0b1b6b435ae37608da0d9501955`.
+
+Accepted semantics:
+
+- optimizer input is a non-empty ordered set of accepted M4.2 checkout results with unique retailer identity;
+- all input candidates remain visible in original order, but input order is never a winner/tie-break rule;
+- only explicit M4.2 `COMPARABLE` candidates compete;
+- comparable candidates must use one currency; mixed comparable currencies fail closed;
+- exact `BigDecimal.compareTo` ordering adds no rounding or rescaling;
+- numeric-equal minima are explicit `TIE`, including differing decimal scales, and every tied minimum remains visible in original order;
+- no retailer order/ID, freshness, provider timestamp, package/SKU identity or arbitrary iteration order breaks a tie;
+- accepted M1 package/basket selections are immutable optimizer inputs; no substitute/package recomputation or multi-store split occurs;
+- freshness remains inspectable evidence but is not converted into a monetary penalty or fabricated confidence score;
+- public optimization result recomputes expected status/minimum set and rejects forged state;
+- M4.3 consumes retailer identity through the M4.2-owned result projection and has no direct `comparison` / `retailer` dependency;
+- no provider acquisition, HTTP/OpenAPI/UI, persistence or live retailer request is introduced.
+
+Acceptance proof:
+
+- final reviewed feature head `ddc5fed0d3bb98d9c17e5f1ec739ffad9ba77ad5` — **9/9 PR workflow groups SUCCESS**, 0 failure/skipped/cancelled;
+- read-only review **Looks good**, no P0/P1/P2/P3/nitpicks and no unresolved threads;
+- squash merge `c854526c30a1b0b1b6b435ae37608da0d9501955` with expected-head protection;
+- issue #139 closed `completed`;
+- exact implementation merge — **8/8 normal push workflows SUCCESS**.
+
+## Next deterministic target — M4.4 Optimization UX
+
+Project accepted M4.1–M4.3 evidence into responsive browser flows. The browser must render server-owned merchandise subtotal, known/unknown fees, minimum-order state, eligibility/comparability and `NO_COMPARABLE_CANDIDATES / UNIQUE_WINNER / TIE` outcomes without recomputing economics or choosing a winner client-side. Browser acceptance remains deterministic and must make no live retailer requests.
 
 ## Magnit production state
 
@@ -296,7 +325,10 @@ Continue without blocking deterministic M4 work unless evidence invalidates acce
 22. Merchandise subtotal, checkout-total knowledge, checkout eligibility and optimizer comparability are separate facts; one must never be silently substituted for another.
 23. Retailer checkout economics must be bound to the same `RetailerId` as the retailer comparison before arithmetic; cross-retailer economics evidence fails closed.
 24. A known arithmetic checkout total does not imply an eligible or comparable candidate.
-25. Future winner selection may consider only explicit M4.2 `COMPARABLE` candidates; uncertain, ineligible, incomplete or unavailable evidence cannot become a hidden winner.
+25. Only explicit M4.2 `COMPARABLE` candidates may participate in M4.3 cheapest-basket selection; all other candidate states remain inspectable but cannot win.
+26. Exact numeric minimum ties remain explicit ties; retailer order/ID, freshness, timestamps and package/SKU metadata never select a hidden winner.
+27. M4.3 never recomputes accepted package/SKU selections or converts freshness into a monetary penalty/confidence score.
+28. Browser optimization UX must render server-owned economics and optimizer decisions rather than recomputing them client-side.
 
 ## Platform baseline
 

@@ -75,7 +75,7 @@ Accepted merge: `1201030aed45075c676f796920b6268cdcf8e036`.
 
 Weekly Planning is the primary browser journey. It supports `1..35` ordered occurrences, day/serving/Recipe editing, canonical weekly-shopping rendering before comparison, fail-closed transport and deterministic desktop/mobile/accessibility Playwright. Browser acceptance makes no live retailer request.
 
-### M3.5 — Pantry / exclusions semantics — IN PROGRESS
+### M3.5 — Pantry / exclusions semantics — COMPLETE / ACCEPTED
 
 Goal: subtract explicitly known-at-home requirements from accepted weekly shopping demand with inspectable evidence and without hidden ingredient loss, then compose the remaining demand into retailer comparison and responsive controls.
 
@@ -206,7 +206,7 @@ Continue without blocking deterministic M4 work unless evidence invalidates acce
 
 Goal: optimize real checkout cost rather than naive SKU sums while preserving truthful eligibility, completeness, uncertainty, retailer visibility and production-access semantics.
 
-Scope: explicit checkout economics, one-retailer truthful totals, richer package/substitute optimization, single-store convenience, future multi-store lowest-total-cost mode and confidence/freshness penalties.
+Scope: explicit checkout economics, one-retailer truthful totals, deterministic cheapest-candidate selection, responsive optimization UX, richer future package/substitute optimization, future multi-store lowest-total-cost mode and any future confidence/freshness policy only after separate explicit design.
 
 ### M4.1 — Basket economics foundation — COMPLETE / ACCEPTED
 
@@ -247,13 +247,39 @@ Acceptance proof:
 - issue #136 closed `completed`;
 - exact merge — **8/8 normal push workflows SUCCESS**.
 
-### M4.3 — Basket optimizer — NEXT
+### M4.3 — Deterministic basket optimizer — COMPLETE / ACCEPTED
 
-Define deterministic optimizer behavior over accepted M4.2 assessments. Only `COMPARABLE` candidates may compete. Specify candidate ordering, exact tie semantics, package/substitution policy and confidence/freshness handling before producing a winner. `INELIGIBLE / UNKNOWN / NOT_COMPARABLE / INCOMPLETE / UNAVAILABLE` candidates must remain visible but cannot become a hidden winner. Deterministic acceptance uses supplied/sanitized evidence only and makes no live retailer requests.
+Authoritative design: [`superpowers/specs/2026-08-15-m4-3-deterministic-basket-optimizer-design.md`](superpowers/specs/2026-08-15-m4-3-deterministic-basket-optimizer-design.md)  
+Implementation plan: [`superpowers/plans/2026-08-15-m4-3-deterministic-basket-optimizer.md`](superpowers/plans/2026-08-15-m4-3-deterministic-basket-optimizer.md)  
+Shipping evidence: [`superpowers/plans/2026-08-15-m4-3-deterministic-basket-optimizer-shipping.md`](superpowers/plans/2026-08-15-m4-3-deterministic-basket-optimizer-shipping.md)  
+Acceptance: [`m4-3-deterministic-basket-optimizer-acceptance-2026-08-15.md`](m4-3-deterministic-basket-optimizer-acceptance-2026-08-15.md)  
+Accepted implementation merge: `c854526c30a1b0b1b6b435ae37608da0d9501955`.
 
-### M4.4 — Optimization UX
+Accepted result:
 
-Project accepted optimizer evidence into responsive browser flows with explainable subtotal/fees/minimum-order/eligibility/total states. Browser code must render server-owned decisions rather than recomputing economics or winners.
+- ordered non-empty M4.2 candidate input with unique retailer identity and defensive-copy semantics;
+- only M4.2 `COMPARABLE` candidates compete, while all candidates remain inspectable in original order;
+- explicit `NO_COMPARABLE_CANDIDATES / UNIQUE_WINNER / TIE` outcomes;
+- mixed currencies among comparable candidates fail closed;
+- exact `BigDecimal.compareTo` selection with no rounding/rescaling;
+- every exact minimum remains in an explicit tie; input/canonical retailer order, retailer ID, freshness, provider timestamps and package/SKU metadata never break the tie;
+- accepted M1 package/basket choices are never recomputed and no substitute or multi-store optimization occurs;
+- freshness is not converted into a hidden monetary penalty or fabricated confidence score;
+- public optimization results self-validate against the deterministic rules;
+- M4.3 consumes retailer identity through the accepted M4.2 result boundary and has no direct `comparison` / `retailer` dependency;
+- deterministic acceptance remains supplied-evidence-only and makes no live retailer request.
+
+Acceptance proof:
+
+- final reviewed head `ddc5fed0d3bb98d9c17e5f1ec739ffad9ba77ad5` — **9/9 PR workflows SUCCESS**;
+- clean read-only review, no P0/P1/P2/P3/nitpicks and no unresolved threads;
+- squash merge `c854526c30a1b0b1b6b435ae37608da0d9501955` with expected-head protection;
+- issue #139 closed `completed`;
+- exact merge — **8/8 normal push workflows SUCCESS**.
+
+### M4.4 — Optimization UX — NEXT
+
+Project accepted M4.1–M4.3 evidence into responsive browser flows with explainable merchandise subtotal, known/unknown fees, minimum-order state, eligibility/comparability and optimizer outcome. Browser code must consume server-owned decisions through generated contracts rather than recomputing economics, comparability or winner/tie semantics. `NO_COMPARABLE_CANDIDATES`, `UNIQUE_WINNER` and `TIE` must remain distinct and user-explainable. Deterministic browser acceptance must not make live retailer requests.
 
 ## M5 — Productization
 
