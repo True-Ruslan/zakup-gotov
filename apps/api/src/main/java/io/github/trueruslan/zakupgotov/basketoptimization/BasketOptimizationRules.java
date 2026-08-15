@@ -38,8 +38,8 @@ final class BasketOptimizationRules {
             var total = assessment.orElseThrow().comparableCheckoutTotal().orElseThrow(() ->
                     new IllegalArgumentException("COMPARABLE checkout assessment requires comparable total"));
             if (comparableCurrency == null) {
-                comparableCurrency = total.currency();
-            } else if (!comparableCurrency.equals(total.currency())) {
+                comparableCurrency = total.currencyCode();
+            } else if (!comparableCurrency.equals(total.currencyCode())) {
                 throw new IllegalArgumentException("comparable optimizer candidates must use one currency");
             }
 
