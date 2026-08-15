@@ -212,11 +212,11 @@ function buildRecipeComparisonPreview(request) {
   };
 }
 
-function buildWeeklyPlanComparisonPreview(request) {
+function buildWeeklyPlanShoppingPreview(weeklyPlan) {
   const occurrences = [];
   const groups = new Map();
 
-  request.weeklyPlan.occurrences.forEach((occurrence, occurrenceIndex) => {
+  weeklyPlan.occurrences.forEach((occurrence, occurrenceIndex) => {
     const occurrenceId = fixedUuid("5", occurrenceIndex + 1);
     const recipeId = fixedUuid("6", occurrenceIndex + 1);
     const scale = occurrence.targetServings / occurrence.recipe.baseServings;
@@ -259,11 +259,98 @@ function buildWeeklyPlanComparisonPreview(request) {
   }));
 
   return {
-    weeklyPlanShoppingPreview: {
-      weeklyPlan: { id: fixedUuid("9"), occurrences },
-      shoppingList: { id: fixedUuid("a"), items: shoppingItems },
-    },
-    comparisonPreview: buildPreview({ locality: request.locality, items: shoppingItems }),
+    weeklyPlan: { id: fixedUuid("9"), occurrences },
+    shoppingList: { id: fixedUuid("a"), items: shoppingItems },
+  };
+}
+
+function pantryKey(requirement, quantity) {
+  return `${normalizeText(requirement)}\u0000${quantity.unit}`;
+}
+
+function applyPantry(shoppingList, pantry) {
+  const stock = new Map();
+  for (const row of pantry) {
+    const quantity = canonicalQuantity(row.quantity);
+    const key = pantryKey(row.requirement, quantity);
+    stock.set(key, (stock.get(key) ?? 0) + quantity.amount);
+  }
+
+  const adjustments = [];
+  const remainingItems = [];
+
+  for (const item of shoppingList.items) {
+    const required = canonicalQuantity(item.quantity);
+    const key = pantryKey(item.requirement, required);
+    const available = stock.get(key) ?? 0;
+    const used = Math.min(required.amount, available);
+
+    if (used <= 0) {
+      adjustments.push({
+        itemId: item.id,
+        requirement: item.requirement,
+        required,
+        remaining: required,
+        status: "UNCHANGED",
+      });
+      remainingItems.push(item);
+      continue;
+    }
+
+    stock.set(key, available - used);
+    if (used >= required.amount) {
+      adjustments.push({
+        itemId: item.id,
+        requirement: item.requirement,
+        required,
+        pantryUsed: { amount: used, unit: required.unit },
+        status: "FULLY_COVERED",
+      });
+      continue;
+    }
+
+    const remaining = { amount: required.amount - used, unit: required.unit };
+    adjustments.push({
+      itemId: item.id,
+      requirement: item.requirement,
+      required,
+      pantryUsed: { amount: used, unit: required.unit },
+      remaining,
+      status: "PARTIALLY_COVERED",
+    });
+    remainingItems.push({ ...item, quantity: remaining });
+  }
+
+  return {
+    adjustments,
+    remainingShoppingList: { id: shoppingList.id, items: remainingItems },
+  };
+}
+
+function buildWeeklyPlanPantryComparisonPreview(request) {
+  const weekly = buildWeeklyPlanShoppingPreview(request.weeklyPlan);
+  const pantry = applyPantry(weekly.shoppingList, request.pantry);
+  const pantryShoppingPreview = {
+    weeklyPlan: weekly.weeklyPlan,
+    originalShoppingList: weekly.shoppingList,
+    pantryAdjustments: pantry.adjustments,
+    remainingShoppingList: pantry.remainingShoppingList,
+  };
+
+  if (pantry.remainingShoppingList.items.length === 0) {
+    return {
+      pantryShoppingPreview,
+      comparisonOutcome: "NO_REMAINING_DEMAND",
+    };
+  }
+
+  return {
+    pantryShoppingPreview,
+    comparisonOutcome: "COMPARED",
+    comparisonPreview: buildPreview({
+      locality: request.locality,
+      items: pantry.remainingShoppingList.items,
+    }),
   };
 }
 
@@ -277,12 +364,12 @@ function invalidRecipeComparison(response, field, message) {
   });
 }
 
-function invalidWeeklyPlanComparison(response, field, message) {
+function invalidWeeklyPlanPantryComparison(response, field, message) {
   writeJson(response, 400, {
-    type: "https://zakup-gotov.dev/problems/invalid-weekly-plan-comparison-preview",
-    title: "Invalid weekly plan comparison preview request",
+    type: "https://zakup-gotov.dev/problems/invalid-weekly-plan-pantry-comparison-preview",
+    title: "Invalid weekly plan Pantry comparison preview request",
     status: 400,
-    code: "INVALID_WEEKLY_PLAN_COMPARISON_PREVIEW",
+    code: "INVALID_WEEKLY_PLAN_PANTRY_COMPARISON_PREVIEW",
     errors: [{ field, message }],
   });
 }
@@ -301,18 +388,22 @@ const server = http.createServer(async (request, response) => {
   try {
     const body = await readJson(request);
 
-    if (request.url === "/api/v1/weekly-plan-comparison-previews") {
+    if (request.url === "/api/v1/weekly-plan-pantry-comparison-previews") {
       if (body.locality === "Недоступно") {
         writeJson(response, 503, { error: "deterministic unavailable scenario" });
         return;
       }
       if (!body.weeklyPlan || !Array.isArray(body.weeklyPlan.occurrences) || body.weeklyPlan.occurrences.length < 1) {
-        invalidWeeklyPlanComparison(response, "weeklyPlan.occurrences", "deterministic acceptance requires occurrences");
+        invalidWeeklyPlanPantryComparison(response, "weeklyPlan.occurrences", "deterministic acceptance requires occurrences");
         return;
       }
-      const result = buildWeeklyPlanComparisonPreview(body);
-      if (result.weeklyPlanShoppingPreview.shoppingList.items.length < 2) {
-        invalidWeeklyPlanComparison(response, "weeklyPlan.occurrences", "deterministic acceptance requires two shopping requirements");
+      if (!Array.isArray(body.pantry)) {
+        invalidWeeklyPlanPantryComparison(response, "pantry", "deterministic acceptance requires a Pantry array");
+        return;
+      }
+      const result = buildWeeklyPlanPantryComparisonPreview(body);
+      if (result.pantryShoppingPreview.originalShoppingList.items.length < 2) {
+        invalidWeeklyPlanPantryComparison(response, "weeklyPlan.occurrences", "deterministic acceptance requires two shopping requirements");
         return;
       }
       writeJson(response, 200, result);
@@ -354,10 +445,10 @@ const server = http.createServer(async (request, response) => {
     writeJson(response, 404, { error: "not found" });
   } catch {
     writeJson(response, 400, {
-      type: "https://zakup-gotov.dev/problems/invalid-weekly-plan-comparison-preview",
-      title: "Invalid weekly plan comparison preview request",
+      type: "https://zakup-gotov.dev/problems/invalid-weekly-plan-pantry-comparison-preview",
+      title: "Invalid weekly plan Pantry comparison preview request",
       status: 400,
-      code: "INVALID_WEEKLY_PLAN_COMPARISON_PREVIEW",
+      code: "INVALID_WEEKLY_PLAN_PANTRY_COMPARISON_PREVIEW",
       errors: [{ field: "$request", message: "malformed JSON request" }],
     });
   }
