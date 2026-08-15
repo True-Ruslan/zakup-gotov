@@ -120,6 +120,29 @@ paths:
             application/problem+json:
               schema:
                 $ref: '#/components/schemas/InvalidWeeklyPlanShoppingPreviewProblem'
+  /api/v1/weekly-plan-pantry-shopping-previews:
+    post:
+      operationId: createWeeklyPlanPantryShoppingPreview
+      summary: Create a transient Pantry-aware weekly-plan shopping preview
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/WeeklyPlanPantryShoppingPreviewRequest'
+      responses:
+        '200':
+          description: Original WeeklyPlan shopping projection, Pantry adjustment evidence and remaining shopping projection
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/WeeklyPlanPantryShoppingPreview'
+        '400':
+          description: Invalid Pantry-aware weekly plan shopping preview request
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/InvalidWeeklyPlanPantryShoppingPreviewProblem'
   /api/v1/weekly-plan-comparison-previews:
     post:
       operationId: createWeeklyPlanComparisonPreview
@@ -730,6 +753,44 @@ components:
           maxItems: 35
           items:
             $ref: '#/components/schemas/WeeklyPlanShoppingPreviewOccurrenceInput'
+    WeeklyPlanPantryShoppingPreviewRequest:
+      type: object
+      additionalProperties: false
+      required:
+        - weeklyPlan
+        - pantry
+      properties:
+        weeklyPlan:
+          $ref: '#/components/schemas/WeeklyPlanShoppingPreviewRequest'
+        pantry:
+          type: array
+          items:
+            $ref: '#/components/schemas/WeeklyPlanPantryItemInput'
+    WeeklyPlanPantryItemInput:
+      type: object
+      additionalProperties: false
+      required:
+        - requirement
+        - quantity
+      properties:
+        requirement:
+          type: string
+          minLength: 1
+          maxLength: 240
+        quantity:
+          $ref: '#/components/schemas/WeeklyPlanPantryQuantityInput'
+    WeeklyPlanPantryQuantityInput:
+      type: object
+      additionalProperties: false
+      required:
+        - amount
+        - unit
+      properties:
+        amount:
+          type: number
+          exclusiveMinimum: 0
+        unit:
+          $ref: '#/components/schemas/QuantityInputUnit'
     WeeklyPlanShoppingPreviewOccurrenceInput:
       type: object
       additionalProperties: false
@@ -787,6 +848,70 @@ components:
           $ref: '#/components/schemas/WeeklyPlanShoppingPreviewPlan'
         shoppingList:
           $ref: '#/components/schemas/WeeklyPlanShoppingPreviewShoppingList'
+    WeeklyPlanPantryShoppingPreview:
+      type: object
+      additionalProperties: false
+      required:
+        - weeklyPlan
+        - originalShoppingList
+        - pantryAdjustments
+        - remainingShoppingList
+      properties:
+        weeklyPlan:
+          $ref: '#/components/schemas/WeeklyPlanShoppingPreviewPlan'
+        originalShoppingList:
+          $ref: '#/components/schemas/WeeklyPlanShoppingPreviewShoppingList'
+        pantryAdjustments:
+          type: array
+          minItems: 1
+          items:
+            $ref: '#/components/schemas/WeeklyPlanPantryAdjustmentEvidence'
+        remainingShoppingList:
+          $ref: '#/components/schemas/WeeklyPlanPantryRemainingShoppingList'
+    WeeklyPlanPantryAdjustmentEvidence:
+      type: object
+      additionalProperties: false
+      required:
+        - itemId
+        - requirement
+        - required
+        - status
+      properties:
+        itemId:
+          type: string
+          format: uuid
+        requirement:
+          type: string
+          minLength: 1
+          maxLength: 240
+        required:
+          $ref: '#/components/schemas/CanonicalQuantity'
+        pantryUsed:
+          $ref: '#/components/schemas/CanonicalQuantity'
+        remaining:
+          $ref: '#/components/schemas/CanonicalQuantity'
+        status:
+          $ref: '#/components/schemas/PantryAdjustmentStatus'
+    PantryAdjustmentStatus:
+      type: string
+      enum:
+        - UNCHANGED
+        - PARTIALLY_COVERED
+        - FULLY_COVERED
+    WeeklyPlanPantryRemainingShoppingList:
+      type: object
+      additionalProperties: false
+      required:
+        - id
+        - items
+      properties:
+        id:
+          type: string
+          format: uuid
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/WeeklyPlanShoppingPreviewShoppingItem'
     WeeklyPlanComparisonPreview:
       type: object
       additionalProperties: false
@@ -958,6 +1083,46 @@ components:
           items:
             $ref: '#/components/schemas/WeeklyPlanShoppingPreviewValidationError'
     WeeklyPlanShoppingPreviewValidationError:
+      type: object
+      additionalProperties: false
+      required:
+        - field
+        - message
+      properties:
+        field:
+          type: string
+          minLength: 1
+        message:
+          type: string
+          minLength: 1
+    InvalidWeeklyPlanPantryShoppingPreviewProblem:
+      type: object
+      additionalProperties: false
+      required:
+        - type
+        - title
+        - status
+        - code
+        - errors
+      properties:
+        type:
+          type: string
+          const: https://zakup-gotov.dev/problems/invalid-weekly-plan-pantry-shopping-preview
+        title:
+          type: string
+          const: Invalid weekly plan pantry shopping preview request
+        status:
+          type: integer
+          const: 400
+        code:
+          type: string
+          const: INVALID_WEEKLY_PLAN_PANTRY_SHOPPING_PREVIEW
+        errors:
+          type: array
+          minItems: 1
+          items:
+            $ref: '#/components/schemas/WeeklyPlanPantryShoppingPreviewValidationError'
+    WeeklyPlanPantryShoppingPreviewValidationError:
       type: object
       additionalProperties: false
       required:

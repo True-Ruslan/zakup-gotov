@@ -7,6 +7,7 @@ import {
   RETAILERS_PATH,
   SYSTEM_INFO_PATH,
   WEEKLY_PLAN_COMPARISON_PREVIEWS_PATH,
+  WEEKLY_PLAN_PANTRY_SHOPPING_PREVIEWS_PATH,
   WEEKLY_PLAN_SHOPPING_PREVIEWS_PATH,
   createZakupGotovClient,
 } from "./index";
@@ -88,6 +89,35 @@ describe("Zakup Gotov API client", () => {
     expect(operationExists).toBeUndefined();
     expect(requestExists).toBeUndefined();
     expect(responseExists).toBeUndefined();
+    expect(problemExists).toBeUndefined();
+  });
+
+  it("exposes the Pantry-aware weekly plan shopping preview through the generated contract", () => {
+    const path: keyof paths = WEEKLY_PLAN_PANTRY_SHOPPING_PREVIEWS_PATH;
+    const client = createZakupGotovClient("https://api.example.test");
+    type PantryPreviewPost = paths["/api/v1/weekly-plan-pantry-shopping-previews"]["post"];
+    type PantryPreviewOperation = operations["createWeeklyPlanPantryShoppingPreview"];
+    type PantryPreviewRequest = components["schemas"]["WeeklyPlanPantryShoppingPreviewRequest"];
+    type PantryPreviewResponse = components["schemas"]["WeeklyPlanPantryShoppingPreview"];
+    type PantryAdjustment = components["schemas"]["WeeklyPlanPantryAdjustmentEvidence"];
+    type PantryRemainingList = components["schemas"]["WeeklyPlanPantryRemainingShoppingList"];
+    type PantryProblem = components["schemas"]["InvalidWeeklyPlanPantryShoppingPreviewProblem"];
+    const postExists: PantryPreviewPost | undefined = undefined;
+    const operationExists: PantryPreviewOperation | undefined = undefined;
+    const requestExists: PantryPreviewRequest | undefined = undefined;
+    const responseExists: PantryPreviewResponse | undefined = undefined;
+    const adjustmentExists: PantryAdjustment | undefined = undefined;
+    const remainingExists: PantryRemainingList | undefined = undefined;
+    const problemExists: PantryProblem | undefined = undefined;
+
+    expect(path).toBe("/api/v1/weekly-plan-pantry-shopping-previews");
+    expect(client.POST).toBeTypeOf("function");
+    expect(postExists).toBeUndefined();
+    expect(operationExists).toBeUndefined();
+    expect(requestExists).toBeUndefined();
+    expect(responseExists).toBeUndefined();
+    expect(adjustmentExists).toBeUndefined();
+    expect(remainingExists).toBeUndefined();
     expect(problemExists).toBeUndefined();
   });
 
