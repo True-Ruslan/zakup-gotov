@@ -1,4 +1,5 @@
 from pathlib import Path
+import sys
 
 
 def replace_once(text: str, old: str, new: str, label: str) -> str:
@@ -18,15 +19,16 @@ def replace_section(text: str, start: str, end: str, replacement: str, label: st
     return text[:start_index] + replacement + text[end_index:]
 
 
-state_path = Path("docs/PROJECT_STATE.md")
-state = state_path.read_text(encoding="utf-8")
-state = replace_once(
-    state,
-    "- M3.5.2 Stateless Pantry-aware WeeklyPlan shopping preview API — **COMPLETE / ACCEPTED** (#124 / #125).\n\nCurrent deterministic target: **M3.5.3 — Pantry-aware WeeklyPlan → Comparison composition**.",
-    "- M3.5.2 Stateless Pantry-aware WeeklyPlan shopping preview API — **COMPLETE / ACCEPTED** (#124 / #125);\n- M3.5.3 Pantry-aware WeeklyPlan → Comparison composition — **COMPLETE / ACCEPTED** (#127 / #128).\n\nCurrent deterministic target: **M3.5.4 — Responsive Pantry controls**.",
-    "PROJECT_STATE milestone",
-)
-state_block = """### M3.5.3 — Pantry-aware WeeklyPlan → Comparison composition — COMPLETE / ACCEPTED
+def sync_state() -> None:
+    path = Path("docs/PROJECT_STATE.md")
+    text = path.read_text(encoding="utf-8")
+    text = replace_once(
+        text,
+        "- M3.5.2 Stateless Pantry-aware WeeklyPlan shopping preview API — **COMPLETE / ACCEPTED** (#124 / #125).\n\nCurrent deterministic target: **M3.5.3 — Pantry-aware WeeklyPlan → Comparison composition**.",
+        "- M3.5.2 Stateless Pantry-aware WeeklyPlan shopping preview API — **COMPLETE / ACCEPTED** (#124 / #125);\n- M3.5.3 Pantry-aware WeeklyPlan → Comparison composition — **COMPLETE / ACCEPTED** (#127 / #128).\n\nCurrent deterministic target: **M3.5.4 — Responsive Pantry controls**.",
+        "PROJECT_STATE milestone",
+    )
+    block = """### M3.5.3 — Pantry-aware WeeklyPlan → Comparison composition — COMPLETE / ACCEPTED
 
 Authoritative design: [`superpowers/specs/2026-08-15-m3-5-3-pantry-weekly-plan-comparison-design.md`](superpowers/specs/2026-08-15-m3-5-3-pantry-weekly-plan-comparison-design.md)  
 Implementation plan: [`superpowers/plans/2026-08-15-m3-5-3-pantry-weekly-plan-comparison.md`](superpowers/plans/2026-08-15-m3-5-3-pantry-weekly-plan-comparison.md)  
@@ -72,18 +74,20 @@ Required boundary:
 6. cover desktop/mobile/accessibility/fail-closed transport with deterministic Playwright and no live retailer requests.
 
 """
-state = replace_section(
-    state,
-    "## Next deterministic target — M3.5.3 Pantry-aware WeeklyPlan → Comparison composition\n",
-    "Explicit omit-all / never-buy exclusions remain",
-    state_block,
-    "PROJECT_STATE M3.5.3 section",
-)
-state_path.write_text(state, encoding="utf-8")
+    text = replace_section(
+        text,
+        "## Next deterministic target — M3.5.3 Pantry-aware WeeklyPlan → Comparison composition\n",
+        "Explicit omit-all / never-buy exclusions remain",
+        block,
+        "PROJECT_STATE M3.5.3 section",
+    )
+    path.write_text(text, encoding="utf-8")
 
-roadmap_path = Path("docs/ROADMAP.md")
-roadmap = roadmap_path.read_text(encoding="utf-8")
-roadmap_block = """#### M3.5.3 — Pantry-aware WeeklyPlan → Comparison composition — COMPLETE / ACCEPTED
+
+def sync_roadmap() -> None:
+    path = Path("docs/ROADMAP.md")
+    text = path.read_text(encoding="utf-8")
+    block = """#### M3.5.3 — Pantry-aware WeeklyPlan → Comparison composition — COMPLETE / ACCEPTED
 
 Authoritative design: [`superpowers/specs/2026-08-15-m3-5-3-pantry-weekly-plan-comparison-design.md`](superpowers/specs/2026-08-15-m3-5-3-pantry-weekly-plan-comparison-design.md)  
 Implementation plan: [`superpowers/plans/2026-08-15-m3-5-3-pantry-weekly-plan-comparison.md`](superpowers/plans/2026-08-15-m3-5-3-pantry-weekly-plan-comparison.md)  
@@ -140,24 +144,36 @@ Exit gate:
 - canonical acceptance docs updated separately.
 
 """
-roadmap = replace_section(
-    roadmap,
-    "#### M3.5.3 — Pantry-aware WeeklyPlan → Comparison composition — NEXT\n",
-    "#### Explicit omit-all exclusions — DEFERRED SEMANTIC DECISION\n",
-    roadmap_block,
-    "ROADMAP M3.5.3/M3.5.4 section",
-)
-roadmap_path.write_text(roadmap, encoding="utf-8")
+    text = replace_section(
+        text,
+        "#### M3.5.3 — Pantry-aware WeeklyPlan → Comparison composition — NEXT\n",
+        "#### Explicit omit-all exclusions — DEFERRED SEMANTIC DECISION\n",
+        block,
+        "ROADMAP M3.5.3/M3.5.4 section",
+    )
+    path.write_text(text, encoding="utf-8")
 
-changelog_path = Path("docs/CHANGELOG.md")
-changelog = changelog_path.read_text(encoding="utf-8")
-anchor = "- M3.5.2 acceptance records final reviewed head `1e08ee4f5111bb493eeb100cfc2579d6fbafa708`, squash merge `0dfbef49d265069578968fdedd18828c9452baca`, issue #124 closure and 8/8 successful post-merge `main` workflows.\n"
-addition = """- Stateless M3.5.3 `POST /api/v1/weekly-plan-pantry-comparison-previews` composes accepted M3.5.2 remaining demand into accepted ComparisonPreview without modifying M3.3 or M3.5.2.
+
+def sync_changelog() -> None:
+    path = Path("docs/CHANGELOG.md")
+    text = path.read_text(encoding="utf-8")
+    anchor = "- M3.5.2 acceptance records final reviewed head `1e08ee4f5111bb493eeb100cfc2579d6fbafa708`, squash merge `0dfbef49d265069578968fdedd18828c9452baca`, issue #124 closure and 8/8 successful post-merge `main` workflows.\n"
+    addition = """- Stateless M3.5.3 `POST /api/v1/weekly-plan-pantry-comparison-previews` composes accepted M3.5.2 remaining demand into accepted ComparisonPreview without modifying M3.3 or M3.5.2.
 - M3.5.3 returns explicit `COMPARED / NO_REMAINING_DEMAND`; full Pantry coverage skips ComparisonPreviewService/runtime retailer acquisition rather than fabricating non-empty demand.
 - Locality remains independently validated, only non-empty remaining demand reaches comparison, and ShoppingItem UUID/order/requirement/canonical quantity drift fails closed.
 - Zero-demand responses omit `comparisonPreview` on the wire; derived ComparisonPreview validation is translated into sanitized M3.5.3 problem details.
 - OpenAPI 3.1/generated TypeScript plus architecture/regression coverage protect the new boundary and existing M3.3/M3.5.2 behavior.
 - M3.5.3 acceptance records final reviewed head `2a10d5dd3e28ce6ff4eec21dd3555e8838d6f789`, squash merge `079a53be066fa488ee01da18a109f4f2b1484800`, issue #127 closure and 8/8 successful post-merge `main` workflows.
 """
-changelog = replace_once(changelog, anchor, anchor + addition, "CHANGELOG M3.5.2 line")
-changelog_path.write_text(changelog, encoding="utf-8")
+    text = replace_once(text, anchor, anchor + addition, "CHANGELOG M3.5.2 line")
+    path.write_text(text, encoding="utf-8")
+
+
+commands = {
+    "state": sync_state,
+    "roadmap": sync_roadmap,
+    "changelog": sync_changelog,
+}
+if len(sys.argv) != 2 or sys.argv[1] not in commands:
+    raise SystemExit("usage: m3_5_3_docs_sync.py state|roadmap|changelog")
+commands[sys.argv[1]]()
