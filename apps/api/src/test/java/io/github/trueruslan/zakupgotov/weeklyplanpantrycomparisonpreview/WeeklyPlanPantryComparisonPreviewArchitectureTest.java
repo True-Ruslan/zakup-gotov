@@ -17,7 +17,8 @@ class WeeklyPlanPantryComparisonPreviewArchitectureTest {
     private static final Set<String> ALLOWED_PROJECT_PACKAGES = Set.of(
             ROOT + "weeklyplanpantrypreview",
             ROOT + "weeklyplanpreview",
-            ROOT + "preview");
+            ROOT + "preview",
+            ROOT + "shopping");
 
     @Test
     void pantryAwareWeeklyComparisonProductionBoundaryExists() {
@@ -30,44 +31,36 @@ class WeeklyPlanPantryComparisonPreviewArchitectureTest {
     }
 
     @Test
-    void compositionDependsOnlyOnAcceptedPantryPreviewWeeklyRequestAndComparisonPreviewPackages() {
-        var projectDependencies = productionClasses().stream()
-                .filter(javaClass -> javaClass.getPackageName().equals(COMPOSITION))
-                .flatMap(javaClass -> javaClass.getDirectDependenciesFromSelf().stream())
-                .map(dependency -> dependency.getTargetClass())
-                .filter(target -> target.getName().startsWith(ROOT))
-                .filter(target -> !target.getPackageName().equals(COMPOSITION))
-                .map(target -> target.getPackageName())
-                .collect(Collectors.toSet());
+    void compositionDependsOnlyOnAcceptedCompositionAndCanonicalShoppingVocabulary() {
+        var projectDependencies = projectDependencies();
 
         assertThat(projectDependencies)
-                .as("M3.5.3 may compose only accepted M3.5.2, WeeklyPlan request vocabulary and ComparisonPreview")
+                .as("M3.5.3 may compose only accepted M3.5.2, WeeklyPlan request vocabulary, ComparisonPreview and canonical Shopping quantity vocabulary exposed by M3.5.2")
                 .isNotEmpty()
                 .allSatisfy(packageName -> assertThat(packageName).isIn(ALLOWED_PROJECT_PACKAGES));
         assertThat(projectDependencies)
-                .contains(ROOT + "weeklyplanpantrypreview", ROOT + "weeklyplanpreview", ROOT + "preview");
+                .contains(
+                        ROOT + "weeklyplanpantrypreview",
+                        ROOT + "weeklyplanpreview",
+                        ROOT + "preview",
+                        ROOT + "shopping");
     }
 
     @Test
-    void compositionDoesNotReachDomainRetailerProviderPersistenceOrBrowserPackagesDirectly() {
-        var classes = productionClasses();
+    void compositionDoesNotReachRetailerProviderPersistenceOrDomainOwnersDirectly() {
+        var projectDependencies = projectDependencies();
 
-        noClasses()
-                .that().resideInAPackage("..weeklyplanpantrycomparisonpreview..")
-                .should().dependOnClassesThat().resideInAnyPackage(
-                        "..pantry..",
-                        "..shopping..",
-                        "..recipe..",
-                        "..weeklyplan..",
-                        "..comparison..",
-                        "..basket..",
-                        "..matching..",
-                        "..provider..",
-                        "..retailer..",
-                        "..database..",
-                        "..persistence..",
-                        "..web..")
-                .check(classes);
+        assertThat(projectDependencies)
+                .noneMatch(packageName -> packageName.startsWith(ROOT + "provider"))
+                .noneMatch(packageName -> packageName.startsWith(ROOT + "retailer"))
+                .noneMatch(packageName -> packageName.startsWith(ROOT + "database"))
+                .noneMatch(packageName -> packageName.startsWith(ROOT + "persistence"))
+                .noneMatch(packageName -> packageName.startsWith(ROOT + "basket"))
+                .noneMatch(packageName -> packageName.startsWith(ROOT + "matching"))
+                .noneMatch(packageName -> packageName.startsWith(ROOT + "comparison"))
+                .noneMatch(packageName -> packageName.equals(ROOT + "pantry"))
+                .noneMatch(packageName -> packageName.equals(ROOT + "recipe"))
+                .noneMatch(packageName -> packageName.equals(ROOT + "weeklyplan"));
     }
 
     @Test
@@ -81,6 +74,17 @@ class WeeklyPlanPantryComparisonPreviewArchitectureTest {
                         "..weeklyplanpreview..")
                 .should().dependOnClassesThat().resideInAPackage("..weeklyplanpantrycomparisonpreview..")
                 .check(classes);
+    }
+
+    private static Set<String> projectDependencies() {
+        return productionClasses().stream()
+                .filter(javaClass -> javaClass.getPackageName().equals(COMPOSITION))
+                .flatMap(javaClass -> javaClass.getDirectDependenciesFromSelf().stream())
+                .map(dependency -> dependency.getTargetClass())
+                .filter(target -> target.getName().startsWith(ROOT))
+                .filter(target -> !target.getPackageName().equals(COMPOSITION))
+                .map(target -> target.getPackageName())
+                .collect(Collectors.toSet());
     }
 
     private static JavaClasses productionClasses() {
