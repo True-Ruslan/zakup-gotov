@@ -140,6 +140,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/weekly-plan-pantry-optimization-previews": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Create a server-owned Pantry-aware weekly-plan checkout optimization preview
+         * @description Preserves the accepted Pantry-aware WeeklyPlan comparison projection and adds server-owned checkout economics, eligibility, comparability and deterministic optimizer evidence. Full Pantry coverage omits optimizationPreview. The response exposes no provider, acquisition or fulfillment identifiers.
+         */
+        post: operations["createWeeklyPlanPantryOptimizationPreview"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/weekly-plan-comparison-previews": {
         parameters: {
             query?: never;
@@ -216,6 +236,11 @@ export interface components {
             weeklyPlan: components["schemas"]["WeeklyPlanShoppingPreviewRequest"];
         };
         WeeklyPlanPantryComparisonPreviewRequest: {
+            locality: string;
+            weeklyPlan: components["schemas"]["WeeklyPlanShoppingPreviewRequest"];
+            pantry: components["schemas"]["WeeklyPlanPantryItemInput"][];
+        };
+        WeeklyPlanPantryOptimizationPreviewRequest: {
             locality: string;
             weeklyPlan: components["schemas"]["WeeklyPlanShoppingPreviewRequest"];
             pantry: components["schemas"]["WeeklyPlanPantryItemInput"][];
@@ -409,6 +434,53 @@ export interface components {
         };
         /** @enum {string} */
         WeeklyPlanPantryComparisonOutcome: "COMPARED" | "NO_REMAINING_DEMAND";
+        /** @description optimizationPreview is present only when pantryComparisonPreview.comparisonOutcome is COMPARED. */
+        WeeklyPlanPantryOptimizationPreview: {
+            pantryComparisonPreview: components["schemas"]["WeeklyPlanPantryComparisonPreview"];
+            optimizationPreview?: components["schemas"]["CheckoutOptimizationPreview"];
+        };
+        CheckoutOptimizationPreview: {
+            retailers: components["schemas"]["RetailerCheckoutPreview"][];
+            status: components["schemas"]["BasketOptimizationStatus"];
+            optimalRetailerIds: components["schemas"]["RetailerId"][];
+            lowestComparableCheckoutTotal?: components["schemas"]["BasketTotal"];
+        };
+        RetailerCheckoutPreview: {
+            retailerId: components["schemas"]["RetailerId"];
+            assessment?: components["schemas"]["RetailerCheckoutAssessmentPreview"];
+        };
+        RetailerCheckoutAssessmentPreview: {
+            merchandiseSubtotal: components["schemas"]["BasketTotal"];
+            deliveryFee: components["schemas"]["BasketFee"];
+            serviceFee: components["schemas"]["BasketFee"];
+            minimumOrder: components["schemas"]["MinimumOrderConstraint"];
+            minimumOrderStatus: components["schemas"]["MinimumOrderStatus"];
+            checkoutTotalStatus: components["schemas"]["CheckoutTotalStatus"];
+            checkoutTotal?: components["schemas"]["BasketTotal"];
+            eligibilityStatus: components["schemas"]["RetailerCheckoutEligibilityStatus"];
+            comparabilityStatus: components["schemas"]["RetailerCheckoutComparabilityStatus"];
+            comparableCheckoutTotal?: components["schemas"]["BasketTotal"];
+        };
+        BasketFee: {
+            status: components["schemas"]["BasketEconomicsKnowledgeStatus"];
+            amount?: components["schemas"]["BasketTotal"];
+        };
+        MinimumOrderConstraint: {
+            status: components["schemas"]["BasketEconomicsKnowledgeStatus"];
+            threshold?: components["schemas"]["BasketTotal"];
+        };
+        /** @enum {string} */
+        BasketEconomicsKnowledgeStatus: "KNOWN" | "UNKNOWN";
+        /** @enum {string} */
+        MinimumOrderStatus: "MET" | "NOT_MET" | "UNKNOWN";
+        /** @enum {string} */
+        CheckoutTotalStatus: "KNOWN" | "UNKNOWN";
+        /** @enum {string} */
+        RetailerCheckoutEligibilityStatus: "ELIGIBLE" | "INELIGIBLE" | "UNKNOWN";
+        /** @enum {string} */
+        RetailerCheckoutComparabilityStatus: "COMPARABLE" | "NOT_COMPARABLE";
+        /** @enum {string} */
+        BasketOptimizationStatus: "NO_COMPARABLE_CANDIDATES" | "UNIQUE_WINNER" | "TIE";
         WeeklyPlanComparisonPreview: {
             weeklyPlanShoppingPreview: components["schemas"]["WeeklyPlanShoppingPreviewResponse"];
             comparisonPreview: components["schemas"]["ComparisonPreviewResponse"];
@@ -500,6 +572,21 @@ export interface components {
             errors: components["schemas"]["WeeklyPlanPantryComparisonPreviewValidationError"][];
         };
         WeeklyPlanPantryComparisonPreviewValidationError: {
+            field: string;
+            message: string;
+        };
+        InvalidWeeklyPlanPantryOptimizationPreviewProblem: {
+            /** @constant */
+            type: "https://zakup-gotov.dev/problems/invalid-weekly-plan-pantry-optimization-preview";
+            /** @constant */
+            title: "Invalid weekly plan pantry optimization preview request";
+            /** @constant */
+            status: 400;
+            /** @constant */
+            code: "INVALID_WEEKLY_PLAN_PANTRY_OPTIMIZATION_PREVIEW";
+            errors: components["schemas"]["WeeklyPlanPantryOptimizationPreviewValidationError"][];
+        };
+        WeeklyPlanPantryOptimizationPreviewValidationError: {
             field: string;
             message: string;
         };
@@ -784,6 +871,39 @@ export interface operations {
                 };
                 content: {
                     "application/problem+json": components["schemas"]["InvalidWeeklyPlanPantryComparisonPreviewProblem"];
+                };
+            };
+        };
+    };
+    createWeeklyPlanPantryOptimizationPreview: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["WeeklyPlanPantryOptimizationPreviewRequest"];
+            };
+        };
+        responses: {
+            /** @description Pantry-aware comparison audit plus server-owned checkout optimization evidence when demand remains */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WeeklyPlanPantryOptimizationPreview"];
+                };
+            };
+            /** @description Invalid Pantry-aware weekly plan optimization preview request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["InvalidWeeklyPlanPantryOptimizationPreviewProblem"];
                 };
             };
         };
