@@ -186,18 +186,22 @@ export function WeeklyPlanComparisonForm() {
 
   useEffect(() => {
     const result = readWeeklyPlanDraft(window.localStorage);
-    if (result.kind === "unavailable") {
-      setDraftStorageAvailable(false);
-      setDraftReady(true);
-      return;
-    }
+    const timeout = window.setTimeout(() => {
+      if (result.kind === "unavailable") {
+        setDraftStorageAvailable(false);
+        setDraftReady(true);
+        return;
+      }
 
-    if (result.draft !== null) {
-      setLocality(result.draft.locality);
-      setOccurrences(occurrenceRowsFromDraft(result.draft));
-      setPantryRows(pantryRowsFromDraft(result.draft));
-    }
-    setDraftReady(true);
+      if (result.draft !== null) {
+        setLocality(result.draft.locality);
+        setOccurrences(occurrenceRowsFromDraft(result.draft));
+        setPantryRows(pantryRowsFromDraft(result.draft));
+      }
+      setDraftReady(true);
+    }, 0);
+
+    return () => window.clearTimeout(timeout);
   }, []);
 
   useEffect(() => {
