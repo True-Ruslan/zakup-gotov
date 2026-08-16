@@ -8,7 +8,7 @@ Updated: 2026-08-16
 
 Repository: `True-Ruslan/zakup-gotov`  
 Visibility: Public  
-Current phase: **M4 — Basket Optimization**
+Current phase: **M5 — Productization**
 
 Milestone status:
 
@@ -33,8 +33,11 @@ Milestone status:
 - M4.2 One-retailer truthful total comparison — **COMPLETE / ACCEPTED** (#136 / #137).
 - M4.3 Deterministic basket optimizer — **COMPLETE / ACCEPTED** (#139 / #140).
 - M4.4.1 Server-owned optimization preview API — **COMPLETE / ACCEPTED** (#142 / #143).
+- M4.4.2 Responsive Optimization UX — **COMPLETE / ACCEPTED** (#145 / #146).
+- M4.4 Optimization UX — **COMPLETE / ACCEPTED**.
+- M4 Basket Optimization — **COMPLETE / ACCEPTED**.
 
-Current deterministic target: **M4.4.2 — Responsive Optimization UX**.
+Current deterministic target: **M5 — Productization**.
 
 ## Permanent connectivity rule
 
@@ -307,9 +310,38 @@ Acceptance proof:
 - issue #142 closed `completed`;
 - exact implementation merge — **8/8 normal push workflows SUCCESS**, including CodeQL Java and JavaScript/TypeScript.
 
-## Next deterministic target — M4.4.2 Responsive Optimization UX
+## M4.4.2 — Responsive Optimization UX — COMPLETE / ACCEPTED
 
-Consume only the generated M4.4.1 contract in the primary WeeklyPlan/Pantry browser flow. Render server-owned merchandise subtotal, known/unknown fees, minimum-order state, eligibility/comparability, optimizer status, exact ties and truthful no-comparable/no-demand states without client-side M4.1 arithmetic, M4.2 assessment or M4.3 winner selection. Browser acceptance remains deterministic, responsive, accessible and must make no live retailer requests.
+Acceptance: [`m4-4-2-responsive-optimization-ux-acceptance-2026-08-16.md`](m4-4-2-responsive-optimization-ux-acceptance-2026-08-16.md).  
+Authoritative design: [`superpowers/specs/2026-08-16-m4-4-2-responsive-optimization-ux-design.md`](superpowers/specs/2026-08-16-m4-4-2-responsive-optimization-ux-design.md).  
+Implementation plan: [`superpowers/plans/2026-08-16-m4-4-2-responsive-optimization-ux.md`](superpowers/plans/2026-08-16-m4-4-2-responsive-optimization-ux.md).  
+Accepted implementation merge: `7252b9264ed7a2ffe896b1a1fcddb09a78edc04c`.
+
+Accepted browser result:
+
+- the primary WeeklyPlan/Pantry flow consumes only the generated M4.4.1 optimization endpoint and response vocabulary;
+- original weekly demand, Pantry audit, remaining demand and retailer comparison remain visible from the accepted nested M3.5.3 projection;
+- `NO_REMAINING_DEMAND` is terminal and renders no retailer/optimization result;
+- `NO_COMPARABLE_CANDIDATES`, `UNIQUE_WINNER` and `TIE` render exactly from server-owned optimizer status/IDs/lowest-total evidence;
+- every checkout row renders server-owned merchandise subtotal, known/unknown fees, minimum-order evidence/state, checkout-total knowledge/value, eligibility and comparability;
+- known zero remains visibly different from unknown economics;
+- retailer display metadata is joined by canonical identity with a `Map`; duplicate/missing/mismatched identities or contradictory optimizer structure fail closed;
+- production browser code performs no M4.1 arithmetic, M4.2 assessment, M4.3 monetary ranking or tie-breaking;
+- Recipe/manual-list flows remain regression-covered secondary journeys;
+- deterministic desktop/mobile/accessibility browser acceptance makes no live retailer/provider request.
+
+Acceptance proof:
+
+- final reviewed feature head `ca2060546936f388556f62e49c6963d846274847` — **9/9 PR workflow groups SUCCESS**, 0 failure/skipped/cancelled;
+- Web lint/typecheck/component tests/Next production build and Chromium Playwright acceptance — **SUCCESS**;
+- read-only Change Review **Looks good**, no P0/P1/P2/P3/nitpicks and no unresolved review threads;
+- squash merge `7252b9264ed7a2ffe896b1a1fcddb09a78edc04c` with expected-head protection;
+- issue #145 closed `completed`;
+- exact implementation merge — **8/8 normal push workflows SUCCESS**.
+
+## Next deterministic target — M5 Productization
+
+M4 Basket Optimization is complete at the currently planned product slice. The next phase is reliable repeat use: privacy-aware accounts/preferences, analytics abstraction, feature flags, provider health monitoring and production provider activation only after access constraints are resolved. The first M5 implementation slice must be chosen from current repository/product evidence rather than introduced as an arbitrary continuation of M4.
 
 ## Magnit production state
 
@@ -324,7 +356,7 @@ Decision: [`integrations/magnit-production-access-decision-2026-08-13.md`](integ
 
 ## Parallel mandatory work
 
-Continue without blocking deterministic M4 work unless evidence invalidates accepted core assumptions:
+Continue without blocking deterministic M5 work unless evidence invalidates accepted core assumptions:
 
 - **#54** browser-bridge persistent-session/store-change/SPA lifecycle hardening;
 - **#36** Kuper supported aggregator investigation;
@@ -364,6 +396,7 @@ Continue without blocking deterministic M4 work unless evidence invalidates acce
 27. M4.3 never recomputes accepted package/SKU selections or converts freshness into a monetary penalty/confidence score.
 28. Browser optimization UX must render server-owned economics and optimizer decisions rather than recomputing them client-side.
 29. M4.4.1 is the server-owned browser contract for checkout optimization: missing economics stays UNKNOWN, full Pantry coverage skips optimization entirely and accepted M4.2/M4.3 remain the sole assessment/optimizer authorities.
+30. The primary WeeklyPlan/Pantry optimization browser flow consumes generated M4.4.1 only; browser joins are identity/structure checks and never become a second checkout-arithmetic, comparability or winner-selection implementation.
 
 ## Platform baseline
 
