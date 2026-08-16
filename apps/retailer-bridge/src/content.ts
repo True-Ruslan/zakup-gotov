@@ -224,7 +224,7 @@ function requestCollection(): void {
 }
 
 function handleSameDocumentNavigation(event: Event): void {
-  if (!collectionSucceeded) return;
+  if (!collectionSucceeded && !awaitingFreshContext && !refreshInFlight) return;
 
   const navigationEvent = event as Event & {
     destination?: { readonly sameDocument?: boolean; readonly url?: string };
