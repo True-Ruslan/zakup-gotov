@@ -15,12 +15,30 @@ const storeObservations = createChromeObservationSink(sendMessage);
 const clearObservations = createChromeObservationClearer(sendMessage);
 const observedResourceUrls = new Set<string>();
 
+function nextObservationRevision(previous: number): number {
+  const clockRevision = Math.floor((performance.timeOrigin + performance.now()) * 1_000);
+  if (!Number.isSafeInteger(clockRevision) || clockRevision <= 0) {
+    return previous + 1;
+  }
+  return Math.max(previous + 1, clockRevision);
+}
+
+let observationRevision = nextObservationRevision(0);
+let activeCollectionRevision: number | null = null;
 let currentFulfillmentContextKey: string | null = null;
 let contextSignalFloorStartTime = Number.NEGATIVE_INFINITY;
 let awaitingFreshContext = false;
 
 const sink = async (observations: BrowserObservation[]): Promise<void> => {
-  await storeObservations(observations);
+  const revision = activeCollectionRevision;
+  if (revision === null || revision !== observationRevision) {
+    return;
+  }
+
+  await storeObservations(observations, revision);
+  if (revision !== observationRevision) {
+    return;
+  }
 
   const contexts = new Set(
     observations.map(
@@ -68,6 +86,7 @@ function startLifecycleRefresh(options: {
   collectAfterReset: boolean;
   signalFloorStartTime?: number;
 }): void {
+  observationRevision = nextObservationRevision(observationRevision);
   collectionSucceeded = false;
   collectionPending = options.collectAfterReset;
   awaitingFreshContext = options.awaitFreshContext;
@@ -77,10 +96,11 @@ function startLifecycleRefresh(options: {
   observeDomChanges();
   publishDiagnostics("refreshing", 0);
 
-  if (refreshInFlight) return;
-
-  const reset = clearObservations().catch(() => {
-    publishDiagnostics("internal-error", 0);
+  const revision = observationRevision;
+  const reset = clearObservations(revision).catch(() => {
+    if (revision === observationRevision) {
+      publishDiagnostics("internal-error", 0);
+    }
   });
   refreshInFlight = reset;
   void reset.finally(() => finishRefresh(reset));
@@ -179,7 +199,9 @@ async function collectCurrentPage(): Promise<void> {
     return;
   }
 
+  const revision = observationRevision;
   collectionInFlight = true;
+  activeCollectionRevision = revision;
   try {
     const result = await collector.collect(
       document,
@@ -188,19 +210,28 @@ async function collectCurrentPage(): Promise<void> {
       [...observedResourceUrls],
     );
 
+    if (revision !== observationRevision) {
+      return;
+    }
+
     if (result.status === "ok") {
       collectionSucceeded = true;
       retainCurrentFulfillmentResource(new URL(location.href));
       contextSignalFloorStartTime = performance.now();
       domObserver?.disconnect();
     } else {
-      await clearObservations();
+      await clearObservations(revision);
     }
     publishDiagnostics(result.status, result.observationCount);
   } catch {
-    await clearObservations();
-    publishDiagnostics("internal-error", 0);
+    if (revision === observationRevision) {
+      await clearObservations(revision);
+      publishDiagnostics("internal-error", 0);
+    }
   } finally {
+    if (activeCollectionRevision === revision) {
+      activeCollectionRevision = null;
+    }
     collectionInFlight = false;
     if (
       collectionPending &&
@@ -224,7 +255,14 @@ function requestCollection(): void {
 }
 
 function handleSameDocumentNavigation(event: Event): void {
-  if (!collectionSucceeded && !awaitingFreshContext && !refreshInFlight) return;
+  if (
+    !collectionSucceeded &&
+    !awaitingFreshContext &&
+    !refreshInFlight &&
+    !collectionInFlight
+  ) {
+    return;
+  }
 
   const navigationEvent = event as Event & {
     destination?: { readonly sameDocument?: boolean; readonly url?: string };
@@ -265,4 +303,10 @@ const navigationTarget = (window as Window & { readonly navigation?: EventTarget
 navigationTarget?.addEventListener("navigate", handleSameDocumentNavigation);
 
 rememberResourceEntries(performance.getEntriesByType("resource"));
-requestCollection();
+collectionPending = true;
+publishDiagnostics("refreshing", 0);
+const initialReset = clearObservations(observationRevision).catch(() => {
+  publishDiagnostics("internal-error", 0);
+});
+refreshInFlight = initialReset;
+void initialReset.finally(() => finishRefresh(initialReset));
