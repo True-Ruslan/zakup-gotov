@@ -299,6 +299,8 @@ export function WeeklyPlanComparisonForm() {
   }
 
   function clearLocalDraft() {
+    if (pending || !draftReady) return;
+
     const result = removeWeeklyPlanDraft(window.localStorage);
     lastPersistedDraftJson.current = JSON.stringify(blankDraft());
     if (result.kind === "unavailable") setDraftStorageAvailable(false);
@@ -377,7 +379,7 @@ export function WeeklyPlanComparisonForm() {
         <button
           type="button"
           onClick={clearLocalDraft}
-          disabled={pending}
+          disabled={pending || !draftReady}
           className="mt-3 min-h-10 rounded-full border border-stone-300 bg-white px-4 text-sm font-medium text-stone-700 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-stone-900 disabled:opacity-40"
         >
           Очистить форму и локальный черновик
