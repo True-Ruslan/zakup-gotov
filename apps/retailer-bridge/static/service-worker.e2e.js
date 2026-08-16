@@ -3,17 +3,37 @@ const DELAY_NEXT_STORE_KEY = "zg.e2e.delayNextObservationStore";
 const STORE_PENDING_KEY = "zg.e2e.observationStorePending";
 const RELEASE_STORE_KEY = "zg.e2e.releaseObservationStore";
 
+let latestRevision = 0;
+let latestObservations = [];
+
+function validRevision(value) {
+  return Number.isSafeInteger(value) && value > 0;
+}
+
 chrome.runtime.onMessage.addListener((message) => {
-  if (message?.type !== "ZG_STORE_OBSERVATIONS" || !Array.isArray(message.observations)) {
+  if (
+    message?.type !== "ZG_STORE_OBSERVATIONS" ||
+    !Array.isArray(message.observations) ||
+    !validRevision(message.revision)
+  ) {
     return;
   }
 
+  const revision = message.revision;
+  if (revision < latestRevision) {
+    return Promise.resolve();
+  }
+
+  latestRevision = revision;
+  latestObservations = message.observations;
+
   return (async () => {
     const controls = await chrome.storage.local.get(DELAY_NEXT_STORE_KEY);
-    if (
+    const delayed =
       message.observations.length > 0 &&
-      controls[DELAY_NEXT_STORE_KEY] === true
-    ) {
+      controls[DELAY_NEXT_STORE_KEY] === true;
+
+    if (delayed) {
       await chrome.storage.local.remove([DELAY_NEXT_STORE_KEY, RELEASE_STORE_KEY]);
       await chrome.storage.local.set({ [STORE_PENDING_KEY]: true });
 
@@ -27,16 +47,22 @@ chrome.runtime.onMessage.addListener((message) => {
         };
         chrome.storage.onChanged.addListener(listener);
       });
+    }
 
+    if (revision === latestRevision) {
       await chrome.storage.local.set({
         [OBSERVATIONS_KEY]: message.observations,
       });
-      await chrome.storage.local.remove([STORE_PENDING_KEY, RELEASE_STORE_KEY]);
-      return;
     }
 
-    await chrome.storage.local.set({
-      [OBSERVATIONS_KEY]: message.observations,
-    });
+    if (delayed) {
+      await chrome.storage.local.remove([STORE_PENDING_KEY, RELEASE_STORE_KEY]);
+    }
+
+    if (revision !== latestRevision) {
+      await chrome.storage.local.set({
+        [OBSERVATIONS_KEY]: latestObservations,
+      });
+    }
   })();
 });
