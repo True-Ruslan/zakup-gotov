@@ -36,8 +36,9 @@ Milestone status:
 - M4.4.2 Responsive Optimization UX — **COMPLETE / ACCEPTED** (#145 / #146).
 - M4.4 Optimization UX — **COMPLETE / ACCEPTED**.
 - M4 Basket Optimization — **COMPLETE / ACCEPTED**.
+- M5.1 Private local WeeklyPlan/Pantry draft — **COMPLETE / ACCEPTED** (#148 / #149).
 
-Current deterministic target: **M5 — Productization**.
+Current deterministic target: **M5.2 — evidence-selected Productization slice**.
 
 ## Permanent connectivity rule
 
@@ -339,9 +340,40 @@ Acceptance proof:
 - issue #145 closed `completed`;
 - exact implementation merge — **8/8 normal push workflows SUCCESS**.
 
-## Next deterministic target — M5 Productization
+## M5.1 — Private local WeeklyPlan/Pantry draft — COMPLETE / ACCEPTED
 
-M4 Basket Optimization is complete at the currently planned product slice. The next phase is reliable repeat use: privacy-aware accounts/preferences, analytics abstraction, feature flags, provider health monitoring and production provider activation only after access constraints are resolved. The first M5 implementation slice must be chosen from current repository/product evidence rather than introduced as an arbitrary continuation of M4.
+Acceptance: [`m5-1-private-local-weekly-plan-draft-acceptance-2026-08-16.md`](m5-1-private-local-weekly-plan-draft-acceptance-2026-08-16.md).  
+Authoritative design: [`superpowers/specs/2026-08-16-m5-1-private-local-weekly-plan-draft-design.md`](superpowers/specs/2026-08-16-m5-1-private-local-weekly-plan-draft-design.md).  
+Implementation plan: [`superpowers/plans/2026-08-16-m5-1-private-local-weekly-plan-draft.md`](superpowers/plans/2026-08-16-m5-1-private-local-weekly-plan-draft.md).  
+Accepted implementation merge: `2f2b96d18521b8bb04f6ee17182d61711322de08`.
+
+Accepted browser-local result:
+
+- exactly one current WeeklyPlan/Pantry input draft is stored under versioned same-origin key `zakup-gotov.weekly-plan-draft.v1`;
+- persisted data is limited to user-authored locality, ordered occurrence/Recipe ingredient and Pantry edit values;
+- React row keys, generated server/domain identities, comparison/economics/optimizer results, provider state, errors, credentials and pending state are never persisted;
+- structurally valid V1 drafts restore after mount and presentation-only keys are reconstructed locally;
+- malformed/unsupported drafts fail closed; corrupt cleanup failure is reported as local-storage unavailable rather than silently claiming persistence readiness;
+- autosave is a 300 ms write-coalescing delay, never polling, and writes only on semantic editable-state differences after restore readiness;
+- unreadable storage never causes a blind blank-default overwrite; later real user edits may retry ordinary saving;
+- clear is disabled until restore readiness and during pending comparison, with the same fail-closed guard inside the handler;
+- clear removes storage, resets the visible form/result/errors and does not trigger comparison;
+- privacy copy explicitly says the draft stays only in this browser and is not synced to an account/server;
+- accepted M4.4.2 explicit-submit and server-owned comparison/economics/optimizer semantics remain unchanged;
+- deterministic Playwright proves exact storage/order, zero browser POST before explicit submit, restore across reload, explicit submit compatibility, clear, blank reload and no new implicit POST.
+
+Acceptance proof:
+
+- final reviewed feature head `6c54479044e41e5177739b57eb891830a79691f8` — **9/9 PR workflow groups SUCCESS**;
+- Web lint/typecheck/**65/65 component tests**/Next production build and Chromium Playwright — **SUCCESS**;
+- read-only Change Review **Looks good**, no P0/P1/P2/P3/nitpicks and no unresolved threads;
+- squash merge `2f2b96d18521b8bb04f6ee17182d61711322de08`;
+- issue #148 closed `completed`;
+- exact implementation merge — **8/8 normal push workflows SUCCESS**.
+
+## Next deterministic target — M5.2 evidence-selected Productization slice
+
+M5 remains the current phase. The next slice must be selected from a fresh repository/product survey after M5.1 rather than by automatically introducing accounts, analytics, feature flags or provider-health infrastructure. M5.1 proves value in repeat-use convenience but does not by itself justify a server-side personal-data/account boundary.
 
 ## Magnit production state
 
@@ -397,6 +429,7 @@ Continue without blocking deterministic M5 work unless evidence invalidates acce
 28. Browser optimization UX must render server-owned economics and optimizer decisions rather than recomputing them client-side.
 29. M4.4.1 is the server-owned browser contract for checkout optimization: missing economics stays UNKNOWN, full Pantry coverage skips optimization entirely and accepted M4.2/M4.3 remain the sole assessment/optimizer authorities.
 30. The primary WeeklyPlan/Pantry optimization browser flow consumes generated M4.4.1 only; browser joins are identity/structure checks and never become a second checkout-arithmetic, comparability or winner-selection implementation.
+31. M5.1 local draft persistence is browser convenience state only: it must remain versioned, same-origin, allow-listed and free of server/result/provider identities; restore/autosave/clear must never implicitly submit comparison or justify hidden server-side personal-data persistence.
 
 ## Platform baseline
 
