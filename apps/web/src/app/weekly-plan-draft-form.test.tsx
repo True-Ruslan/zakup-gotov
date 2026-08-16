@@ -76,6 +76,22 @@ describe("WeeklyPlan local draft recovery controls", () => {
     expect((screen.getByLabelText("Населённый пункт") as HTMLInputElement).value).toBe("Казань");
   });
 
+  it("does not overwrite unknown storage after a read failure until the user edits", async () => {
+    const setItem = vi.spyOn(Storage.prototype, "setItem");
+    vi.spyOn(Storage.prototype, "getItem").mockImplementation(() => {
+      throw new DOMException("blocked", "SecurityError");
+    });
+
+    render(<WeeklyPlanComparisonForm />);
+
+    expect(await screen.findByText(/Локальное сохранение недоступно/)).toBeDefined();
+    await new Promise((resolve) => window.setTimeout(resolve, 350));
+    expect(setItem).not.toHaveBeenCalled();
+
+    fireEvent.change(screen.getByLabelText("Населённый пункт"), { target: { value: "Казань" } });
+    await waitFor(() => expect(setItem).toHaveBeenCalledWith(WEEKLY_PLAN_DRAFT_STORAGE_KEY, expect.any(String)));
+  });
+
   it("ignores an unsupported draft and restores the existing blank initial state", async () => {
     window.localStorage.setItem(
       WEEKLY_PLAN_DRAFT_STORAGE_KEY,
