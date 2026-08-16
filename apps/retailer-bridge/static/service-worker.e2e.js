@@ -28,7 +28,11 @@ chrome.runtime.onMessage.addListener((message) => {
         chrome.storage.onChanged.addListener(listener);
       });
 
+      await chrome.storage.local.set({
+        [OBSERVATIONS_KEY]: message.observations,
+      });
       await chrome.storage.local.remove([STORE_PENDING_KEY, RELEASE_STORE_KEY]);
+      return;
     }
 
     await chrome.storage.local.set({
