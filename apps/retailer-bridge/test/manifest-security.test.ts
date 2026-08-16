@@ -16,6 +16,7 @@ describe("retailer bridge manifest", () => {
           "https://www.perekrestok.ru/*",
           "https://5ka.ru/*",
           "https://www.5ka.ru/*",
+          "https://chizhik.club/*",
         ],
         js: ["content.js"],
         run_at: "document_idle",
