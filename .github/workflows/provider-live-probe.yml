@@ -226,3 +226,115 @@ jobs:
             -f state="$state" \
             -f context="$context" \
             -f description="$description" >/dev/null
+
+  chizhik:
+    name: Chizhik Plain HTTP Phase A
+    if: >-
+      github.event_name == 'issue_comment' &&
+      github.event.issue.number == 155 &&
+      github.actor == 'True-Ruslan' &&
+      github.event.comment.body == '/provider-probe chizhik'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Set up Java 25
+        uses: actions/setup-java@b6effb05e454b25005698d916606bdc6ffcbf961 # v5
+        with:
+          distribution: temurin
+          java-version: "25"
+          cache: maven
+          cache-dependency-path: apps/api/pom.xml
+
+      - name: Verify pinned toolchain
+        working-directory: apps/api
+        shell: bash
+        run: |
+          set -euo pipefail
+          java -version 2>&1 | grep -Eq 'version "25([.\"])'
+          ./mvnw --version | grep -F 'Apache Maven 3.9.16'
+
+      - name: Run Chizhik plain HTTP Phase A
+        working-directory: apps/api
+        shell: bash
+        run: |
+          set -euo pipefail
+          set -o pipefail
+          ./mvnw --batch-mode --no-transfer-progress \
+            -Dtest=ChizhikPlainHttpProbeTest \
+            -Dzakup.live.chizhik=true \
+            test 2>&1 | tee "$RUNNER_TEMP/chizhik-live-probe.log"
+
+      - name: Publish sanitized evidence
+        if: always()
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          echo '## Chizhik plain HTTP Phase A' >> "$GITHUB_STEP_SUMMARY"
+
+          evidence=''
+          if [[ -f "$RUNNER_TEMP/chizhik-live-probe.log" ]]; then
+            evidence="$(grep -F 'CHIZHIK_PHASE_A' "$RUNNER_TEMP/chizhik-live-probe.log" | tail -n 1 || true)"
+          fi
+
+          state='failure'
+          outcome='no-evidence'
+          description='CHIZHIK_PHASE_A no_sanitized_evidence=true'
+
+          if [[ -n "$evidence" ]]; then
+            description="$evidence"
+            printf '`%s`\n' "$evidence" >> "$GITHUB_STEP_SUMMARY"
+
+            categories_outcome="$(sed -n 's/.*categories_outcome=\([^ ]*\).*/\1/p' <<<"$evidence")"
+            categories_status="$(sed -n 's/.*categories_status=\([-0-9]*\).*/\1/p' <<<"$evidence")"
+            categories_shape="$(sed -n 's/.*categories_shape=\([^ ]*\).*/\1/p' <<<"$evidence")"
+            search_outcome="$(sed -n 's/.*search_outcome=\([^ ]*\).*/\1/p' <<<"$evidence")"
+            search_status="$(sed -n 's/.*search_status=\([-0-9]*\).*/\1/p' <<<"$evidence")"
+            product_id="$(sed -n 's/.*product_id_present=\([^ ]*\).*/\1/p' <<<"$evidence")"
+            product_plu="$(sed -n 's/.*product_plu_present=\([^ ]*\).*/\1/p' <<<"$evidence")"
+            product_title="$(sed -n 's/.*product_title_present=\([^ ]*\).*/\1/p' <<<"$evidence")"
+            price_evidence="$(sed -n 's/.*price_evidence=\([^ ]*\).*/\1/p' <<<"$evidence")"
+
+            if [[ "$categories_outcome" == 'ACCESSIBLE' \
+               && "$categories_status" =~ ^2[0-9][0-9]$ \
+               && "$categories_shape" == 'true' \
+               && "$search_outcome" == 'ACCESSIBLE' \
+               && "$search_status" =~ ^2[0-9][0-9]$ \
+               && "$product_id" == 'true' \
+               && "$product_plu" == 'true' \
+               && "$product_title" == 'true' \
+               && "$price_evidence" == 'true' ]]; then
+              state='success'
+              outcome='pass'
+            elif [[ "$categories_outcome" != 'ACCESSIBLE' ]]; then
+              outcome="categories-${categories_outcome:-unknown}"
+            elif [[ "$categories_shape" != 'true' ]]; then
+              outcome='categories-shape'
+            elif [[ "$search_outcome" != 'ACCESSIBLE' ]]; then
+              outcome="search-${search_outcome:-unknown}"
+            elif [[ "$product_id" != 'true' || "$product_plu" != 'true' || "$product_title" != 'true' ]]; then
+              outcome='search-shape'
+            elif [[ "$price_evidence" != 'true' ]]; then
+              outcome='price-missing'
+            else
+              outcome='failed'
+            fi
+          else
+            echo 'No sanitized Phase A evidence line was emitted.' >> "$GITHUB_STEP_SUMMARY"
+          fi
+
+          context="Provider Live Probe / Chizhik / ${outcome}"
+          description="${description:0:140}"
+          gh api \
+            --method POST \
+            "repos/${GITHUB_REPOSITORY}/statuses/${GITHUB_SHA}" \
+            -f state="$state" \
+            -f context="$context" \
+            -f description="$description" >/dev/null
