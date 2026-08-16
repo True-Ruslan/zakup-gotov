@@ -84,6 +84,10 @@ function rememberAllowedResource(rawUrl: string): ResourceMemoryResult {
   if (!canonical) return { changed: false, contextChanged: false };
 
   const context = fulfillmentContextResource(rawUrl, pageUrl);
+  if (currentFulfillmentContextKey && !context) {
+    return { changed: false, contextChanged: false };
+  }
+
   if (
     collectionSucceeded &&
     currentFulfillmentContextKey &&
@@ -118,6 +122,18 @@ function rememberResourceEntries(entries: readonly PerformanceEntry[]): Resource
   return { changed, contextChanged };
 }
 
+function retainCurrentFulfillmentResource(pageUrl: URL): void {
+  const currentContext = currentFulfillmentContextKey;
+  const retained = currentContext
+    ? [...observedResourceUrls].filter(
+        (url) => fulfillmentContextResource(url, pageUrl)?.contextKey === currentContext,
+      )
+    : [];
+
+  observedResourceUrls.clear();
+  retained.forEach((url) => observedResourceUrls.add(url));
+}
+
 async function collectCurrentPage(): Promise<void> {
   if (collectionSucceeded) return;
   if (refreshInFlight) {
@@ -140,6 +156,7 @@ async function collectCurrentPage(): Promise<void> {
 
     if (result.status === "ok") {
       collectionSucceeded = true;
+      retainCurrentFulfillmentResource(new URL(location.href));
       domObserver?.disconnect();
     } else {
       await clearObservations();
@@ -164,18 +181,6 @@ function requestCollection(): void {
     return;
   }
   void collectCurrentPage();
-}
-
-function retainCurrentFulfillmentResource(pageUrl: URL): void {
-  const currentContext = currentFulfillmentContextKey;
-  const retained = currentContext
-    ? [...observedResourceUrls].filter(
-        (url) => fulfillmentContextResource(url, pageUrl)?.contextKey === currentContext,
-      )
-    : [];
-
-  observedResourceUrls.clear();
-  retained.forEach((url) => observedResourceUrls.add(url));
 }
 
 function handleSameDocumentNavigation(event: Event): void {
