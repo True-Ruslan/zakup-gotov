@@ -298,6 +298,7 @@ jobs:
             search_outcome="$(sed -n 's/.*search_outcome=\([^ ]*\).*/\1/p' <<<"$evidence")"
             search_status="$(sed -n 's/.*search_status=\([-0-9]*\).*/\1/p' <<<"$evidence")"
             product_id="$(sed -n 's/.*product_id_present=\([^ ]*\).*/\1/p' <<<"$evidence")"
+            product_plu="$(sed -n 's/.*product_plu_present=\([^ ]*\).*/\1/p' <<<"$evidence")"
             product_title="$(sed -n 's/.*product_title_present=\([^ ]*\).*/\1/p' <<<"$evidence")"
             price_evidence="$(sed -n 's/.*price_evidence=\([^ ]*\).*/\1/p' <<<"$evidence")"
 
@@ -307,6 +308,7 @@ jobs:
                && "$search_outcome" == 'ACCESSIBLE' \
                && "$search_status" =~ ^2[0-9][0-9]$ \
                && "$product_id" == 'true' \
+               && "$product_plu" == 'true' \
                && "$product_title" == 'true' \
                && "$price_evidence" == 'true' ]]; then
               state='success'
@@ -317,7 +319,7 @@ jobs:
               outcome='categories-shape'
             elif [[ "$search_outcome" != 'ACCESSIBLE' ]]; then
               outcome="search-${search_outcome:-unknown}"
-            elif [[ "$product_id" != 'true' || "$product_title" != 'true' ]]; then
+            elif [[ "$product_id" != 'true' || "$product_plu" != 'true' || "$product_title" != 'true' ]]; then
               outcome='search-shape'
             elif [[ "$price_evidence" != 'true' ]]; then
               outcome='price-missing'
