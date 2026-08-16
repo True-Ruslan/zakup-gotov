@@ -148,3 +148,34 @@ test("invalidates old store observations before recollecting a new fulfillment c
     await rm(userDataDir, { recursive: true, force: true });
   }
 });
+
+test("keeps only the new context when SPA navigation and store change overlap", async () => {
+  const { context, page, worker, userDataDir } = await openPerekrestokFixture();
+
+  try {
+    expect(JSON.stringify(await storedObservations(worker))).toContain('"fulfillmentContextId":"656"');
+
+    await page.evaluate(async () => {
+      history.pushState({}, "", "/cat/fixture-spa-new-store");
+      document.querySelector(".catalog-content")?.replaceChildren();
+      await fetch("/api/customer/1.4.1.0/shop/777?session=SECRET_COMBINED_CONTEXT#fragment");
+    });
+
+    await expect.poll(() => storedObservations(worker)).toEqual([]);
+    await insertProduct(page, "7712345", "SPA продукт нового магазина", "459,90");
+
+    await expect.poll(() => page.locator("html").getAttribute("data-zg-bridge-status")).toBe("ok");
+    await expect.poll(() => storedObservations(worker)).toHaveLength(1);
+
+    const serialized = JSON.stringify(await storedObservations(worker));
+    expect(serialized).toContain('"fulfillmentContextId":"777"');
+    expect(serialized).toContain('"sku":"7712345"');
+    expect(serialized).toContain('"sourceReference":"https://www.perekrestok.ru/cat/fixture-spa-new-store"');
+    expect(serialized).not.toContain('"fulfillmentContextId":"656"');
+    expect(serialized).not.toContain('"sku":"4408829"');
+    expect(serialized).not.toContain("SECRET_COMBINED_CONTEXT");
+  } finally {
+    await context.close();
+    await rm(userDataDir, { recursive: true, force: true });
+  }
+});
