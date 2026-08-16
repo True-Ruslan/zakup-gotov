@@ -181,10 +181,10 @@ export function readWeeklyPlanDraft(storage: Storage): DraftReadResult {
 
   try {
     storage.removeItem(WEEKLY_PLAN_DRAFT_STORAGE_KEY);
+    return { kind: "ready", draft: null };
   } catch {
-    // The corrupt value is still ignored. A later normal write can prove whether storage is usable.
+    return { kind: "unavailable" };
   }
-  return { kind: "ready", draft: null };
 }
 
 export function writeWeeklyPlanDraft(storage: Storage, value: unknown): DraftWriteResult {
