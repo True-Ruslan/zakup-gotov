@@ -21,28 +21,45 @@ const observation: BrowserObservation = {
   adapterVersion: "1",
 };
 
+const revision = 1_786_880_000_000_001;
+
 describe("Chrome observation messaging", () => {
-  it("sends only the normalized observation message contract", async () => {
+  it("sends normalized observations with their lifecycle revision", async () => {
     const sendMessage = vi.fn().mockResolvedValue(undefined);
     const sink = createChromeObservationSink(sendMessage);
 
-    await sink([observation]);
+    await sink([observation], revision);
 
     expect(sendMessage).toHaveBeenCalledExactlyOnceWith({
       type: "ZG_STORE_OBSERVATIONS",
+      revision,
       observations: [observation],
     });
   });
 
-  it("replaces stale observations with an empty normalized payload", async () => {
+  it("invalidates stale observations at the same lifecycle revision boundary", async () => {
     const sendMessage = vi.fn().mockResolvedValue(undefined);
     const clear = createChromeObservationClearer(sendMessage);
 
-    await clear();
+    await clear(revision);
 
     expect(sendMessage).toHaveBeenCalledExactlyOnceWith({
       type: "ZG_STORE_OBSERVATIONS",
+      revision,
       observations: [],
     });
   });
+
+  it.each([0, -1, Number.NaN, Number.POSITIVE_INFINITY, 1.5])(
+    "rejects invalid observation revision %s before messaging",
+    async (invalidRevision) => {
+      const sendMessage = vi.fn().mockResolvedValue(undefined);
+      const sink = createChromeObservationSink(sendMessage);
+
+      await expect(sink([observation], invalidRevision)).rejects.toThrow(
+        "observation revision must be a positive safe integer",
+      );
+      expect(sendMessage).not.toHaveBeenCalled();
+    },
+  );
 });
