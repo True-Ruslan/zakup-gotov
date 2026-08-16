@@ -8,7 +8,7 @@
     "build:e2e": "node scripts/build.mjs --e2e",
     "typecheck": "tsc --project tsconfig.json --noEmit",
     "test": "vitest run --config vitest.config.mjs",
-    "test:e2e": "playwright test --config playwright.config.ts"
+    "test:e2e": "pnpm build && pnpm build:e2e && playwright test --config playwright.config.ts"
   },
   "devDependencies": {
     "@playwright/test": "1.62.1",
