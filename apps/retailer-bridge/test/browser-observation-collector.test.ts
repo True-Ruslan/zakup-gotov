@@ -121,22 +121,25 @@ describe("BrowserObservationCollector", () => {
     expect(sink).not.toHaveBeenCalled();
   });
 
-  it("propagates a fail-closed adapter status without persisting data", async () => {
-    const sink = vi.fn();
-    const adapter = {
-      adapterId: "fixture",
-      retailerId: "perekrestok",
-      supports: () => true,
-      collect: () => ({ status: "missing-context", observations: [] }),
-    } as RetailerBrowserAdapter;
+  it.each(["missing-context", "observation-only"] as const)(
+    "propagates fail-closed adapter status %s without persisting data",
+    async (status) => {
+      const sink = vi.fn();
+      const adapter = {
+        adapterId: "fixture",
+        retailerId: "perekrestok",
+        supports: () => true,
+        collect: () => ({ status, observations: [] }),
+      } as RetailerBrowserAdapter;
 
-    const result = await new BrowserObservationCollector([adapter], sink).collect(
-      document.implementation.createHTMLDocument(),
-      new URL("https://www.perekrestok.ru/cat/1"),
-      OBSERVED_AT,
-    );
+      const result = await new BrowserObservationCollector([adapter], sink).collect(
+        document.implementation.createHTMLDocument(),
+        new URL("https://www.perekrestok.ru/cat/1"),
+        OBSERVED_AT,
+      );
 
-    expect(result).toEqual({ status: "missing-context", observationCount: 0 });
-    expect(sink).not.toHaveBeenCalled();
-  });
+      expect(result).toEqual({ status, observationCount: 0 });
+      expect(sink).not.toHaveBeenCalled();
+    },
+  );
 });
