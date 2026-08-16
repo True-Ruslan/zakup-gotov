@@ -49,3 +49,12 @@ jobs:
 
       - name: Run bridge Chromium E2E
         run: pnpm --dir apps/retailer-bridge test:e2e
+
+      - name: Upload verified bridge artifact
+        if: ${{ github.event_name == 'push' && github.ref == 'refs/heads/main' }}
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: retailer-bridge-${{ github.sha }}
+          path: apps/retailer-bridge/dist
+          if-no-files-found: error
+          retention-days: 14
