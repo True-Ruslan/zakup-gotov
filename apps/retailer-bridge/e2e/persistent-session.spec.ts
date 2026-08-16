@@ -104,8 +104,7 @@ test("refreshes observations after same-document SPA catalog navigation", async 
     await insertProduct(page, "5512345", "Новый SPA продукт", "249,50");
 
     await expect.poll(() => page.locator("html").getAttribute("data-zg-bridge-status")).toBe("ok");
-    const refreshed = JSON.stringify(await expect.poll(() => storedObservations(worker)).toHaveLength(1));
-    void refreshed;
+    await expect.poll(() => storedObservations(worker)).toHaveLength(1);
 
     const serialized = JSON.stringify(await storedObservations(worker));
     expect(serialized).toContain('"fulfillmentContextId":"656"');
