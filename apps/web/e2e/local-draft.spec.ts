@@ -1,9 +1,9 @@
-import { expect, test } from "@playwright/test";
+import { expect, test, type Locator } from "@playwright/test";
 
 const DRAFT_STORAGE_KEY = "zakup-gotov.weekly-plan-draft.v1";
 
 async function fillMeal(
-  meal: ReturnType<Parameters<typeof test>[0]> extends never ? never : any,
+  meal: Locator,
   values: {
     day: "TUESDAY" | "FRIDAY";
     targetServings: string;
