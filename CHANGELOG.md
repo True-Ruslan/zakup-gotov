@@ -6,6 +6,17 @@ All notable project changes are recorded here. Zakup Gotov is pre-release; entri
 
 ### Added
 
+#### Productization
+
+- M5.1 adds exactly one versioned same-origin browser-local WeeklyPlan/Pantry input draft under `zakup-gotov.weekly-plan-draft.v1` for repeat use without accounts or server persistence.
+- The local draft persists only editable semantic input: locality, ordered meal occurrences, day/servings, Recipe title/base servings/ingredients and Pantry rows; presentation keys, generated identities, comparison/economics/optimizer results and provider/acquisition/fulfillment evidence are excluded.
+- Editable numeric values are stored as strings so unfinished browser input round-trips without coercion.
+- Draft restore happens only after client mount, never auto-submits comparison, and autosave is restore-gated, debounced and semantic-no-op aware.
+- Local-storage get/set/remove failures fail closed while editing and explicit server submission remain usable; failed reads cannot trigger blind blank overwrite and corrupt-draft cleanup failure is surfaced as storage unavailable.
+- Explicit `Очистить форму и локальный черновик` removes the local draft and resets input/result/error state without an API request; clear is gated until restore settles and while comparison is pending.
+- Deterministic production-build Playwright acceptance proves exact semantic storage, occurrence reorder/Pantry restore, zero implicit POST before explicit submit, explicit clear and blank second reload.
+- M5.1 acceptance records final reviewed head `6c54479044e41e5177739b57eb891830a79691f8`, squash merge `2f2b96d18521b8bb04f6ee17182d61711322de08`, issue #148 closure and 8/8 successful post-merge `main` workflows.
+
 #### Recipes
 
 - Separate immutable `recipe` domain for M2.1 with UUID-backed recipe/ingredient identity, normalized titles, positive integer servings and ordered explicit ingredients.
@@ -63,7 +74,7 @@ All notable project changes are recorded here. Zakup Gotov is pre-release; entri
 - Public M3.2 provenance exposes only self-contained `occurrenceId + recipeId + recipeIngredientId` source tuples; internal `RecipeAggregationEntryId` remains hidden.
 - M3.2 rejects malformed JSON, unknown fields/day/unit and fractional serving JSON through sanitized `INVALID_WEEKLY_PLAN_SHOPPING_PREVIEW` problems without exposing parser internals.
 - OpenAPI 3.1 and generated TypeScript expose `createWeeklyPlanShoppingPreview`, `WEEKLY_PLAN_SHOPPING_PREVIEWS_PATH` and synchronized request/response/problem types.
-- ArchUnit guards keep `weeklyplanpreview` out of provider, retailer, matching, basket, comparison and database layers and protect reverse dependency direction into accepted Recipe/Shopping/WeeklyPlan packages.
+- ArchUnit keeps `weeklyplanpreview` out of provider, retailer, matching, basket, comparison and database layers and protect reverse dependency direction into accepted Recipe/Shopping/WeeklyPlan packages.
 - M3.2 design, implementation plan, shipping evidence and acceptance decision document request/composition/provenance/HTTP/contract/hardening RED→GREEN chains, reviewed head `250aedb85b675036ffcb20e96a67db1afc03167a`, squash merge `9682ad1230910fc268ca3cddd8601a3fad7b100e`, issue #112 closure and 8/8 successful post-merge `main` workflows.
 - Stateless M3.3 `POST /api/v1/weekly-plan-comparison-previews` composes provider-neutral locality plus the accepted M3.2 WeeklyPlan input into one accepted weekly shopping projection and retailer comparison without client-controlled server identities.
 - M3.3 preserves generated weekly ShoppingItem UUID, order, normalized requirement and canonical quantity unchanged into ComparisonPreview while returning M3.2 self-contained `occurrenceId + recipeId + recipeIngredientId` provenance unchanged.
@@ -195,6 +206,8 @@ All notable project changes are recorded here. Zakup Gotov is pre-release; entri
 ### Changed
 
 - Project phase advanced from M0 Product & Integration Discovery through M1 Shopping Core, M2 Recipes, M3 Weekly Planning / Pantry and M4 Basket Optimization; the current deterministic phase is **M5 Productization**.
+- M5.1 Private local WeeklyPlan draft is **COMPLETE / ACCEPTED** after final reviewed head `6c54479044e41e5177739b57eb891830a79691f8`, squash merge `2f2b96d18521b8bb04f6ee17182d61711322de08`, issue #148 closure and 8/8 successful post-merge `main` workflows.
+- The immediate operational target is a new immutable **`v0.1.0-rc.3`** prerelease proving the existing release contract end to end; M5.2 remains intentionally unselected until release-candidate/manual-use evidence identifies the next highest-value productization constraint.
 - M1 Shopping Core is **COMPLETE / ACCEPTED** on the post-merge pre-acquisition-gate baseline `779d0b219a13e0bf82263a1e655fb732553ed5fe`.
 - The M1→M2 decision is **GO for deterministic product/core development**; it does not claim every retailer is production-ready.
 - M2.1 `Recipe → explicit ingredients → canonical quantities → ShoppingList` is **COMPLETE / ACCEPTED** after squash merge `423eb14f7c565bbe264257a92df89a6b42d0d158` and 8/8 successful post-merge `main` workflows.
@@ -217,10 +230,10 @@ All notable project changes are recorded here. Zakup Gotov is pre-release; entri
 - M4.3 deterministic basket optimizer is **COMPLETE / ACCEPTED** after final reviewed head `ddc5fed0d3bb98d9c17e5f1ec739ffad9ba77ad5`, squash merge `c854526c30a1b0b1b6b435ae37608da0d9501955`, issue #139 closure and 8/8 successful post-merge `main` workflows.
 - M4.4.1 server-owned optimization preview API is **COMPLETE / ACCEPTED** after final reviewed head `9d343f18e1391a9d249625e2cdab6de02b13e913`, squash merge `67679282a388da16706c46a3caf3ff46b2b67d54`, issue #142 closure and 8/8 successful post-merge `main` workflows.
 - M4.4.2 responsive Optimization UX is **COMPLETE / ACCEPTED** after final reviewed head `ca2060546936f388556f62e49c6963d846274847`, squash merge `7252b9264ed7a2ffe896b1a1fcddb09a78edc04c`, issue #145 closure and 8/8 successful post-merge `main` workflows.
-- M4 Basket Optimization is **COMPLETE / ACCEPTED**; the current deterministic target is **M5 Productization**, whose first implementation slice must be selected from current product/repository evidence rather than invented as an arbitrary M4 continuation.
+- M4 Basket Optimization is **COMPLETE / ACCEPTED**; the current deterministic target is **M5 Productization**.
 - Recipe → ShoppingList merging is intentionally stricter than product matching: only exact normalized requirements with the same canonical unit merge; no case-folding/synonym/AI equivalence is introduced.
 - Recipe provenance remains conversion metadata rather than an optional Recipe field added to neutral `ShoppingItem`; M2.2 projects that provenance publicly as self-contained source ingredient IDs instead of modifying Shopping Core types.
-- Recipe lifecycle and Weekly Planning/Pantry composition remain stateless by default; persistence stays deferred until reusable saved plans/history demonstrate product value.
+- Recipe lifecycle and Weekly Planning/Pantry composition remain stateless at the server boundary; M5.1 adds only one private browser-local input draft, not server-side saved-plan history.
 - Recipe → Comparison has an accepted primary product boundary at `/api/v1/recipe-comparison-previews`; M2.4 consumes it directly as the primary Recipe-first browser journey.
 - Multi-Recipe aggregation distinguishes Recipe identity from occurrence identity; repeated Recipe use is valid only through distinct occurrence IDs and does not weaken accepted exact merge semantics.
 - WeeklyPlan distinguishes planner occurrence identity from Recipe identity and keeps day metadata outside Recipe/Shopping merge and quantity semantics.
@@ -244,6 +257,9 @@ All notable project changes are recorded here. Zakup Gotov is pre-release; entri
 
 ### Fixed
 
+- Clean-checkout local web development now builds the generated `@zakup-gotov/api-client` workspace package before `next dev`, preventing the manual startup `Module not found: Can't resolve '@zakup-gotov/api-client'` failure found during pre-release testing (#150).
+- Manual-list form SSR/hydration no longer generates random row identity during render; deterministic presentation keys are used for HTML identity and request UUIDs are created only on explicit submit (#150).
+- M5.1 prevents a failed initial local-storage read from being followed by blind blank autosave, gates clear until restore readiness so delayed restore cannot resurrect deleted data, and reports corrupt-draft cleanup failure as storage unavailable instead of successful cleanup.
 - Recipe aggregate rejects missing fields, empty ingredient lists, null ingredients and duplicate ingredient IDs instead of producing a partially valid recipe.
 - Recipe conversion rejects missing inputs and invalid provenance identities.
 - Recipe generated-item identity collision across different merge keys fails closed rather than relying on overwrite/order behavior.
