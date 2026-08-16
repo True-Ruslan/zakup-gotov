@@ -131,6 +131,10 @@ function draftFromRows(
   };
 }
 
+function blankDraft(): WeeklyPlanDraftV1 {
+  return draftFromRows("", [newOccurrence(1)], []);
+}
+
 function clientErrors(locality: string, occurrences: OccurrenceRow[], pantryRows: PantryRow[]) {
   const errors: string[] = [];
   if (!locality.trim()) errors.push("Укажите населённый пункт.");
@@ -184,21 +188,25 @@ export function WeeklyPlanComparisonForm() {
   const [pending, setPending] = useState(false);
   const [draftReady, setDraftReady] = useState(false);
   const [draftStorageAvailable, setDraftStorageAvailable] = useState(true);
-  const skipNextAutosave = useRef(false);
+  const lastPersistedDraftJson = useRef(JSON.stringify(blankDraft()));
 
   useEffect(() => {
     const result = readWeeklyPlanDraft(window.localStorage);
     const timeout = window.setTimeout(() => {
       if (result.kind === "unavailable") {
+        lastPersistedDraftJson.current = JSON.stringify(blankDraft());
         setDraftStorageAvailable(false);
         setDraftReady(true);
         return;
       }
 
       if (result.draft !== null) {
+        lastPersistedDraftJson.current = JSON.stringify(result.draft);
         setLocality(result.draft.locality);
         setOccurrences(occurrenceRowsFromDraft(result.draft));
         setPantryRows(pantryRowsFromDraft(result.draft));
+      } else {
+        lastPersistedDraftJson.current = JSON.stringify(blankDraft());
       }
       setDraftReady(true);
     }, 0);
@@ -208,16 +216,14 @@ export function WeeklyPlanComparisonForm() {
 
   useEffect(() => {
     if (!draftReady) return;
-    if (skipNextAutosave.current) {
-      skipNextAutosave.current = false;
-      return;
-    }
+
+    const draft = draftFromRows(locality, occurrences, pantryRows);
+    const serialized = JSON.stringify(draft);
+    if (serialized === lastPersistedDraftJson.current) return;
 
     const timeout = window.setTimeout(() => {
-      const result = writeWeeklyPlanDraft(
-        window.localStorage,
-        draftFromRows(locality, occurrences, pantryRows),
-      );
+      const result = writeWeeklyPlanDraft(window.localStorage, draft);
+      if (result.kind === "saved") lastPersistedDraftJson.current = serialized;
       setDraftStorageAvailable(result.kind === "saved");
     }, 300);
 
@@ -293,8 +299,8 @@ export function WeeklyPlanComparisonForm() {
   }
 
   function clearLocalDraft() {
-    skipNextAutosave.current = true;
     const result = removeWeeklyPlanDraft(window.localStorage);
+    lastPersistedDraftJson.current = JSON.stringify(blankDraft());
     if (result.kind === "unavailable") setDraftStorageAvailable(false);
     setLocality("");
     setOccurrences([newOccurrence(1)]);
