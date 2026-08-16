@@ -189,7 +189,7 @@ Acceptance proof:
 
 A boolean `never buy` / omit-all rule is not equivalent to Pantry stock and must not be encoded as zero/negative quantity. Add it only after a separate design establishes product need and truthful provenance semantics.
 
-Persistence/saved-plan history remains deferred until repeat-use evidence demonstrates product value and correctness requirements justify it.
+Server-side persistence/saved-plan history remains deferred until repeat-use evidence demonstrates product value and correctness requirements justify it. M5.1 adds only a private browser-local input draft, not saved-plan history.
 
 ## Parallel connectivity / operational work
 
@@ -335,11 +335,60 @@ Acceptance proof:
 - issue #145 closed `completed`;
 - exact merge — **8/8 normal push workflows SUCCESS**.
 
-## M5 — Productization — CURRENT / NEXT
+## M5 — Productization — CURRENT
 
 Goal: reliable repeat use with privacy-aware accounts/preferences, analytics abstraction, feature flags, provider health monitoring and production provider activation only after access constraints are resolved.
 
-The first M5 slice is intentionally not pre-selected here. It must be chosen from current repository/product evidence and should solve the highest-value productization constraint without weakening privacy, deterministic behavior or provider-access policy.
+### M5.1 — Private local WeeklyPlan draft — COMPLETE / ACCEPTED
+
+Acceptance: [`m5-1-private-local-weekly-plan-draft-acceptance-2026-08-16.md`](m5-1-private-local-weekly-plan-draft-acceptance-2026-08-16.md)  
+Authoritative design: [`superpowers/specs/2026-08-16-m5-1-private-local-weekly-plan-draft-design.md`](superpowers/specs/2026-08-16-m5-1-private-local-weekly-plan-draft-design.md)  
+Implementation plan: [`superpowers/plans/2026-08-16-m5-1-private-local-weekly-plan-draft.md`](superpowers/plans/2026-08-16-m5-1-private-local-weekly-plan-draft.md)  
+Accepted implementation merge: `2f2b96d18521b8bb04f6ee17182d61711322de08`.
+
+Accepted result:
+
+- one versioned same-origin browser-local draft for the primary WeeklyPlan/Pantry editable input;
+- persisted state is semantic-only: locality, ordered occurrences, Recipe fields/ingredients and Pantry rows; presentation keys, generated IDs, comparison/economics/optimizer/provider evidence never enter storage;
+- numeric form values persist as strings so unfinished input round-trips without coercion;
+- restore happens only after client mount and never auto-submits comparison;
+- autosave is restore-gated, debounced and compares against the last confirmed semantic persisted baseline;
+- storage get/set/remove failures fail closed without breaking editing/submission;
+- failed reads do not cause blind blank overwrites and corrupt-draft cleanup failure is surfaced as storage unavailable;
+- explicit clear resets input/result/error state and removes local storage without an API call; clear is gated until restore settles and while comparison is pending;
+- deterministic browser acceptance proves exact semantic storage, reorder/Pantry restore, zero implicit POST before explicit submit, clear and blank second reload;
+- M4.4.2 server-owned comparison/economics/optimizer semantics remain unchanged.
+
+Acceptance proof:
+
+- final reviewed head `6c54479044e41e5177739b57eb891830a79691f8` — **9/9 PR workflows SUCCESS**;
+- read-only review found no remaining P0/P1/P2/P3/nitpicks and no unresolved threads;
+- squash merge `2f2b96d18521b8bb04f6ee17182d61711322de08` with expected-head protection;
+- issue #148 closed `completed`;
+- exact merge — **8/8 normal push workflows SUCCESS**, 0 failures, including CodeQL Java and JavaScript/TypeScript.
+
+M5.2 is intentionally **not selected yet**. The next productization slice should be chosen only after the current product is exercised as a real release candidate; this avoids inventing account/analytics/monitoring scope before we have repeat-use and release evidence.
+
+## Immediate operational target — v0.1.0-rc.3 — NEXT
+
+A new immutable **`v0.1.0-rc.3`** prerelease from documentation-synchronized verified `main` is the next highest-value validation.
+
+It must complete the existing release contract end to end:
+
+- `Release / Verify` and `Release / Publish` both succeed;
+- API/web multi-platform staging images cover `linux/amd64` and `linux/arm64`;
+- every release Trivy and SBOM step passes without suppression;
+- staging exact-digest Compose smoke succeeds;
+- verified indexes are copied without rebuild into final packages with digest identity preserved;
+- final exact-digest Compose smoke succeeds;
+- GitHub provenance attestations are created for final digests;
+- prerelease SemVer OCI tags are promoted from already verified digests;
+- final manifests contain both target architectures;
+- release evidence/checksums are attached;
+- prerelease publication leaves `latest` untouched;
+- staging packages remain private and final-package visibility is verified separately.
+
+Do not create stable `v0.1.0` until at least one prerelease completes the full workflow and its evidence has been inspected. Manual product canary should run against that successful release candidate rather than a source-checkout-only environment.
 
 ## M6 — Native Mobile
 
