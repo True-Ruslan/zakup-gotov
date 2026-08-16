@@ -40,6 +40,42 @@ describe("canonicalObservedResourceUrl", () => {
       ),
     ).toBeNull();
   });
+
+  it("allows only path-only Chizhik unauthorized catalog evidence on an official Chizhik page", () => {
+    const page = new URL("https://chizhik.club/deeplink?action_type=to_screen");
+
+    expect(
+      canonicalObservedResourceUrl(
+        "https://app.chizhik.club/api/v1/catalog/unauthorized/categories/?store=SECRET#fragment",
+        page,
+      ),
+    ).toBe("https://app.chizhik.club/api/v1/catalog/unauthorized/categories/");
+    expect(
+      canonicalObservedResourceUrl(
+        "https://app.chizhik.club/api/v1/catalog/unauthorized/products/?lat=SECRET&lon=SECRET",
+        page,
+      ),
+    ).toBe("https://app.chizhik.club/api/v1/catalog/unauthorized/products/");
+
+    expect(
+      canonicalObservedResourceUrl(
+        "https://app.chizhik.club/api/v1/profile/me",
+        page,
+      ),
+    ).toBeNull();
+    expect(
+      canonicalObservedResourceUrl(
+        "https://app.chizhik.club/api/v1/catalog/unauthorized/products/",
+        new URL("https://chizhik.club.evil.example/"),
+      ),
+    ).toBeNull();
+    expect(
+      canonicalObservedResourceUrl(
+        "https://app.chizhik.club.evil.example/api/v1/catalog/unauthorized/products/",
+        page,
+      ),
+    ).toBeNull();
+  });
 });
 
 describe("fulfillmentContextResource", () => {
@@ -74,6 +110,17 @@ describe("fulfillmentContextResource", () => {
     });
     expect(
       fulfillmentContextResource("https://5d.5ka.ru/api/profile/v1/me", page),
+    ).toBeNull();
+  });
+
+  it("does not promote Chizhik catalog resource paths into a guessed fulfillment context", () => {
+    const page = new URL("https://chizhik.club/");
+
+    expect(
+      fulfillmentContextResource(
+        "https://app.chizhik.club/api/v1/catalog/unauthorized/products/?store=SECRET",
+        page,
+      ),
     ).toBeNull();
   });
 });
