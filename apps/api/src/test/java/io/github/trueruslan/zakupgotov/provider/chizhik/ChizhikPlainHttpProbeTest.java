@@ -140,6 +140,7 @@ class ChizhikPlainHttpProbeTest {
         assertThat(result.categoriesShape()).isTrue();
         assertThat(result.searchOutcome()).isEqualTo(ChizhikPlainHttpProbe.Outcome.ACCESSIBLE);
         assertThat(result.productIdPresent()).isTrue();
+        assertThat(result.productPluPresent()).isTrue();
         assertThat(result.productTitlePresent()).isTrue();
         assertThat(result.priceEvidence()).isTrue();
     }
