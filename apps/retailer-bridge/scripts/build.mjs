@@ -109,4 +109,7 @@ await copyFile(
   resolve(root, e2e ? "static/manifest.e2e.json" : "static/manifest.json"),
   resolve(outDir, "manifest.json"),
 );
-await copyFile(resolve(root, "static/service-worker.js"), resolve(outDir, "service-worker.js"));
+await copyFile(
+  resolve(root, e2e ? "static/service-worker.e2e.js" : "static/service-worker.js"),
+  resolve(outDir, "service-worker.js"),
+);
