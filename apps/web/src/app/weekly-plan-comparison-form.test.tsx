@@ -3,6 +3,10 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { createWeeklyPlanOptimizationPreview } from "./weekly-plan-comparison";
 import { WeeklyPlanComparisonForm } from "./weekly-plan-comparison-form";
+import {
+  WEEKLY_PLAN_DRAFT_STORAGE_KEY,
+  type WeeklyPlanDraftV1,
+} from "./weekly-plan-draft";
 
 vi.mock("./weekly-plan-comparison", () => ({ createWeeklyPlanOptimizationPreview: vi.fn() }));
 vi.mock("./weekly-plan-comparison-results", () => ({
@@ -13,6 +17,7 @@ const mockedCreate = vi.mocked(createWeeklyPlanOptimizationPreview);
 
 afterEach(() => {
   cleanup();
+  window.localStorage.clear();
   vi.clearAllMocks();
 });
 
@@ -45,6 +50,26 @@ function fillRequiredWeeklyPlan() {
   fireEvent.change(within(group).getByLabelText("Единица"), { target: { value: "LITER" } });
 }
 
+function storedDraft(): WeeklyPlanDraftV1 {
+  return {
+    version: 1,
+    locality: "Москва",
+    occurrences: [
+      {
+        day: "WEDNESDAY",
+        targetServings: "3",
+        title: "Омлет",
+        baseServings: "2",
+        ingredients: [
+          { requirement: "Яйца", amount: "4", unit: "PIECE" },
+          { requirement: "Молоко", amount: "150", unit: "MILLILITER" },
+        ],
+      },
+    ],
+    pantry: [{ requirement: "Яйца", amount: "2", unit: "PIECE" }],
+  };
+}
+
 describe("WeeklyPlan Pantry optimization form", () => {
   it("starts with one occurrence, one protected ingredient and no Pantry rows", () => {
     render(<WeeklyPlanComparisonForm />);
@@ -53,6 +78,48 @@ describe("WeeklyPlan Pantry optimization form", () => {
     expect(screen.queryByRole("group", { name: /Запас дома 1/ })).toBeNull();
     expect((screen.getByRole("button", { name: "Удалить блюдо 1" }) as HTMLButtonElement).disabled).toBe(true);
     expect((screen.getByRole("button", { name: "Переместить блюдо 1 выше" }) as HTMLButtonElement).disabled).toBe(true);
+  });
+
+  it("restores a supported local draft after mount without submitting comparison", async () => {
+    window.localStorage.setItem(WEEKLY_PLAN_DRAFT_STORAGE_KEY, JSON.stringify(storedDraft()));
+
+    render(<WeeklyPlanComparisonForm />);
+
+    await waitFor(() => expect((screen.getByLabelText("Населённый пункт") as HTMLInputElement).value).toBe("Москва"));
+    const meal = screen.getByRole("group", { name: "Блюдо 1" });
+    expect((within(meal).getByLabelText("День") as HTMLSelectElement).value).toBe("WEDNESDAY");
+    expect((within(meal).getByLabelText("Название рецепта") as HTMLInputElement).value).toBe("Омлет");
+    expect(within(meal).getAllByLabelText("Ингредиент").map((input) => (input as HTMLInputElement).value))
+      .toEqual(["Яйца", "Молоко"]);
+    const pantry = screen.getByRole("group", { name: "Запас дома 1" });
+    expect((within(pantry).getByLabelText("Продукт дома") as HTMLInputElement).value).toBe("Яйца");
+    expect(mockedCreate).not.toHaveBeenCalled();
+  });
+
+  it("autosaves only semantic editable draft values without browser row keys", async () => {
+    render(<WeeklyPlanComparisonForm />);
+    fireEvent.change(screen.getByLabelText("Населённый пункт"), { target: { value: "Казань" } });
+    const meal = screen.getByRole("group", { name: "Блюдо 1" });
+    fireEvent.change(within(meal).getByLabelText("Название рецепта"), { target: { value: "Каша" } });
+    fireEvent.change(within(meal).getByLabelText("Ингредиент"), { target: { value: "Овсянка" } });
+    fireEvent.click(screen.getByRole("button", { name: "Добавить запас" }));
+    const pantry = screen.getByRole("group", { name: "Запас дома 1" });
+    fireEvent.change(within(pantry).getByLabelText("Продукт дома"), { target: { value: "Соль" } });
+
+    await waitFor(() => expect(window.localStorage.getItem(WEEKLY_PLAN_DRAFT_STORAGE_KEY)).not.toBeNull());
+    const raw = window.localStorage.getItem(WEEKLY_PLAN_DRAFT_STORAGE_KEY)!;
+    expect(JSON.parse(raw)).toEqual(expect.objectContaining({
+      version: 1,
+      locality: "Казань",
+      occurrences: [expect.objectContaining({
+        title: "Каша",
+        ingredients: [expect.objectContaining({ requirement: "Овсянка" })],
+      })],
+      pantry: [expect.objectContaining({ requirement: "Соль" })],
+    }));
+    expect(raw).not.toContain('"key"');
+    expect(raw).not.toContain("optimizationPreview");
+    expect(mockedCreate).not.toHaveBeenCalled();
   });
 
   it("adds and explicitly reorders occurrences without sorting by day", () => {
