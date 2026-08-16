@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, type FormEvent } from "react";
+import { useEffect, useState, type FormEvent } from "react";
 
 import type { components } from "@zakup-gotov/api-client";
 import {
@@ -9,6 +9,11 @@ import {
   type WeeklyPlanOptimizationState,
 } from "./weekly-plan-comparison";
 import { WeeklyPlanComparisonResults } from "./weekly-plan-comparison-results";
+import {
+  readWeeklyPlanDraft,
+  writeWeeklyPlanDraft,
+  type WeeklyPlanDraftV1,
+} from "./weekly-plan-draft";
 
 type QuantityUnit = components["schemas"]["QuantityInputUnit"];
 type WeeklyPlanDay = components["schemas"]["WeeklyPlanDay"];
@@ -73,6 +78,58 @@ function newPantryRow(key: number): PantryRow {
   return { key, requirement: "", amount: "1", unit: "PIECE" };
 }
 
+function occurrenceRowsFromDraft(draft: WeeklyPlanDraftV1): OccurrenceRow[] {
+  return draft.occurrences.map((occurrence, occurrenceIndex) => ({
+    key: occurrenceIndex + 1,
+    day: occurrence.day,
+    targetServings: occurrence.targetServings,
+    title: occurrence.title,
+    baseServings: occurrence.baseServings,
+    ingredients: occurrence.ingredients.map((ingredient, ingredientIndex) => ({
+      key: ingredientIndex + 1,
+      requirement: ingredient.requirement,
+      amount: ingredient.amount,
+      unit: ingredient.unit,
+    })),
+  }));
+}
+
+function pantryRowsFromDraft(draft: WeeklyPlanDraftV1): PantryRow[] {
+  return draft.pantry.map((pantry, pantryIndex) => ({
+    key: pantryIndex + 1,
+    requirement: pantry.requirement,
+    amount: pantry.amount,
+    unit: pantry.unit,
+  }));
+}
+
+function draftFromRows(
+  locality: string,
+  occurrences: OccurrenceRow[],
+  pantryRows: PantryRow[],
+): WeeklyPlanDraftV1 {
+  return {
+    version: 1,
+    locality,
+    occurrences: occurrences.map((occurrence) => ({
+      day: occurrence.day,
+      targetServings: occurrence.targetServings,
+      title: occurrence.title,
+      baseServings: occurrence.baseServings,
+      ingredients: occurrence.ingredients.map((ingredient) => ({
+        requirement: ingredient.requirement,
+        amount: ingredient.amount,
+        unit: ingredient.unit,
+      })),
+    })),
+    pantry: pantryRows.map((pantry) => ({
+      requirement: pantry.requirement,
+      amount: pantry.amount,
+      unit: pantry.unit,
+    })),
+  };
+}
+
 function clientErrors(locality: string, occurrences: OccurrenceRow[], pantryRows: PantryRow[]) {
   const errors: string[] = [];
   if (!locality.trim()) errors.push("Укажите населённый пункт.");
@@ -124,6 +181,38 @@ export function WeeklyPlanComparisonForm() {
   const [state, setState] = useState<WeeklyPlanOptimizationState | null>(null);
   const [clientMessages, setClientMessages] = useState<string[]>([]);
   const [pending, setPending] = useState(false);
+  const [draftReady, setDraftReady] = useState(false);
+  const [draftStorageAvailable, setDraftStorageAvailable] = useState(true);
+
+  useEffect(() => {
+    const result = readWeeklyPlanDraft(window.localStorage);
+    if (result.kind === "unavailable") {
+      setDraftStorageAvailable(false);
+      setDraftReady(true);
+      return;
+    }
+
+    if (result.draft !== null) {
+      setLocality(result.draft.locality);
+      setOccurrences(occurrenceRowsFromDraft(result.draft));
+      setPantryRows(pantryRowsFromDraft(result.draft));
+    }
+    setDraftReady(true);
+  }, []);
+
+  useEffect(() => {
+    if (!draftReady) return;
+
+    const timeout = window.setTimeout(() => {
+      const result = writeWeeklyPlanDraft(
+        window.localStorage,
+        draftFromRows(locality, occurrences, pantryRows),
+      );
+      setDraftStorageAvailable(result.kind === "saved");
+    }, 300);
+
+    return () => window.clearTimeout(timeout);
+  }, [draftReady, locality, occurrences, pantryRows]);
 
   function updateOccurrence(key: number, patch: Partial<OccurrenceRow>) {
     setOccurrences((current) => current.map((item) => item.key === key ? { ...item, ...patch } : item));
@@ -252,6 +341,11 @@ export function WeeklyPlanComparisonForm() {
         </h2>
         <p className="mt-2 text-sm leading-6 text-stone-600">
           Добавьте блюда в нужном порядке, выберите дни и порции. При желании укажите продукты, которые уже есть дома: сервер учтёт их и сравнит в магазинах только оставшийся список покупок.
+        </p>
+        <p className="mt-2 text-sm leading-6 text-stone-500">
+          {draftStorageAvailable
+            ? "Черновик сохраняется только в этом браузере и не синхронизируется с аккаунтом или сервером."
+            : "Локальное сохранение недоступно. Форма работает, но изменения могут потеряться после закрытия страницы."}
         </p>
       </div>
 
