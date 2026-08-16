@@ -14,8 +14,10 @@ const sendMessage = (message: unknown) => chrome.runtime.sendMessage(message);
 const storeObservations = createChromeObservationSink(sendMessage);
 const clearObservations = createChromeObservationClearer(sendMessage);
 const observedResourceUrls = new Set<string>();
+const fulfillmentContextSignalStartTimes = new Map<string, number>();
 
 let currentFulfillmentContextKey: string | null = null;
+let currentFulfillmentContextSignalStartTime = Number.NEGATIVE_INFINITY;
 const sink = async (observations: BrowserObservation[]): Promise<void> => {
   await storeObservations(observations);
 
@@ -25,6 +27,15 @@ const sink = async (observations: BrowserObservation[]): Promise<void> => {
     ),
   );
   currentFulfillmentContextKey = contexts.size === 1 ? [...contexts][0] : null;
+  currentFulfillmentContextSignalStartTime = currentFulfillmentContextKey
+    ? (fulfillmentContextSignalStartTimes.get(currentFulfillmentContextKey) ?? Number.NEGATIVE_INFINITY)
+    : Number.NEGATIVE_INFINITY;
+
+  if (currentFulfillmentContextKey) {
+    const retainedSignalTime = currentFulfillmentContextSignalStartTime;
+    fulfillmentContextSignalStartTimes.clear();
+    fulfillmentContextSignalStartTimes.set(currentFulfillmentContextKey, retainedSignalTime);
+  }
 };
 const collector = new BrowserObservationCollector(retailerBrowserAdapters, sink);
 
@@ -78,7 +89,7 @@ type ResourceMemoryResult = Readonly<{
   contextChanged: boolean;
 }>;
 
-function rememberAllowedResource(rawUrl: string): ResourceMemoryResult {
+function rememberAllowedResource(rawUrl: string, startTime: number): ResourceMemoryResult {
   const pageUrl = new URL(location.href);
   const canonical = canonicalObservedResourceUrl(rawUrl, pageUrl);
   if (!canonical) return { changed: false, contextChanged: false };
@@ -88,17 +99,36 @@ function rememberAllowedResource(rawUrl: string): ResourceMemoryResult {
     return { changed: false, contextChanged: false };
   }
 
-  if (
-    collectionSucceeded &&
-    currentFulfillmentContextKey &&
-    context &&
-    context.contextKey !== currentFulfillmentContextKey
-  ) {
-    observedResourceUrls.clear();
-    observedResourceUrls.add(context.canonicalUrl);
-    currentFulfillmentContextKey = context.contextKey;
-    startLifecycleRefresh();
-    return { changed: true, contextChanged: true };
+  if (context) {
+    const previousSignalTime = fulfillmentContextSignalStartTimes.get(context.contextKey);
+    if (previousSignalTime === undefined || startTime > previousSignalTime) {
+      fulfillmentContextSignalStartTimes.set(context.contextKey, startTime);
+    }
+
+    if (
+      currentFulfillmentContextKey &&
+      context.contextKey !== currentFulfillmentContextKey
+    ) {
+      if (startTime <= currentFulfillmentContextSignalStartTime) {
+        return { changed: false, contextChanged: false };
+      }
+
+      observedResourceUrls.clear();
+      observedResourceUrls.add(context.canonicalUrl);
+      currentFulfillmentContextKey = context.contextKey;
+      currentFulfillmentContextSignalStartTime = startTime;
+      fulfillmentContextSignalStartTimes.clear();
+      fulfillmentContextSignalStartTimes.set(context.contextKey, startTime);
+      startLifecycleRefresh();
+      return { changed: true, contextChanged: true };
+    }
+
+    if (context.contextKey === currentFulfillmentContextKey) {
+      currentFulfillmentContextSignalStartTime = Math.max(
+        currentFulfillmentContextSignalStartTime,
+        startTime,
+      );
+    }
   }
 
   const previousSize = observedResourceUrls.size;
@@ -114,7 +144,7 @@ function rememberResourceEntries(entries: readonly PerformanceEntry[]): Resource
   let contextChanged = false;
 
   entries.forEach((entry) => {
-    const result = rememberAllowedResource(entry.name);
+    const result = rememberAllowedResource(entry.name, entry.startTime);
     changed = result.changed || changed;
     contextChanged = result.contextChanged || contextChanged;
   });
