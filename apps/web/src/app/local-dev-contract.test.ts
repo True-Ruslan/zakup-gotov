@@ -1,4 +1,5 @@
 import { readFileSync } from "node:fs";
+import { resolve } from "node:path";
 
 import { describe, expect, it } from "vitest";
 
@@ -7,7 +8,7 @@ type PackageJson = {
 };
 
 const packageJson = JSON.parse(
-  readFileSync(new URL("../../package.json", import.meta.url), "utf8"),
+  readFileSync(resolve(process.cwd(), "package.json"), "utf8"),
 ) as PackageJson;
 
 describe("local web development contract", () => {
