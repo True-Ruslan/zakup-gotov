@@ -2,7 +2,8 @@ export type AdapterFailureStatus =
   | "unsupported-page"
   | "missing-context"
   | "missing-product"
-  | "malformed-state";
+  | "malformed-state"
+  | "observation-only";
 
 export type AdapterResult =
   | { status: "ok"; observations: ReadonlyArray<Record<string, unknown>> }
