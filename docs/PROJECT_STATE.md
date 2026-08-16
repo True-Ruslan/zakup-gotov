@@ -36,8 +36,12 @@ Milestone status:
 - M4.4.2 Responsive Optimization UX — **COMPLETE / ACCEPTED** (#145 / #146).
 - M4.4 Optimization UX — **COMPLETE / ACCEPTED**.
 - M4 Basket Optimization — **COMPLETE / ACCEPTED**.
+- Pre-release web runtime hardening — **COMPLETE / ACCEPTED** (#150).
+- M5.1 Private local WeeklyPlan draft — **COMPLETE / ACCEPTED** (#148 / #149).
 
-Current deterministic target: **M5 — Productization**.
+Current deterministic product phase: **M5 — Productization**.  
+Immediate operational target: **`v0.1.0-rc.3` end-to-end release validation**.  
+M5.2 remains intentionally unselected until release-candidate/manual-use evidence justifies the next productization constraint.
 
 ## Permanent connectivity rule
 
@@ -339,9 +343,54 @@ Acceptance proof:
 - issue #145 closed `completed`;
 - exact implementation merge — **8/8 normal push workflows SUCCESS**.
 
-## Next deterministic target — M5 Productization
+## M5.1 — Private local WeeklyPlan draft — COMPLETE / ACCEPTED
 
-M4 Basket Optimization is complete at the currently planned product slice. The next phase is reliable repeat use: privacy-aware accounts/preferences, analytics abstraction, feature flags, provider health monitoring and production provider activation only after access constraints are resolved. The first M5 implementation slice must be chosen from current repository/product evidence rather than introduced as an arbitrary continuation of M4.
+Acceptance: [`m5-1-private-local-weekly-plan-draft-acceptance-2026-08-16.md`](m5-1-private-local-weekly-plan-draft-acceptance-2026-08-16.md).  
+Authoritative design: [`superpowers/specs/2026-08-16-m5-1-private-local-weekly-plan-draft-design.md`](superpowers/specs/2026-08-16-m5-1-private-local-weekly-plan-draft-design.md).  
+Implementation plan: [`superpowers/plans/2026-08-16-m5-1-private-local-weekly-plan-draft.md`](superpowers/plans/2026-08-16-m5-1-private-local-weekly-plan-draft.md).  
+Accepted implementation merge: `2f2b96d18521b8bb04f6ee17182d61711322de08`.
+
+Accepted browser-local persistence result:
+
+- exactly one versioned same-origin key, `zakup-gotov.weekly-plan-draft.v1`;
+- only editable semantic WeeklyPlan/Pantry input is persisted: locality, occurrence order/day/servings, Recipe title/base servings/ingredients and Pantry requirement/amount/unit rows;
+- editable numeric values persist as strings to preserve unfinished input without coercion;
+- React presentation keys, generated server/domain identities, comparison results, checkout economics, optimizer state and provider/acquisition/fulfillment evidence are excluded from storage;
+- restore happens only after client mount and never automatically submits a comparison;
+- autosave starts only after the initial read/restore attempt settles, is debounced and skips semantic no-op writes;
+- failed initial reads cannot trigger blind blank overwrite of unknown stored data;
+- malformed/unsupported data is discarded fail-closed when cleanup is possible; cleanup/remove failure becomes explicit storage-unavailable state;
+- storage get/set/remove exceptions never break editing or explicit comparison submission;
+- explicit clear resets input, errors and derived results, removes the local key and performs no comparison request;
+- clear is gated until restore readiness and while a comparison is pending, preventing delayed restore from resurrecting removed state;
+- deterministic Playwright proves semantic-only JSON, reordered occurrence/Pantry restore, zero implicit POST before explicit submit, clear and blank second reload;
+- accepted M4.4.2 remains the only comparison/economics/optimizer authority.
+
+Acceptance proof:
+
+- final reviewed feature head `6c54479044e41e5177739b57eb891830a79691f8` — **9/9 PR workflow groups SUCCESS**;
+- Web lint/typecheck/component tests/Next production build and actually executed Chromium Playwright — **SUCCESS**;
+- clean read-only review, no remaining P0/P1/P2/P3/nitpicks and no unresolved threads;
+- squash merge `2f2b96d18521b8bb04f6ee17182d61711322de08` with expected-head protection;
+- issue #148 closed `completed`;
+- exact implementation merge — **8/8 normal push workflows SUCCESS**, 0 failures, including both CodeQL languages.
+
+### Pre-release web runtime hardening — COMPLETE / ACCEPTED
+
+Manual source-checkout testing before M5.1 exposed two independent runtime/developer-experience defects. PR #150 fixed and accepted both:
+
+- `web dev` builds `@zakup-gotov/api-client` before starting Next.js, so a clean installed workspace does not fail module resolution;
+- manual-list form SSR/hydration uses deterministic presentation identity; transient request UUIDs are generated only on submit.
+
+Accepted merge: `ef366c4ea65169dc3839cbf78c1df25d16f1dffa`; exact merge **8/8 normal push workflows SUCCESS**.
+
+## Immediate operational target — v0.1.0-rc.3
+
+The next highest-value validation is a new immutable **`v0.1.0-rc.3` GitHub prerelease** from documentation-synchronized verified `main`.
+
+It must prove the existing release workflow end to end: source/main ancestry verification, repository + browser + production bundle verification, multi-platform staging publication, unchanged HIGH/CRITICAL Trivy policy, SPDX SBOM evidence, staging exact-digest smoke, digest-identical final-package promotion, final exact-digest smoke, provenance attestations, prerelease SemVer tag promotion, final architecture manifest checks and attached release evidence/checksums while leaving `latest` untouched.
+
+M5.2 is intentionally not selected before this release-candidate evidence and subsequent manual product canary. A stable `v0.1.0` remains blocked until at least one prerelease completes the full workflow and its evidence is inspected.
 
 ## Magnit production state
 
@@ -397,6 +446,8 @@ Continue without blocking deterministic M5 work unless evidence invalidates acce
 28. Browser optimization UX must render server-owned economics and optimizer decisions rather than recomputing them client-side.
 29. M4.4.1 is the server-owned browser contract for checkout optimization: missing economics stays UNKNOWN, full Pantry coverage skips optimization entirely and accepted M4.2/M4.3 remain the sole assessment/optimizer authorities.
 30. The primary WeeklyPlan/Pantry optimization browser flow consumes generated M4.4.1 only; browser joins are identity/structure checks and never become a second checkout-arithmetic, comparability or winner-selection implementation.
+31. Browser-local repeat-use persistence is semantic input only: no generated identity, comparison/economics/optimizer result or provider evidence may become local draft authority.
+32. Local draft restore never implies submission; browser storage failures fail closed while explicit editing/submission remain usable.
 
 ## Platform baseline
 
