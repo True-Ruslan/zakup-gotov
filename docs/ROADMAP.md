@@ -193,7 +193,7 @@ Persistence/saved-plan history remains deferred until repeat-use evidence demons
 
 ## Parallel connectivity / operational work
 
-Continue without blocking deterministic M4 work unless evidence invalidates accepted core assumptions:
+Continue without blocking deterministic M5 work unless evidence invalidates accepted core assumptions:
 
 - **#54** browser-bridge persistent-session/store-change/SPA lifecycle hardening;
 - **#36** Kuper supported aggregator investigation;
@@ -202,11 +202,11 @@ Continue without blocking deterministic M4 work unless evidence invalidates acce
 - retailer-specific production-access/right-to-operate decisions before activation;
 - successful real **`v0.1.0-rc.3`** release event with final image promotion, SBOM/attestation and digest smoke evidence.
 
-## M4 — Basket Optimization — CURRENT
+## M4 — Basket Optimization — COMPLETE / ACCEPTED
 
-Goal: optimize real checkout cost rather than naive SKU sums while preserving truthful eligibility, completeness, uncertainty, retailer visibility and production-access semantics.
+Goal achieved at the currently planned deterministic product slice: optimize real checkout cost rather than naive SKU sums while preserving truthful eligibility, completeness, uncertainty, retailer visibility and production-access semantics.
 
-Scope: explicit checkout economics, one-retailer truthful totals, deterministic cheapest-candidate selection, responsive optimization UX, richer future package/substitute optimization, future multi-store lowest-total-cost mode and any future confidence/freshness policy only after separate explicit design.
+Accepted scope includes explicit checkout economics, one-retailer truthful totals, deterministic cheapest-candidate selection and responsive optimization UX. Richer package/substitute optimization, multi-store lowest-total-cost mode and any confidence/freshness policy remain future work requiring separate explicit design.
 
 ### M4.1 — Basket economics foundation — COMPLETE / ACCEPTED
 
@@ -277,9 +277,9 @@ Acceptance proof:
 - issue #139 closed `completed`;
 - exact merge — **8/8 normal push workflows SUCCESS**.
 
-### M4.4 — Optimization UX — IN PROGRESS
+### M4.4 — Optimization UX — COMPLETE / ACCEPTED
 
-Goal: project accepted M4.1–M4.3 evidence into responsive browser flows with explainable merchandise subtotal, known/unknown fees, minimum-order state, eligibility/comparability and optimizer outcome. Browser code must consume server-owned decisions through generated contracts rather than recomputing economics, comparability or winner/tie semantics. `NO_COMPARABLE_CANDIDATES`, `UNIQUE_WINNER` and `TIE` remain distinct and user-explainable. Deterministic browser acceptance must not make live retailer requests.
+Goal achieved: accepted M4.1–M4.3 evidence is projected into the primary responsive browser journey with explainable merchandise subtotal, known/unknown fees, minimum-order state, eligibility/comparability and optimizer outcome while server-owned contracts remain authoritative.
 
 #### M4.4.1 — Server-owned Optimization Preview API — COMPLETE / ACCEPTED
 
@@ -307,13 +307,39 @@ Acceptance proof:
 - issue #142 closed `completed`;
 - exact merge — **8/8 normal push workflows SUCCESS**, including CodeQL Java and JavaScript/TypeScript.
 
-#### M4.4.2 — Responsive Optimization UX — NEXT
+#### M4.4.2 — Responsive Optimization UX — COMPLETE / ACCEPTED
 
-Update the primary WeeklyPlan/Pantry browser journey to consume the generated M4.4.1 endpoint and render only server-owned optimization evidence. Required browser states include `NO_REMAINING_DEMAND`, `NO_COMPARABLE_CANDIDATES`, `UNIQUE_WINNER` and `TIE`; per-retailer merchandise subtotal, known/unknown fees, minimum-order state, eligibility/comparability and checkout total must remain explainable. The browser must not perform M4.1 arithmetic, M4.2 assessment or M4.3 winner/tie selection. Preserve Recipe/manual-list regressions, responsive mobile behavior, keyboard/accessibility coverage, fail-closed transport and deterministic no-live-retailer Playwright acceptance.
+Acceptance: [`m4-4-2-responsive-optimization-ux-acceptance-2026-08-16.md`](m4-4-2-responsive-optimization-ux-acceptance-2026-08-16.md)  
+Authoritative design: [`superpowers/specs/2026-08-16-m4-4-2-responsive-optimization-ux-design.md`](superpowers/specs/2026-08-16-m4-4-2-responsive-optimization-ux-design.md)  
+Implementation plan: [`superpowers/plans/2026-08-16-m4-4-2-responsive-optimization-ux.md`](superpowers/plans/2026-08-16-m4-4-2-responsive-optimization-ux.md)  
+Accepted implementation merge: `7252b9264ed7a2ffe896b1a1fcddb09a78edc04c`.
 
-## M5 — Productization
+Accepted result:
+
+- primary WeeklyPlan/Pantry browser transport uses generated M4.4.1 only;
+- original demand, Pantry audit, remaining demand and retailer comparison remain visible from the nested accepted M3.5.3 projection;
+- `NO_REMAINING_DEMAND` is terminal and renders no fabricated optimization UI;
+- `NO_COMPARABLE_CANDIDATES`, `UNIQUE_WINNER` and `TIE` are rendered directly from server status/optimal IDs/lowest-total evidence;
+- per-retailer checkout economics preserve merchandise subtotal, known zero versus unknown fees, minimum-order state, checkout-total knowledge, eligibility and comparability;
+- canonical retailer metadata is joined by identity with a `Map`; duplicate/missing/mismatched identities or contradictory optimizer structure fail closed;
+- browser code does not add fees, evaluate minimum order, assess eligibility/comparability, compare checkout totals, rank retailers or break ties;
+- Recipe/manual-list journeys remain regression-covered;
+- deterministic desktop/mobile/accessibility Playwright acceptance makes no live retailer/provider request.
+
+Acceptance proof:
+
+- final reviewed head `ca2060546936f388556f62e49c6963d846274847` — **9/9 PR workflows SUCCESS**;
+- Web lint/typecheck/component tests/Next production build and Chromium Playwright — **SUCCESS**;
+- read-only Change Review **Looks good**, no P0/P1/P2/P3/nitpicks and no unresolved threads;
+- squash merge `7252b9264ed7a2ffe896b1a1fcddb09a78edc04c` with expected-head protection;
+- issue #145 closed `completed`;
+- exact merge — **8/8 normal push workflows SUCCESS**.
+
+## M5 — Productization — CURRENT / NEXT
 
 Goal: reliable repeat use with privacy-aware accounts/preferences, analytics abstraction, feature flags, provider health monitoring and production provider activation only after access constraints are resolved.
+
+The first M5 slice is intentionally not pre-selected here. It must be chosen from current repository/product evidence and should solve the highest-value productization constraint without weakening privacy, deterministic behavior or provider-access policy.
 
 ## M6 — Native Mobile
 
