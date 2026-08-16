@@ -4,17 +4,34 @@ import {
   createChromeObservationClearer,
   createChromeObservationSink,
 } from "./collector/chrome-observation-sink";
-import { canonicalObservedResourceUrl } from "./resource-observation-policy";
+import type { BrowserObservation } from "./model/browser-observation";
+import {
+  canonicalObservedResourceUrl,
+  fulfillmentContextResource,
+} from "./resource-observation-policy";
 
 const sendMessage = (message: unknown) => chrome.runtime.sendMessage(message);
-const sink = createChromeObservationSink(sendMessage);
+const storeObservations = createChromeObservationSink(sendMessage);
 const clearObservations = createChromeObservationClearer(sendMessage);
-const collector = new BrowserObservationCollector(retailerBrowserAdapters, sink);
 const observedResourceUrls = new Set<string>();
+
+let currentFulfillmentContextKey: string | null = null;
+const sink = async (observations: BrowserObservation[]): Promise<void> => {
+  await storeObservations(observations);
+
+  const contexts = new Set(
+    observations.map(
+      (observation) => `${observation.retailerId}:${observation.fulfillmentContextId}`,
+    ),
+  );
+  currentFulfillmentContextKey = contexts.size === 1 ? [...contexts][0] : null;
+};
+const collector = new BrowserObservationCollector(retailerBrowserAdapters, sink);
 
 let collectionInFlight = false;
 let collectionPending = false;
 let collectionSucceeded = false;
+let refreshInFlight: Promise<void> | null = null;
 let resourceObserver: PerformanceObserver | null = null;
 let domObserver: MutationObserver | null = null;
 
@@ -23,25 +40,90 @@ function publishDiagnostics(status: string, observationCount: number): void {
   document.documentElement.dataset.zgBridgeCount = String(observationCount);
 }
 
-function rememberAllowedResource(rawUrl: string): boolean {
-  const canonical = canonicalObservedResourceUrl(rawUrl, new URL(location.href));
-  if (!canonical) return false;
+function canonicalPageReference(url: URL): string {
+  return `${url.origin}${url.pathname}`;
+}
+
+function observeDomChanges(): void {
+  domObserver?.observe(document.documentElement, { childList: true, subtree: true });
+}
+
+function finishRefresh(reset: Promise<void>): void {
+  if (refreshInFlight !== reset) return;
+  refreshInFlight = null;
+
+  if (collectionPending && !collectionSucceeded) {
+    collectionPending = false;
+    void collectCurrentPage();
+  }
+}
+
+function startLifecycleRefresh(): void {
+  collectionSucceeded = false;
+  collectionPending = false;
+  observeDomChanges();
+  publishDiagnostics("refreshing", 0);
+
+  if (refreshInFlight) return;
+
+  const reset = clearObservations().catch(() => {
+    publishDiagnostics("internal-error", 0);
+  });
+  refreshInFlight = reset;
+  void reset.finally(() => finishRefresh(reset));
+}
+
+type ResourceMemoryResult = Readonly<{
+  changed: boolean;
+  contextChanged: boolean;
+}>;
+
+function rememberAllowedResource(rawUrl: string): ResourceMemoryResult {
+  const pageUrl = new URL(location.href);
+  const canonical = canonicalObservedResourceUrl(rawUrl, pageUrl);
+  if (!canonical) return { changed: false, contextChanged: false };
+
+  const context = fulfillmentContextResource(rawUrl, pageUrl);
+  if (
+    collectionSucceeded &&
+    currentFulfillmentContextKey &&
+    context &&
+    context.contextKey !== currentFulfillmentContextKey
+  ) {
+    observedResourceUrls.clear();
+    observedResourceUrls.add(context.canonicalUrl);
+    currentFulfillmentContextKey = context.contextKey;
+    startLifecycleRefresh();
+    return { changed: true, contextChanged: true };
+  }
 
   const previousSize = observedResourceUrls.size;
   observedResourceUrls.add(canonical);
-  return observedResourceUrls.size !== previousSize;
+  return {
+    changed: observedResourceUrls.size !== previousSize,
+    contextChanged: false,
+  };
 }
 
-function rememberResourceEntries(entries: readonly PerformanceEntry[]): boolean {
+function rememberResourceEntries(entries: readonly PerformanceEntry[]): ResourceMemoryResult {
   let changed = false;
+  let contextChanged = false;
+
   entries.forEach((entry) => {
-    changed = rememberAllowedResource(entry.name) || changed;
+    const result = rememberAllowedResource(entry.name);
+    changed = result.changed || changed;
+    contextChanged = result.contextChanged || contextChanged;
   });
-  return changed;
+
+  return { changed, contextChanged };
 }
 
 async function collectCurrentPage(): Promise<void> {
   if (collectionSucceeded) return;
+  if (refreshInFlight) {
+    collectionPending = true;
+    return;
+  }
   if (collectionInFlight) {
     collectionPending = true;
     return;
@@ -58,7 +140,6 @@ async function collectCurrentPage(): Promise<void> {
 
     if (result.status === "ok") {
       collectionSucceeded = true;
-      resourceObserver?.disconnect();
       domObserver?.disconnect();
     } else {
       await clearObservations();
@@ -69,7 +150,7 @@ async function collectCurrentPage(): Promise<void> {
     publishDiagnostics("internal-error", 0);
   } finally {
     collectionInFlight = false;
-    if (collectionPending && !collectionSucceeded) {
+    if (collectionPending && !collectionSucceeded && !refreshInFlight) {
       collectionPending = false;
       void collectCurrentPage();
     }
@@ -78,17 +159,49 @@ async function collectCurrentPage(): Promise<void> {
 
 function requestCollection(): void {
   if (collectionSucceeded) return;
-  if (collectionInFlight) {
+  if (refreshInFlight || collectionInFlight) {
     collectionPending = true;
     return;
   }
   void collectCurrentPage();
 }
 
-resourceObserver = new PerformanceObserver((list) => {
-  if (rememberResourceEntries(list.getEntries())) {
-    requestCollection();
+function retainCurrentFulfillmentResource(pageUrl: URL): void {
+  const currentContext = currentFulfillmentContextKey;
+  const retained = currentContext
+    ? [...observedResourceUrls].filter(
+        (url) => fulfillmentContextResource(url, pageUrl)?.contextKey === currentContext,
+      )
+    : [];
+
+  observedResourceUrls.clear();
+  retained.forEach((url) => observedResourceUrls.add(url));
+}
+
+function handleSameDocumentNavigation(event: Event): void {
+  if (!collectionSucceeded) return;
+
+  const navigationEvent = event as Event & {
+    destination?: { readonly sameDocument?: boolean; readonly url?: string };
+  };
+  if (!navigationEvent.destination?.sameDocument || !navigationEvent.destination.url) return;
+
+  try {
+    const currentUrl = new URL(location.href);
+    const destinationUrl = new URL(navigationEvent.destination.url, currentUrl);
+    if (canonicalPageReference(currentUrl) === canonicalPageReference(destinationUrl)) return;
+
+    retainCurrentFulfillmentResource(destinationUrl);
+    startLifecycleRefresh();
+  } catch {
+    // Ignore malformed navigation metadata; the existing page snapshot remains bounded.
   }
+}
+
+resourceObserver = new PerformanceObserver((list) => {
+  const result = rememberResourceEntries(list.getEntries());
+  if (result.contextChanged) return;
+  if (result.changed) requestCollection();
 });
 resourceObserver.observe({ type: "resource", buffered: true });
 
@@ -97,7 +210,10 @@ domObserver = new MutationObserver((mutations) => {
     requestCollection();
   }
 });
-domObserver.observe(document.documentElement, { childList: true, subtree: true });
+observeDomChanges();
+
+const navigationTarget = (window as Window & { readonly navigation?: EventTarget }).navigation;
+navigationTarget?.addEventListener("navigate", handleSameDocumentNavigation);
 
 rememberResourceEntries(performance.getEntriesByType("resource"));
 requestCollection();
