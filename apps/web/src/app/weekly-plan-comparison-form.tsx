@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, type FormEvent } from "react";
+import { useEffect, useRef, useState, type FormEvent } from "react";
 
 import type { components } from "@zakup-gotov/api-client";
 import {
@@ -11,6 +11,7 @@ import {
 import { WeeklyPlanComparisonResults } from "./weekly-plan-comparison-results";
 import {
   readWeeklyPlanDraft,
+  removeWeeklyPlanDraft,
   writeWeeklyPlanDraft,
   type WeeklyPlanDraftV1,
 } from "./weekly-plan-draft";
@@ -183,6 +184,7 @@ export function WeeklyPlanComparisonForm() {
   const [pending, setPending] = useState(false);
   const [draftReady, setDraftReady] = useState(false);
   const [draftStorageAvailable, setDraftStorageAvailable] = useState(true);
+  const skipNextAutosave = useRef(false);
 
   useEffect(() => {
     const result = readWeeklyPlanDraft(window.localStorage);
@@ -206,6 +208,10 @@ export function WeeklyPlanComparisonForm() {
 
   useEffect(() => {
     if (!draftReady) return;
+    if (skipNextAutosave.current) {
+      skipNextAutosave.current = false;
+      return;
+    }
 
     const timeout = window.setTimeout(() => {
       const result = writeWeeklyPlanDraft(
@@ -286,6 +292,17 @@ export function WeeklyPlanComparisonForm() {
     setPantryRows((current) => current.filter((item) => item.key !== key));
   }
 
+  function clearLocalDraft() {
+    skipNextAutosave.current = true;
+    const result = removeWeeklyPlanDraft(window.localStorage);
+    if (result.kind === "unavailable") setDraftStorageAvailable(false);
+    setLocality("");
+    setOccurrences([newOccurrence(1)]);
+    setPantryRows([]);
+    setState(null);
+    setClientMessages([]);
+  }
+
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     if (pending) return;
@@ -351,6 +368,14 @@ export function WeeklyPlanComparisonForm() {
             ? "Черновик сохраняется только в этом браузере и не синхронизируется с аккаунтом или сервером."
             : "Локальное сохранение недоступно. Форма работает, но изменения могут потеряться после закрытия страницы."}
         </p>
+        <button
+          type="button"
+          onClick={clearLocalDraft}
+          disabled={pending}
+          className="mt-3 min-h-10 rounded-full border border-stone-300 bg-white px-4 text-sm font-medium text-stone-700 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-stone-900 disabled:opacity-40"
+        >
+          Очистить форму и локальный черновик
+        </button>
       </div>
 
       <form onSubmit={submit} className="mt-6 space-y-6" noValidate>
