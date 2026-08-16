@@ -1,4 +1,7 @@
-import type { RetailerBrowserAdapter } from "../adapters/retailer-browser-adapter";
+import type {
+  AdapterFailureStatus,
+  RetailerBrowserAdapter,
+} from "../adapters/retailer-browser-adapter";
 import type {
   BrowserAvailability,
   BrowserObservation,
@@ -6,13 +9,7 @@ import type {
 
 export type ObservationSink = (observations: BrowserObservation[]) => Promise<void>;
 
-export type CollectorStatus =
-  | "ok"
-  | "unsupported-page"
-  | "missing-context"
-  | "missing-product"
-  | "malformed-state"
-  | "invalid-observation";
+export type CollectorStatus = "ok" | AdapterFailureStatus | "invalid-observation";
 
 export type CollectorResult = Readonly<{
   status: CollectorStatus;
