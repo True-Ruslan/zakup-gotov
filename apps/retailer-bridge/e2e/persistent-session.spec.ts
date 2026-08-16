@@ -94,9 +94,10 @@ test("refreshes observations after same-document SPA catalog navigation", async 
   try {
     expect(JSON.stringify(await storedObservations(worker))).toContain('"fulfillmentContextId":"656"');
 
-    await page.evaluate(() => {
+    await page.evaluate(async () => {
       history.pushState({}, "", "/cat/fixture-spa-second");
       document.querySelector(".catalog-content")?.replaceChildren();
+      await fetch("/api/customer/1.4.1.0/shop/656?session=SECRET_SAME_CONTEXT#fragment");
     });
 
     await expect.poll(() => storedObservations(worker)).toEqual([]);
@@ -112,6 +113,7 @@ test("refreshes observations after same-document SPA catalog navigation", async 
     expect(serialized).toContain('"priceMinor":24950');
     expect(serialized).toContain('"sourceReference":"https://www.perekrestok.ru/cat/fixture-spa-second"');
     expect(serialized).not.toContain('"sku":"4408829"');
+    expect(serialized).not.toContain("SECRET_SAME_CONTEXT");
   } finally {
     await context.close();
     await rm(userDataDir, { recursive: true, force: true });
