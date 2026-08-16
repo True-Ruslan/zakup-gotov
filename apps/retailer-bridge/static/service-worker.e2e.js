@@ -3,14 +3,6 @@ const DELAY_NEXT_STORE_KEY = "zg.e2e.delayNextObservationStore";
 const STORE_PENDING_KEY = "zg.e2e.observationStorePending";
 const RELEASE_STORE_KEY = "zg.e2e.releaseObservationStore";
 
-chrome.storage.onChanged.addListener((changes, areaName) => {
-  if (areaName !== "local" || changes[RELEASE_STORE_KEY]?.newValue !== true) {
-    return;
-  }
-
-  void chrome.storage.local.remove(RELEASE_STORE_KEY);
-});
-
 chrome.runtime.onMessage.addListener((message) => {
   if (message?.type !== "ZG_STORE_OBSERVATIONS" || !Array.isArray(message.observations)) {
     return;
@@ -22,7 +14,7 @@ chrome.runtime.onMessage.addListener((message) => {
       message.observations.length > 0 &&
       controls[DELAY_NEXT_STORE_KEY] === true
     ) {
-      await chrome.storage.local.remove(DELAY_NEXT_STORE_KEY);
+      await chrome.storage.local.remove([DELAY_NEXT_STORE_KEY, RELEASE_STORE_KEY]);
       await chrome.storage.local.set({ [STORE_PENDING_KEY]: true });
 
       await new Promise((resolve) => {
