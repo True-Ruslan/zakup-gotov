@@ -14,10 +14,11 @@ const sendMessage = (message: unknown) => chrome.runtime.sendMessage(message);
 const storeObservations = createChromeObservationSink(sendMessage);
 const clearObservations = createChromeObservationClearer(sendMessage);
 const observedResourceUrls = new Set<string>();
-const fulfillmentContextSignalStartTimes = new Map<string, number>();
 
 let currentFulfillmentContextKey: string | null = null;
-let currentFulfillmentContextSignalStartTime = Number.NEGATIVE_INFINITY;
+let contextSignalFloorStartTime = Number.NEGATIVE_INFINITY;
+let awaitingFreshContext = false;
+
 const sink = async (observations: BrowserObservation[]): Promise<void> => {
   await storeObservations(observations);
 
@@ -27,15 +28,8 @@ const sink = async (observations: BrowserObservation[]): Promise<void> => {
     ),
   );
   currentFulfillmentContextKey = contexts.size === 1 ? [...contexts][0] : null;
-  currentFulfillmentContextSignalStartTime = currentFulfillmentContextKey
-    ? (fulfillmentContextSignalStartTimes.get(currentFulfillmentContextKey) ?? Number.NEGATIVE_INFINITY)
-    : Number.NEGATIVE_INFINITY;
-
-  if (currentFulfillmentContextKey) {
-    const retainedSignalTime = currentFulfillmentContextSignalStartTime;
-    fulfillmentContextSignalStartTimes.clear();
-    fulfillmentContextSignalStartTimes.set(currentFulfillmentContextKey, retainedSignalTime);
-  }
+  contextSignalFloorStartTime = performance.now();
+  awaitingFreshContext = false;
 };
 const collector = new BrowserObservationCollector(retailerBrowserAdapters, sink);
 
@@ -63,15 +57,23 @@ function finishRefresh(reset: Promise<void>): void {
   if (refreshInFlight !== reset) return;
   refreshInFlight = null;
 
-  if (collectionPending && !collectionSucceeded) {
+  if (collectionPending && !collectionSucceeded && !awaitingFreshContext) {
     collectionPending = false;
     void collectCurrentPage();
   }
 }
 
-function startLifecycleRefresh(): void {
+function startLifecycleRefresh(options: {
+  awaitFreshContext: boolean;
+  collectAfterReset: boolean;
+  signalFloorStartTime?: number;
+}): void {
   collectionSucceeded = false;
-  collectionPending = false;
+  collectionPending = options.collectAfterReset;
+  awaitingFreshContext = options.awaitFreshContext;
+  if (options.signalFloorStartTime !== undefined) {
+    contextSignalFloorStartTime = options.signalFloorStartTime;
+  }
   observeDomChanges();
   publishDiagnostics("refreshing", 0);
 
@@ -99,36 +101,34 @@ function rememberAllowedResource(rawUrl: string, startTime: number): ResourceMem
     return { changed: false, contextChanged: false };
   }
 
-  if (context) {
-    const previousSignalTime = fulfillmentContextSignalStartTimes.get(context.contextKey);
-    if (previousSignalTime === undefined || startTime > previousSignalTime) {
-      fulfillmentContextSignalStartTimes.set(context.contextKey, startTime);
-    }
+  if (context && startTime < contextSignalFloorStartTime) {
+    return { changed: false, contextChanged: false };
+  }
 
-    if (
-      currentFulfillmentContextKey &&
-      context.contextKey !== currentFulfillmentContextKey
-    ) {
-      if (startTime <= currentFulfillmentContextSignalStartTime) {
-        return { changed: false, contextChanged: false };
-      }
+  if (context && awaitingFreshContext) {
+    observedResourceUrls.clear();
+    observedResourceUrls.add(context.canonicalUrl);
+    currentFulfillmentContextKey = context.contextKey;
+    contextSignalFloorStartTime = startTime;
+    awaitingFreshContext = false;
+    collectionPending = true;
+    return { changed: true, contextChanged: false };
+  }
 
-      observedResourceUrls.clear();
-      observedResourceUrls.add(context.canonicalUrl);
-      currentFulfillmentContextKey = context.contextKey;
-      currentFulfillmentContextSignalStartTime = startTime;
-      fulfillmentContextSignalStartTimes.clear();
-      fulfillmentContextSignalStartTimes.set(context.contextKey, startTime);
-      startLifecycleRefresh();
-      return { changed: true, contextChanged: true };
-    }
-
-    if (context.contextKey === currentFulfillmentContextKey) {
-      currentFulfillmentContextSignalStartTime = Math.max(
-        currentFulfillmentContextSignalStartTime,
-        startTime,
-      );
-    }
+  if (
+    context &&
+    currentFulfillmentContextKey &&
+    context.contextKey !== currentFulfillmentContextKey
+  ) {
+    observedResourceUrls.clear();
+    observedResourceUrls.add(context.canonicalUrl);
+    currentFulfillmentContextKey = context.contextKey;
+    contextSignalFloorStartTime = startTime;
+    startLifecycleRefresh({
+      awaitFreshContext: false,
+      collectAfterReset: true,
+    });
+    return { changed: true, contextChanged: true };
   }
 
   const previousSize = observedResourceUrls.size;
@@ -166,6 +166,10 @@ function retainCurrentFulfillmentResource(pageUrl: URL): void {
 
 async function collectCurrentPage(): Promise<void> {
   if (collectionSucceeded) return;
+  if (awaitingFreshContext) {
+    collectionPending = true;
+    return;
+  }
   if (refreshInFlight) {
     collectionPending = true;
     return;
@@ -187,6 +191,7 @@ async function collectCurrentPage(): Promise<void> {
     if (result.status === "ok") {
       collectionSucceeded = true;
       retainCurrentFulfillmentResource(new URL(location.href));
+      contextSignalFloorStartTime = performance.now();
       domObserver?.disconnect();
     } else {
       await clearObservations();
@@ -197,7 +202,12 @@ async function collectCurrentPage(): Promise<void> {
     publishDiagnostics("internal-error", 0);
   } finally {
     collectionInFlight = false;
-    if (collectionPending && !collectionSucceeded && !refreshInFlight) {
+    if (
+      collectionPending &&
+      !collectionSucceeded &&
+      !refreshInFlight &&
+      !awaitingFreshContext
+    ) {
       collectionPending = false;
       void collectCurrentPage();
     }
@@ -206,7 +216,7 @@ async function collectCurrentPage(): Promise<void> {
 
 function requestCollection(): void {
   if (collectionSucceeded) return;
-  if (refreshInFlight || collectionInFlight) {
+  if (awaitingFreshContext || refreshInFlight || collectionInFlight) {
     collectionPending = true;
     return;
   }
@@ -226,8 +236,12 @@ function handleSameDocumentNavigation(event: Event): void {
     const destinationUrl = new URL(navigationEvent.destination.url, currentUrl);
     if (canonicalPageReference(currentUrl) === canonicalPageReference(destinationUrl)) return;
 
-    retainCurrentFulfillmentResource(destinationUrl);
-    startLifecycleRefresh();
+    observedResourceUrls.clear();
+    startLifecycleRefresh({
+      awaitFreshContext: true,
+      collectAfterReset: false,
+      signalFloorStartTime: performance.now(),
+    });
   } catch {
     // Ignore malformed navigation metadata; the existing page snapshot remains bounded.
   }
