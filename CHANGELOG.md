@@ -141,6 +141,13 @@ All notable project changes are recorded here. Zakup Gotov is pre-release; entri
 - Public retailer IDs use canonical product values, the accepted optimizer authority is excluded from JSON, and provider/acquisition/fulfillment identifiers remain internal.
 - OpenAPI 3.1, pinned generated TypeScript client and architecture/regression guards are synchronized; production checkout economics intentionally defaults to no-op/unknown and ordinary CI makes no live retailer request.
 - M4.4.1 acceptance records final reviewed head `9d343f18e1391a9d249625e2cdab6de02b13e913`, squash merge `67679282a388da16706c46a3caf3ff46b2b67d54`, issue #142 closure and 8/8 successful post-merge `main` workflows.
+- M4.4.2 advances the primary WeeklyPlan/Pantry browser journey to the generated M4.4.1 optimization endpoint while preserving accepted original weekly demand, Pantry audit, remaining demand and retailer comparison evidence from the nested M3.5.3 projection.
+- Responsive optimization results render only server-owned `NO_COMPARABLE_CANDIDATES / UNIQUE_WINNER / TIE` state, optimal retailer IDs and lowest comparable checkout total; browser code does not compare checkout totals, derive winners or break ties.
+- Per-retailer checkout presentation exposes server-owned merchandise subtotal, known/unknown delivery and service fees, minimum-order threshold/status, checkout-total knowledge, eligibility and comparability; known zero remains monetary zero and unknown evidence remains explicit.
+- Optimization rows join accepted comparison display metadata by canonical retailer ID through an identity map rather than array index or monetary sort; duplicate/missing/mismatched IDs and contradictory optimizer structure fail closed before checkout cards render.
+- `NO_REMAINING_DEMAND` remains a terminal browser state with no fabricated retailer/optimization output, and Recipe/manual-list journeys remain regression-covered secondary flows.
+- Deterministic M4.4.2 browser acceptance covers no-comparable, unique-winner, exact-tie, no-demand, unavailable-service, 390px no-overflow and visible keyboard-focus states through test-only fixtures with no live retailer/provider requests.
+- M4.4.2 acceptance records final reviewed head `ca2060546936f388556f62e49c6963d846274847`, squash merge `7252b9264ed7a2ffe896b1a1fcddb09a78edc04c`, issue #145 closure and 8/8 successful post-merge `main` workflows.
 
 #### Product and shopping core
 
@@ -187,7 +194,7 @@ All notable project changes are recorded here. Zakup Gotov is pre-release; entri
 
 ### Changed
 
-- Project phase advanced from M0 Product & Integration Discovery through M1 Shopping Core, M2 Recipes and M3 Weekly Planning / Pantry; the current deterministic phase is **M4 Basket Optimization**.
+- Project phase advanced from M0 Product & Integration Discovery through M1 Shopping Core, M2 Recipes, M3 Weekly Planning / Pantry and M4 Basket Optimization; the current deterministic phase is **M5 Productization**.
 - M1 Shopping Core is **COMPLETE / ACCEPTED** on the post-merge pre-acquisition-gate baseline `779d0b219a13e0bf82263a1e655fb732553ed5fe`.
 - The M1→M2 decision is **GO for deterministic product/core development**; it does not claim every retailer is production-ready.
 - M2.1 `Recipe → explicit ingredients → canonical quantities → ShoppingList` is **COMPLETE / ACCEPTED** after squash merge `423eb14f7c565bbe264257a92df89a6b42d0d158` and 8/8 successful post-merge `main` workflows.
@@ -209,7 +216,8 @@ All notable project changes are recorded here. Zakup Gotov is pre-release; entri
 - M4.2 One-retailer truthful total comparison is **COMPLETE / ACCEPTED** after final reviewed head `1d6dae470c04ab1d8279f891766fc16698286edb`, squash merge `69f9cb1afd1b16af938052bbca570cbd4ce52557`, issue #136 closure and 8/8 successful post-merge `main` workflows.
 - M4.3 deterministic basket optimizer is **COMPLETE / ACCEPTED** after final reviewed head `ddc5fed0d3bb98d9c17e5f1ec739ffad9ba77ad5`, squash merge `c854526c30a1b0b1b6b435ae37608da0d9501955`, issue #139 closure and 8/8 successful post-merge `main` workflows.
 - M4.4.1 server-owned optimization preview API is **COMPLETE / ACCEPTED** after final reviewed head `9d343f18e1391a9d249625e2cdab6de02b13e913`, squash merge `67679282a388da16706c46a3caf3ff46b2b67d54`, issue #142 closure and 8/8 successful post-merge `main` workflows.
-- The current deterministic target is **M4.4.2 Responsive Optimization UX**; the primary WeeklyPlan/Pantry browser flow must consume the generated M4.4.1 contract and render server-owned economics/comparability/optimizer decisions without recomputing them.
+- M4.4.2 responsive Optimization UX is **COMPLETE / ACCEPTED** after final reviewed head `ca2060546936f388556f62e49c6963d846274847`, squash merge `7252b9264ed7a2ffe896b1a1fcddb09a78edc04c`, issue #145 closure and 8/8 successful post-merge `main` workflows.
+- M4 Basket Optimization is **COMPLETE / ACCEPTED**; the current deterministic target is **M5 Productization**, whose first implementation slice must be selected from current product/repository evidence rather than invented as an arbitrary M4 continuation.
 - Recipe → ShoppingList merging is intentionally stricter than product matching: only exact normalized requirements with the same canonical unit merge; no case-folding/synonym/AI equivalence is introduced.
 - Recipe provenance remains conversion metadata rather than an optional Recipe field added to neutral `ShoppingItem`; M2.2 projects that provenance publicly as self-contained source ingredient IDs instead of modifying Shopping Core types.
 - Recipe lifecycle and Weekly Planning/Pantry composition remain stateless by default; persistence stays deferred until reusable saved plans/history demonstrate product value.
