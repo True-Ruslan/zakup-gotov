@@ -14,7 +14,7 @@ import { ComparisonPreviewResults } from "./comparison-preview-results";
 type QuantityUnit = components["schemas"]["QuantityInputUnit"];
 
 type FormRow = {
-  id: string;
+  key: number;
   requirement: string;
   amount: string;
   unit: QuantityUnit;
@@ -28,9 +28,9 @@ const units: Array<{ value: QuantityUnit; label: string }> = [
   { value: "LITER", label: "л" },
 ];
 
-function newRow(): FormRow {
+function newRow(key: number): FormRow {
   return {
-    id: globalThis.crypto.randomUUID(),
+    key,
     requirement: "",
     amount: "1",
     unit: "PIECE",
@@ -55,17 +55,17 @@ function clientError(locality: string, rows: FormRow[]) {
 
 export function ComparisonPreviewForm() {
   const [locality, setLocality] = useState("");
-  const [rows, setRows] = useState<FormRow[]>(() => [newRow()]);
+  const [rows, setRows] = useState<FormRow[]>(() => [newRow(0)]);
   const [state, setState] = useState<ComparisonPreviewState | null>(null);
   const [clientMessage, setClientMessage] = useState<string | null>(null);
   const [pending, setPending] = useState(false);
 
-  function updateRow(id: string, patch: Partial<FormRow>) {
-    setRows((current) => current.map((row) => (row.id === id ? { ...row, ...patch } : row)));
+  function updateRow(key: number, patch: Partial<FormRow>) {
+    setRows((current) => current.map((row) => (row.key === key ? { ...row, ...patch } : row)));
   }
 
-  function removeRow(id: string) {
-    setRows((current) => (current.length === 1 ? current : current.filter((row) => row.id !== id)));
+  function removeRow(key: number) {
+    setRows((current) => (current.length === 1 ? current : current.filter((row) => row.key !== key)));
   }
 
   async function submit(event: FormEvent<HTMLFormElement>) {
@@ -80,7 +80,7 @@ export function ComparisonPreviewForm() {
     const request: ComparisonPreviewRequest = {
       locality: locality.trim(),
       items: rows.map((row) => ({
-        id: row.id,
+        id: globalThis.crypto.randomUUID(),
         requirement: row.requirement.trim(),
         quantity: {
           amount: Number(row.amount),
@@ -135,11 +135,11 @@ export function ComparisonPreviewForm() {
 
         <div className="space-y-4" aria-label="Список покупок">
           {rows.map((row, index) => {
-            const requirementId = `requirement-${row.id}`;
-            const amountId = `amount-${row.id}`;
-            const unitId = `unit-${row.id}`;
+            const requirementId = `requirement-${row.key}`;
+            const amountId = `amount-${row.key}`;
+            const unitId = `unit-${row.key}`;
             return (
-              <fieldset key={row.id} className="rounded-2xl border border-stone-200 bg-white p-4 sm:p-5">
+              <fieldset key={row.key} className="rounded-2xl border border-stone-200 bg-white p-4 sm:p-5">
                 <legend className="px-1 text-sm font-semibold text-stone-800">Позиция {index + 1}</legend>
                 <div className="grid gap-4 sm:grid-cols-[minmax(0,1fr)_8rem_7rem_auto] sm:items-end">
                   <div>
@@ -149,7 +149,7 @@ export function ComparisonPreviewForm() {
                     <input
                       id={requirementId}
                       value={row.requirement}
-                      onChange={(event) => updateRow(row.id, { requirement: event.target.value })}
+                      onChange={(event) => updateRow(row.key, { requirement: event.target.value })}
                       maxLength={240}
                       className="mt-2 min-h-11 w-full rounded-xl border border-stone-300 px-3 py-2 outline-none focus:border-stone-700 focus:ring-2 focus:ring-stone-200"
                     />
@@ -165,7 +165,7 @@ export function ComparisonPreviewForm() {
                       min="0"
                       step="any"
                       value={row.amount}
-                      onChange={(event) => updateRow(row.id, { amount: event.target.value })}
+                      onChange={(event) => updateRow(row.key, { amount: event.target.value })}
                       className="mt-2 min-h-11 w-full rounded-xl border border-stone-300 px-3 py-2 outline-none focus:border-stone-700 focus:ring-2 focus:ring-stone-200"
                     />
                   </div>
@@ -176,7 +176,7 @@ export function ComparisonPreviewForm() {
                     <select
                       id={unitId}
                       value={row.unit}
-                      onChange={(event) => updateRow(row.id, { unit: event.target.value as QuantityUnit })}
+                      onChange={(event) => updateRow(row.key, { unit: event.target.value as QuantityUnit })}
                       className="mt-2 min-h-11 w-full rounded-xl border border-stone-300 bg-white px-3 py-2 outline-none focus:border-stone-700 focus:ring-2 focus:ring-stone-200"
                     >
                       {units.map((unit) => (
@@ -188,7 +188,7 @@ export function ComparisonPreviewForm() {
                   </div>
                   <button
                     type="button"
-                    onClick={() => removeRow(row.id)}
+                    onClick={() => removeRow(row.key)}
                     disabled={rows.length === 1}
                     aria-label="Удалить товар"
                     className="min-h-11 rounded-xl border border-stone-300 px-3 text-sm font-medium text-stone-700 disabled:cursor-not-allowed disabled:opacity-40"
@@ -204,7 +204,12 @@ export function ComparisonPreviewForm() {
         <div className="flex flex-wrap gap-3">
           <button
             type="button"
-            onClick={() => setRows((current) => [...current, newRow()])}
+            onClick={() =>
+              setRows((current) => [
+                ...current,
+                newRow(current.reduce((max, row) => Math.max(max, row.key), -1) + 1),
+              ])
+            }
             className="min-h-11 rounded-full border border-stone-300 bg-white px-5 py-2.5 text-sm font-medium text-stone-900 hover:bg-stone-100 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-stone-900"
           >
             Добавить товар
