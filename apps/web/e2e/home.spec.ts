@@ -213,9 +213,21 @@ test("WeeklyPlan journey fails closed when API is unavailable", async ({ page })
 test("WeeklyPlan Pantry controls expose a visible keyboard focus path", async ({ page }) => {
   await page.goto("/");
   const form = weeklyForm(page);
+  const clearDraft = form.getByRole("button", { name: "Очистить форму и локальный черновик" });
   const locality = form.getByRole("textbox", { name: "Населённый пункт", exact: true });
+
+  await expect(clearDraft).toBeEnabled();
+  await page.evaluate(() => {
+    document.body.tabIndex = -1;
+    document.body.focus();
+  });
+  await expect(page.locator("body")).toBeFocused();
+
+  await page.keyboard.press("Tab");
+  await expect(clearDraft).toBeFocused();
   await page.keyboard.press("Tab");
   await expect(locality).toBeFocused();
+
   const localityVisible = await locality.evaluate((element) => {
     const style = window.getComputedStyle(element);
     return (style.outlineStyle !== "none" && style.outlineWidth !== "0px") || style.boxShadow !== "none";
