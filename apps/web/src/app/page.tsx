@@ -8,7 +8,7 @@ export default function Home() {
       <div className="mx-auto w-full max-w-5xl px-6 py-16 sm:px-10 lg:px-16 lg:py-24">
         <div className="max-w-2xl">
           <p className="text-sm font-medium uppercase tracking-[0.18em] text-stone-500">
-            M3 · Weekly Planning
+            M4 · Basket Optimization
           </p>
 
           <h1 className="mt-4 text-4xl font-semibold tracking-tight sm:text-6xl">
@@ -16,9 +16,9 @@ export default function Home() {
           </h1>
 
           <p className="mt-6 max-w-xl text-lg leading-8 text-stone-600 sm:text-xl">
-            Соберите блюда на неделю, укажите известные запасы дома и получите
-            оставшийся канонический список покупок. Сервис сравнит по магазинам только
-            то, что действительно осталось купить, сохраняя неполные корзины и неопределённость видимыми.
+            Соберите блюда на неделю, укажите известные запасы дома и получите оставшийся
+            канонический список покупок. Сервер сравнит магазины, учтёт подтверждённую стоимость
+            оформления и покажет минимальную подтверждённую стоимость только по сопоставимым корзинам.
           </p>
 
           <section
@@ -31,7 +31,8 @@ export default function Home() {
             <p className="mt-2 text-base leading-7 text-stone-600">
               Недельный план и запасы дома работают как stateless preview: без аккаунта,
               сохранения Pantry, плана или точного адреса. Порядок блюд задаёте вы, а
-              пересчёт ингредиентов, учёт запасов, объединение покупок и сравнение выполняет сервер.
+              пересчёт ингредиентов, учёт запасов, сравнение корзин, условия оформления и
+              результат оптимизации вычисляет сервер.
             </p>
           </section>
         </div>

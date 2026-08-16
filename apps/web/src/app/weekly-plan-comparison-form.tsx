@@ -4,9 +4,9 @@ import { useState, type FormEvent } from "react";
 
 import type { components } from "@zakup-gotov/api-client";
 import {
-  createWeeklyPlanComparisonPreview,
-  type WeeklyPlanComparisonPreviewRequest,
-  type WeeklyPlanComparisonState,
+  createWeeklyPlanOptimizationPreview,
+  type WeeklyPlanOptimizationPreviewRequest,
+  type WeeklyPlanOptimizationState,
 } from "./weekly-plan-comparison";
 import { WeeklyPlanComparisonResults } from "./weekly-plan-comparison-results";
 
@@ -121,7 +121,7 @@ export function WeeklyPlanComparisonForm() {
   const [locality, setLocality] = useState("");
   const [occurrences, setOccurrences] = useState<OccurrenceRow[]>(() => [newOccurrence(1)]);
   const [pantryRows, setPantryRows] = useState<PantryRow[]>([]);
-  const [state, setState] = useState<WeeklyPlanComparisonState | null>(null);
+  const [state, setState] = useState<WeeklyPlanOptimizationState | null>(null);
   const [clientMessages, setClientMessages] = useState<string[]>([]);
   const [pending, setPending] = useState(false);
 
@@ -204,7 +204,7 @@ export function WeeklyPlanComparisonForm() {
       return;
     }
 
-    const request: WeeklyPlanComparisonPreviewRequest = {
+    const request: WeeklyPlanOptimizationPreviewRequest = {
       locality: locality.trim(),
       weeklyPlan: {
         occurrences: occurrences.map((occurrence) => ({
@@ -229,7 +229,7 @@ export function WeeklyPlanComparisonForm() {
     setClientMessages([]);
     setPending(true);
     try {
-      setState(await createWeeklyPlanComparisonPreview(request));
+      setState(await createWeeklyPlanOptimizationPreview(request));
     } finally {
       setPending(false);
     }

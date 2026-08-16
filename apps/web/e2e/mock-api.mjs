@@ -354,6 +354,128 @@ function buildWeeklyPlanPantryComparisonPreview(request) {
   };
 }
 
+function knownFee(amount) {
+  return { status: "KNOWN", amount: { amount, currencyCode: "RUB" } };
+}
+
+function unknownAssessment(retailer) {
+  if (!retailer.total) return { retailerId: retailer.id };
+  return {
+    retailerId: retailer.id,
+    assessment: {
+      merchandiseSubtotal: retailer.total,
+      deliveryFee: { status: "UNKNOWN" },
+      serviceFee: { status: "UNKNOWN" },
+      minimumOrder: { status: "UNKNOWN" },
+      minimumOrderStatus: "UNKNOWN",
+      checkoutTotalStatus: "UNKNOWN",
+      eligibilityStatus: "UNKNOWN",
+      comparabilityStatus: "NOT_COMPARABLE",
+    },
+  };
+}
+
+function comparableAssessment(retailer, deliveryFee) {
+  const checkoutAmount = retailer.total.amount + deliveryFee;
+  return {
+    retailerId: retailer.id,
+    assessment: {
+      merchandiseSubtotal: retailer.total,
+      deliveryFee: knownFee(deliveryFee),
+      serviceFee: knownFee(0),
+      minimumOrder: { status: "KNOWN", threshold: { amount: 100, currencyCode: "RUB" } },
+      minimumOrderStatus: "MET",
+      checkoutTotalStatus: "KNOWN",
+      checkoutTotal: { amount: checkoutAmount, currencyCode: "RUB" },
+      eligibilityStatus: "ELIGIBLE",
+      comparabilityStatus: "COMPARABLE",
+      comparableCheckoutTotal: { amount: checkoutAmount, currencyCode: "RUB" },
+    },
+  };
+}
+
+function makeRetailerReady(retailer) {
+  return { ...retailer, comparisonStatus: "READY", reasons: [] };
+}
+
+function buildWeeklyPlanPantryOptimizationPreview(request) {
+  const pantryComparisonPreview = buildWeeklyPlanPantryComparisonPreview(request);
+  if (pantryComparisonPreview.comparisonOutcome === "NO_REMAINING_DEMAND") {
+    return { pantryComparisonPreview };
+  }
+
+  const scenario = normalizeText(request.weeklyPlan.occurrences[0]?.recipe?.title ?? "");
+  const originalComparison = pantryComparisonPreview.comparisonPreview;
+
+  if (scenario === "Уникальный победитель" || scenario === "Точная ничья") {
+    const comparisonPreview = {
+      ...originalComparison,
+      retailers: originalComparison.retailers.map((retailer) =>
+        retailer.id === "perekrestok" ? makeRetailerReady(retailer) : retailer,
+      ),
+    };
+    const pyaterochka = comparisonPreview.retailers.find((retailer) => retailer.id === "pyaterochka");
+    const perekrestok = comparisonPreview.retailers.find((retailer) => retailer.id === "perekrestok");
+
+    if (scenario === "Уникальный победитель") {
+      const retailers = comparisonPreview.retailers.map((retailer) => {
+        if (retailer.id === "pyaterochka") {
+          return {
+            retailerId: retailer.id,
+            assessment: {
+              merchandiseSubtotal: retailer.total,
+              deliveryFee: { status: "UNKNOWN" },
+              serviceFee: knownFee(0),
+              minimumOrder: { status: "KNOWN", threshold: { amount: 100, currencyCode: "RUB" } },
+              minimumOrderStatus: "MET",
+              checkoutTotalStatus: "UNKNOWN",
+              eligibilityStatus: "ELIGIBLE",
+              comparabilityStatus: "NOT_COMPARABLE",
+            },
+          };
+        }
+        if (retailer.id === "perekrestok") return comparableAssessment(retailer, 0);
+        return { retailerId: retailer.id };
+      });
+      return {
+        pantryComparisonPreview: { ...pantryComparisonPreview, comparisonPreview },
+        optimizationPreview: {
+          retailers,
+          status: "UNIQUE_WINNER",
+          optimalRetailerIds: ["perekrestok"],
+          lowestComparableCheckoutTotal: perekrestok.total,
+        },
+      };
+    }
+
+    const tieTotal = perekrestok.total.amount;
+    const pyaterochkaDelivery = tieTotal - pyaterochka.total.amount;
+    const retailers = comparisonPreview.retailers.map((retailer) => {
+      if (retailer.id === "pyaterochka") return comparableAssessment(retailer, pyaterochkaDelivery);
+      if (retailer.id === "perekrestok") return comparableAssessment(retailer, 0);
+      return { retailerId: retailer.id };
+    });
+    return {
+      pantryComparisonPreview: { ...pantryComparisonPreview, comparisonPreview },
+      optimizationPreview: {
+        retailers,
+        status: "TIE",
+        optimalRetailerIds: ["perekrestok", "pyaterochka"],
+        lowestComparableCheckoutTotal: { amount: tieTotal, currencyCode: "RUB" },
+      },
+    };
+  }
+
+  return {
+    pantryComparisonPreview,
+    optimizationPreview: {
+      retailers: originalComparison.retailers.map(unknownAssessment),
+      status: "NO_COMPARABLE_CANDIDATES",
+      optimalRetailerIds: [],
+    },
+  };
+}
+
 function invalidRecipeComparison(response, field, message) {
   writeJson(response, 400, {
     type: "https://zakup-gotov.dev/problems/invalid-recipe-comparison-preview",
@@ -364,12 +486,12 @@ function invalidRecipeComparison(response, field, message) {
   });
 }
 
-function invalidWeeklyPlanPantryComparison(response, field, message) {
+function invalidWeeklyPlanPantryOptimization(response, field, message) {
   writeJson(response, 400, {
-    type: "https://zakup-gotov.dev/problems/invalid-weekly-plan-pantry-comparison-preview",
-    title: "Invalid weekly plan Pantry comparison preview request",
+    type: "https://zakup-gotov.dev/problems/invalid-weekly-plan-pantry-optimization-preview",
+    title: "Invalid weekly plan pantry optimization preview request",
     status: 400,
-    code: "INVALID_WEEKLY_PLAN_PANTRY_COMPARISON_PREVIEW",
+    code: "INVALID_WEEKLY_PLAN_PANTRY_OPTIMIZATION_PREVIEW",
     errors: [{ field, message }],
   });
 }
@@ -388,22 +510,22 @@ const server = http.createServer(async (request, response) => {
   try {
     const body = await readJson(request);
 
-    if (request.url === "/api/v1/weekly-plan-pantry-comparison-previews") {
+    if (request.url === "/api/v1/weekly-plan-pantry-optimization-previews") {
       if (body.locality === "Недоступно") {
         writeJson(response, 503, { error: "deterministic unavailable scenario" });
         return;
       }
       if (!body.weeklyPlan || !Array.isArray(body.weeklyPlan.occurrences) || body.weeklyPlan.occurrences.length < 1) {
-        invalidWeeklyPlanPantryComparison(response, "weeklyPlan.occurrences", "deterministic acceptance requires occurrences");
+        invalidWeeklyPlanPantryOptimization(response, "weeklyPlan.occurrences", "deterministic acceptance requires occurrences");
         return;
       }
       if (!Array.isArray(body.pantry)) {
-        invalidWeeklyPlanPantryComparison(response, "pantry", "deterministic acceptance requires a Pantry array");
+        invalidWeeklyPlanPantryOptimization(response, "pantry", "deterministic acceptance requires a Pantry array");
         return;
       }
-      const result = buildWeeklyPlanPantryComparisonPreview(body);
-      if (result.pantryShoppingPreview.originalShoppingList.items.length < 2) {
-        invalidWeeklyPlanPantryComparison(response, "weeklyPlan.occurrences", "deterministic acceptance requires two shopping requirements");
+      const result = buildWeeklyPlanPantryOptimizationPreview(body);
+      if (result.pantryComparisonPreview.pantryShoppingPreview.originalShoppingList.items.length < 2) {
+        invalidWeeklyPlanPantryOptimization(response, "weeklyPlan.occurrences", "deterministic acceptance requires two shopping requirements");
         return;
       }
       writeJson(response, 200, result);
@@ -445,10 +567,10 @@ const server = http.createServer(async (request, response) => {
     writeJson(response, 404, { error: "not found" });
   } catch {
     writeJson(response, 400, {
-      type: "https://zakup-gotov.dev/problems/invalid-weekly-plan-pantry-comparison-preview",
-      title: "Invalid weekly plan Pantry comparison preview request",
+      type: "https://zakup-gotov.dev/problems/invalid-weekly-plan-pantry-optimization-preview",
+      title: "Invalid weekly plan pantry optimization preview request",
       status: 400,
-      code: "INVALID_WEEKLY_PLAN_PANTRY_COMPARISON_PREVIEW",
+      code: "INVALID_WEEKLY_PLAN_PANTRY_OPTIMIZATION_PREVIEW",
       errors: [{ field: "$request", message: "malformed JSON request" }],
     });
   }

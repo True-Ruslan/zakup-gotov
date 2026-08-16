@@ -38,12 +38,12 @@ afterEach(() => {
 });
 
 describe("home page", () => {
-  it("renders Pantry-aware M3 Weekly Planning first while preserving Recipe and manual journeys", async () => {
+  it("renders M4 Basket Optimization WeeklyPlan journey first while preserving Recipe and manual journeys", async () => {
     render(await Home());
 
     expect(screen.getAllByRole("heading", { level: 1 })).toHaveLength(1);
     expect(screen.getByRole("heading", { level: 1, name: "Закуп готов" })).toBeDefined();
-    expect(screen.getByText(/M3 · Weekly Planning/i)).toBeDefined();
+    expect(screen.getByText(/M4 · Basket Optimization/i)).toBeDefined();
     expect(screen.getByText(/укажите известные запасы дома/i)).toBeDefined();
     expect(screen.queryByText(/M2 · Recipes/i)).toBeNull();
 
