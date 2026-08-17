@@ -41,7 +41,7 @@ describe("canonicalObservedResourceUrl", () => {
     ).toBeNull();
   });
 
-  it("allows only path-only Chizhik unauthorized catalog evidence on an official Chizhik page", () => {
+  it("allows only path-only Chizhik public catalog and store-scoped delivery catalog evidence", () => {
     const page = new URL("https://chizhik.club/deeplink?action_type=to_screen");
 
     expect(
@@ -56,10 +56,42 @@ describe("canonicalObservedResourceUrl", () => {
         page,
       ),
     ).toBe("https://app.chizhik.club/api/v1/catalog/unauthorized/products/");
+    expect(
+      canonicalObservedResourceUrl(
+        "https://app.chizhik.club/delivery/api/catalog/v3/stores/HD87/search?mode=store&q=SECRET#fragment",
+        page,
+      ),
+    ).toBe("https://app.chizhik.club/delivery/api/catalog/v3/stores/HD87/search");
+    expect(
+      canonicalObservedResourceUrl(
+        "https://app.chizhik.club/delivery/api/catalog/v2/stores/HD87/categories/drinks/products?token=SECRET",
+        page,
+      ),
+    ).toBe(
+      "https://app.chizhik.club/delivery/api/catalog/v2/stores/HD87/categories/drinks/products",
+    );
 
     expect(
       canonicalObservedResourceUrl(
         "https://app.chizhik.club/api/v1/profile/me",
+        page,
+      ),
+    ).toBeNull();
+    expect(
+      canonicalObservedResourceUrl(
+        "https://app.chizhik.club/delivery/api/profile/v1/me",
+        page,
+      ),
+    ).toBeNull();
+    expect(
+      canonicalObservedResourceUrl(
+        "https://app.chizhik.club/delivery/api/catalog/v3/stores/HD87/../../profile/me",
+        page,
+      ),
+    ).toBeNull();
+    expect(
+      canonicalObservedResourceUrl(
+        "https://app.chizhik.club/delivery/api/catalog/v3/stores/%2Fprofile/search",
         page,
       ),
     ).toBeNull();
@@ -71,7 +103,7 @@ describe("canonicalObservedResourceUrl", () => {
     ).toBeNull();
     expect(
       canonicalObservedResourceUrl(
-        "https://app.chizhik.club.evil.example/api/v1/catalog/unauthorized/products/",
+        "https://app.chizhik.club.evil.example/delivery/api/catalog/v3/stores/HD87/search",
         page,
       ),
     ).toBeNull();
@@ -113,12 +145,48 @@ describe("fulfillmentContextResource", () => {
     ).toBeNull();
   });
 
-  it("does not promote Chizhik catalog resource paths into a guessed fulfillment context", () => {
+  it("projects an exact Chizhik delivery catalog store path as fulfillment context", () => {
+    const page = new URL("https://chizhik.club/catalog/test");
+
+    expect(
+      fulfillmentContextResource(
+        "https://app.chizhik.club/delivery/api/catalog/v3/stores/HD87/search?mode=store&q=SECRET",
+        page,
+      ),
+    ).toEqual({
+      contextKey: "chizhik:HD87",
+      canonicalUrl: "https://app.chizhik.club/delivery/api/catalog/v3/stores/HD87/search",
+    });
+    expect(
+      fulfillmentContextResource(
+        "https://app.chizhik.club/delivery/api/catalog/v2/stores/HD87/categories/drinks/products?token=SECRET",
+        page,
+      ),
+    ).toEqual({
+      contextKey: "chizhik:HD87",
+      canonicalUrl:
+        "https://app.chizhik.club/delivery/api/catalog/v2/stores/HD87/categories/drinks/products",
+    });
+  });
+
+  it("does not promote public Chizhik catalog resources or unsafe delivery paths", () => {
     const page = new URL("https://chizhik.club/");
 
     expect(
       fulfillmentContextResource(
         "https://app.chizhik.club/api/v1/catalog/unauthorized/products/?store=SECRET",
+        page,
+      ),
+    ).toBeNull();
+    expect(
+      fulfillmentContextResource(
+        "https://app.chizhik.club/delivery/api/catalog/v3/stores/%2Fprofile/search",
+        page,
+      ),
+    ).toBeNull();
+    expect(
+      fulfillmentContextResource(
+        "https://app.chizhik.club.evil.example/delivery/api/catalog/v3/stores/HD87/search",
         page,
       ),
     ).toBeNull();
