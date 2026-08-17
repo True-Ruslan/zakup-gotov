@@ -79,9 +79,9 @@ jobs:
             description="$evidence"
             printf '`%s`\n' "$evidence" >> "$GITHUB_STEP_SUMMARY"
 
-            status="$(sed -n 's/.*status=\([^ ]*\).*/\1/p' <<<"$evidence")"
-            http_status="$(sed -n 's/.*http_status=\([-0-9]*\).*/\1/p' <<<"$evidence")"
-            content_type="$(sed -n 's/.*content_type=\([^ ]*\).*/\1/p' <<<"$evidence")"
+            status="$(sed -n 's/^CHIZHIK_PHASE_C status=\([^ ]*\).*/\1/p' <<<"$evidence")"
+            http_status="$(sed -n 's/.* http_status=\([-0-9]*\).*/\1/p' <<<"$evidence")"
+            content_type="$(sed -n 's/.* content_type=\([^ ]*\).*/\1/p' <<<"$evidence")"
 
             if [[ "$status" == 'REACHABLE_PDF' \
                && "$http_status" == '200' \
