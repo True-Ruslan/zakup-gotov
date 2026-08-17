@@ -1,6 +1,6 @@
 # Project State
 
-Updated: 2026-08-16
+Updated: 2026-08-18
 
 ## Project
 
@@ -38,6 +38,8 @@ Milestone status:
 - M4 Basket Optimization — **COMPLETE / ACCEPTED**.
 - Pre-release web runtime hardening — **COMPLETE / ACCEPTED** (#150).
 - M5.1 Private local WeeklyPlan draft — **COMPLETE / ACCEPTED** (#148 / #149).
+- Retailer Bridge persistent-session / SPA / store-change lifecycle hardening — **COMPLETE / ACCEPTED** (#54 / #153).
+- Chizhik Phase D1 active normal-browser foundation — **IMPLEMENTED / MERGED; LIVE TRANSPORT GATE UNRESOLVED** (#167 / #168).
 
 Current deterministic product phase: **M5 — Productization**.  
 Immediate operational target: **`v0.1.0-rc.3` end-to-end release validation**.  
@@ -384,9 +386,89 @@ Manual source-checkout testing before M5.1 exposed two independent runtime/devel
 
 Accepted merge: `ef366c4ea65169dc3839cbf78c1df25d16f1dffa`; exact merge **8/8 normal push workflows SUCCESS**.
 
+## Retailer Bridge operational hardening — COMPLETE / ACCEPTED
+
+Issue #54 is no longer outstanding. PR #153 established the accepted long-lived browser-bridge lifecycle model and merged as `a3f7edb8028f2ba030c26d71ff10c17177e1abb9`.
+
+Accepted result:
+
+- persistent browser sessions no longer keep stale retailer/store context after SPA navigation or store changes;
+- same-document navigation is event-driven rather than polling-based;
+- fresh fulfillment-context evidence is required before recollecting a new route;
+- stale pre-navigation resources and obsolete async collection results cannot republish old-store observations;
+- monotonic lifecycle revisions prevent older service-worker writes from overwriting newer lifecycle state;
+- retained resource evidence stays bounded;
+- production extension permissions remain `storage` only and no cookies, auth headers, response bodies, `webRequest`, stealth or proxy behavior was added;
+- deterministic Chromium coverage includes same-store SPA refresh, store change, overlapping navigation/context changes, rapid navigation and obsolete in-flight collection rejection.
+
+This hardening is part of the accepted browser acquisition foundation for existing Perekrestok/Pyaterochka paths and for ongoing retailer onboarding.
+
+## Chizhik connectivity track — IMPLEMENTED THROUGH D1 / LIVE GATE UNRESOLVED
+
+Chizhik remains mandatory connectivity work, but merged implementation and live acquisition acceptance are intentionally separated.
+
+### Phase A — plain HTTPS feasibility — IMPLEMENTED / MERGED
+
+PR #156 merged as `1713b8c90b7370a54f733910c6302666b91d3413`.
+
+- bounded opt-in direct HTTPS probes target only the known unauthenticated catalog surface;
+- finite timeouts, no redirects/retries, sanitized response-shape evidence and no credential/session extraction;
+- Phase A proves only technical transport evidence and does not activate a production provider.
+
+### Phase B — browser discovery — IMPLEMENTED / MERGED
+
+PR #158 merged as `18c4f16027cbf85cff9803bfd0ed4d0cdf74533a`; PR #160 merged trusted `main` canary artifact publication as `98cc08698a19fdc7b4967d938e505e1f36955d63`.
+
+- exact official `chizhik.club` origin registration and observation-only discovery;
+- only allow-listed first-party catalog resource paths are retained as sanitized evidence;
+- discovery cannot persist guessed offers or infer fulfillment context;
+- exact bridge build that passes trusted `main` Chromium E2E can be published as a short-lived SHA-named canary artifact.
+
+### Phase C — public catalog document reachability — IMPLEMENTED / MERGED
+
+PRs #164/#165/#166 merged as `1b044ab58704c1a44a4fe4aa89dbeed4d961f1eb`, `21dbbdfb8db61ea00270c1ca2e8ae69e9f3799e1` and `a6e306da3b5a33710f94ef1956d71b1a462509e7`.
+
+- the probe is restricted to exact HTTPS `media.chizhik.club` catalog PDF paths;
+- redirects are bounded and revalidated before following;
+- production transport is body-less `HEAD`, with no cookies, auth, body parsing or header imitation;
+- controlled issue-comment execution publishes only sanitized reachability evidence;
+- transport failures use a finite safe category vocabulary and secondary GitHub status publication is bounded/best-effort;
+- document reachability is explicitly not product/price/fulfillment connectivity.
+
+### Phase D1 — active normal-browser store-directory foundation — IMPLEMENTED / MERGED; LIVE TRANSPORT GATE UNRESOLVED
+
+Issue #167 remains open. PR #168 merged as `e49c151fa44681dffe85fe90116009c86690672e`.
+
+Accepted field evidence on 2026-08-18 from an ordinary user-opened official Chizhik catalog page:
+
+- browser-context `GET https://app.chizhik.club/api/v1/shops/` returned HTTP `200`;
+- content type was JSON;
+- response was an array with observed store identity/coordinate fields including `sap_id`, `lat` and `lon`;
+- the full store response is not retained or published as project evidence.
+
+Merged D1 implementation now provides:
+
+- a fixed-endpoint active browser API client with an eight-second abort deadline;
+- strict store-shape and coordinate-range validation;
+- async retailer-adapter support while preserving existing synchronous adapters;
+- one active Chizhik store-directory discovery attempt per content-script lifecycle;
+- real extension Chromium E2E for successful CORS and fail-closed blocked transport;
+- an owner-only opt-in stock-Chromium live workflow that emits sanitized status/shape evidence only;
+- no stealth, fingerprint spoofing, proxy rotation, credential/header/cookie extraction, mobile impersonation or arbitrary URL proxying.
+
+Current live disposition is **not accepted**: the CI-hosted Phase D probe on the merged D1 `main` head reports `Provider Live Probe / Chizhik Phase D / page-unavailable` as failure evidence. This does not invalidate ordinary repository CI, which passed on the PR head; it means the server-controlled stock-Chromium acquisition path has not reproduced the successful ordinary-user-browser canary.
+
+Decision gate:
+
+- if CI-hosted stock Chromium reproducibly obtains `200 + JSON + sap_id/lat/lon`, a server-controlled browser acquisition worker remains viable;
+- if CI-hosted Chromium remains blocked while the ordinary user browser remains successful, prefer the active MV3 Retailer Bridge acquisition path;
+- only after that transport disposition should D2 validate one store-scoped product/delivery search endpoint and map only evidenced payload fields to `BrowserObservation` / `ObservedOffer`.
+
+Chizhik product/price offers, D2 and production activation remain **NOT ACCEPTED / NOT IMPLEMENTED**. Technical feasibility does not itself grant production/right-to-operate approval.
+
 ## Immediate operational target — v0.1.0-rc.3
 
-The next highest-value validation is a new immutable **`v0.1.0-rc.3` GitHub prerelease** from documentation-synchronized verified `main`.
+The next highest-value mainline validation is a new immutable **`v0.1.0-rc.3` GitHub prerelease** from documentation-synchronized verified `main`.
 
 It must prove the existing release workflow end to end: source/main ancestry verification, repository + browser + production bundle verification, multi-platform staging publication, unchanged HIGH/CRITICAL Trivy policy, SPDX SBOM evidence, staging exact-digest smoke, digest-identical final-package promotion, final exact-digest smoke, provenance attestations, prerelease SemVer tag promotion, final architecture manifest checks and attached release evidence/checksums while leaving `latest` untouched.
 
@@ -405,14 +487,18 @@ Decision: [`integrations/magnit-production-access-decision-2026-08-13.md`](integ
 
 ## Parallel mandatory work
 
-Continue without blocking deterministic M5 work unless evidence invalidates accepted core assumptions:
+Continue without blocking deterministic M5/release work unless evidence invalidates accepted core assumptions:
 
-- **#54** browser-bridge persistent-session/store-change/SPA lifecycle hardening;
 - **#36** Kuper supported aggregator investigation;
-- Chizhik, Ozon Fresh, Samokat, Lenta and VkusVill onboarding/hardening;
+- Chizhik D1 transport disposition followed by D2 store-scoped product/delivery acquisition only when evidence justifies it;
+- Ozon Fresh, Samokat, Lenta and VkusVill onboarding/hardening;
 - retailer-specific structured package semantics only where source evidence proves them;
 - retailer-specific production-access decisions before activation;
 - successful real **`v0.1.0-rc.3` GitHub Release** proving final image promotion, SBOM/attestation and digest smoke evidence.
+
+Completed parallel hardening:
+
+- **#54 / #153** browser-bridge persistent-session/store-change/SPA lifecycle hardening — **COMPLETE / ACCEPTED**.
 
 ## Permanent core invariants
 
@@ -448,6 +534,8 @@ Continue without blocking deterministic M5 work unless evidence invalidates acce
 30. The primary WeeklyPlan/Pantry optimization browser flow consumes generated M4.4.1 only; browser joins are identity/structure checks and never become a second checkout-arithmetic, comparability or winner-selection implementation.
 31. Browser-local repeat-use persistence is semantic input only: no generated identity, comparison/economics/optimizer result or provider evidence may become local draft authority.
 32. Local draft restore never implies submission; browser storage failures fail closed while explicit editing/submission remain usable.
+33. Browser acquisition lifecycle evidence must be revision-safe across SPA/store changes; stale context must not be republished after a newer navigation boundary.
+34. A successful ordinary-user-browser canary and a successful CI/server-browser transport are separate evidence classes; neither may be silently substituted for the other.
 
 ## Platform baseline
 

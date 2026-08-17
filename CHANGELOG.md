@@ -6,6 +6,16 @@ All notable project changes are recorded here. Zakup Gotov is pre-release; entri
 
 ### Added
 
+#### Retailer connectivity after M5.1
+
+- Retailer Bridge long-lived-session hardening now refreshes truthfully across SPA navigation and store changes using fresh-context gating, bounded retained resource evidence and revision-safe writes; the accepted #153 merge closes the previously outstanding #54 lifecycle work without widening production extension permissions.
+- Chizhik Phase A adds a bounded opt-in plain HTTPS feasibility probe for the unauthenticated catalog surface with finite timeouts, sanitized response-shape evidence and no production-provider activation (#156).
+- Chizhik Phase B adds exact-origin observation-only browser discovery for allow-listed first-party catalog resource paths (#158); trusted `main` bridge builds that pass Chromium E2E can be published as short-lived SHA-named canary artifacts (#160).
+- Chizhik Phase C adds a bounded body-less public catalog-document reachability probe restricted to exact `media.chizhik.club` PDF paths, a controlled issue-comment live workflow, finite sanitized transport-failure classification and best-effort secondary GitHub status publication (#164/#165/#166). Document reachability is explicitly not product/price/fulfillment connectivity.
+- Chizhik Phase D1 adds a fixed-endpoint active browser-context client for `GET https://app.chizhik.club/api/v1/shops/`, an eight-second abort deadline, strict store-shape/coordinate validation, async retailer-adapter support, one active discovery attempt per content-script lifecycle, real extension Chromium E2E and an owner-only stock-Chromium live probe (#168).
+- The ordinary-user-browser Phase D field canary on 2026-08-18 returned `200 + JSON` with store `sap_id`/`lat`/`lon` evidence, but the current CI-hosted Phase D live status is `page-unavailable`. D1 therefore remains a merged implementation with an unresolved live transport gate; D2 store-scoped product/delivery mapping and production activation are not accepted.
+- Chizhik D1 preserves the safety boundary: no stealth/fingerprint spoofing, proxy rotation, credential/header/cookie extraction, private/mobile-client impersonation or arbitrary URL proxying. Technical feasibility remains separate from production/right-to-operate approval.
+
 #### Productization
 
 - M5.1 adds exactly one versioned same-origin browser-local WeeklyPlan/Pantry input draft under `zakup-gotov.weekly-plan-draft.v1` for repeat use without accounts or server persistence.
@@ -206,6 +216,8 @@ All notable project changes are recorded here. Zakup Gotov is pre-release; entri
 ### Changed
 
 - Project phase advanced from M0 Product & Integration Discovery through M1 Shopping Core, M2 Recipes, M3 Weekly Planning / Pantry and M4 Basket Optimization; the current deterministic phase is **M5 Productization**.
+- Browser-bridge persistent-session/store-change/SPA lifecycle hardening is now **COMPLETE / ACCEPTED** through #153, so #54 is no longer outstanding connectivity debt.
+- Chizhik connectivity is implemented through merged D1 foundation, but live transport disposition is still open because ordinary-user-browser success and CI-hosted `page-unavailable` are separate evidence classes.
 - M5.1 Private local WeeklyPlan draft is **COMPLETE / ACCEPTED** after final reviewed head `6c54479044e41e5177739b57eb891830a79691f8`, squash merge `2f2b96d18521b8bb04f6ee17182d61711322de08`, issue #148 closure and 8/8 successful post-merge `main` workflows.
 - The immediate operational target is a new immutable **`v0.1.0-rc.3`** prerelease proving the existing release contract end to end; M5.2 remains intentionally unselected until release-candidate/manual-use evidence identifies the next highest-value productization constraint.
 - M1 Shopping Core is **COMPLETE / ACCEPTED** on the post-merge pre-acquisition-gate baseline `779d0b219a13e0bf82263a1e655fb732553ed5fe`.
