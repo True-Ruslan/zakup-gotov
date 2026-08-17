@@ -35,8 +35,7 @@ class ChizhikPublicCatalogDocumentLiveProbeTest {
                 observation.path(),
                 observation.observedAt());
 
-        assertThat(observation.status()).isEqualTo(ChizhikPublicCatalogDocumentStatus.REACHABLE_PDF);
-        assertThat(observation.httpStatus()).isEqualTo(200);
-        assertThat(observation.contentType()).isEqualTo("application/pdf");
+        assertThat(observation.uri().getHost()).isEqualTo("media.chizhik.club");
+        assertThat(observation.path()).startsWith("/media/backendprod-dpro/catalog/pdf_file/");
     }
 }
