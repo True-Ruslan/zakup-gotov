@@ -8,6 +8,8 @@ import {
 
 const OBSERVED_AT = "2026-08-18T00:15:00Z";
 const PAGE_URL = new URL("https://chizhik.club/catalog/chay-kofe--264C39224/#fragment");
+const HD87_RESOURCE =
+  "https://app.chizhik.club/delivery/api/catalog/v3/stores/HD87/search?mode=store&q=cola";
 
 function documentWithGuessedProduct(): Document {
   return new DOMParser().parseFromString(
@@ -32,6 +34,14 @@ const VALID_DISCOVERY = {
       name: "Москва, Саянская ул., Дом 11Б",
       locality: "Москва",
     },
+    {
+      sapId: "HD88",
+      longitude: 37.80898339,
+      latitude: 55.39666279,
+      active: true,
+      name: "Домодедово, Вокзальная ул., Строение 2г",
+      locality: "Домодедово",
+    },
   ],
 };
 
@@ -46,7 +56,7 @@ describe("chizhikBrowserAdapter", () => {
     expect(chizhikBrowserAdapter.supports(new URL("https://chizhik.club.evil.example/"))).toBe(false);
   });
 
-  it("reports observation-only after active fixed-endpoint store discovery succeeds without auto-searching products", async () => {
+  it("reports observation-only only after a delivery resource identifies one validated store", async () => {
     const listStores = vi.fn(async () => VALID_DISCOVERY);
     const searchStore = vi.fn(async () => ({ status: "unavailable" as const }));
     const adapter = createChizhikBrowserAdapter({ listStores, searchStore });
@@ -56,10 +66,73 @@ describe("chizhikBrowserAdapter", () => {
         document: documentWithGuessedProduct(),
         url: PAGE_URL,
         observedAt: OBSERVED_AT,
-        resourceUrls: [],
+        resourceUrls: [HD87_RESOURCE],
       }),
     ).resolves.toEqual({ status: "observation-only", observations: [] });
     expect(listStores).toHaveBeenCalledTimes(1);
+    expect(searchStore).not.toHaveBeenCalled();
+  });
+
+  it("fails closed when no evidenced store context is present", async () => {
+    const searchStore = vi.fn(async () => ({ status: "unavailable" as const }));
+    const adapter = createChizhikBrowserAdapter({
+      listStores: vi.fn(async () => VALID_DISCOVERY),
+      searchStore,
+    });
+
+    await expect(
+      adapter.collect({
+        document: documentWithGuessedProduct(),
+        url: PAGE_URL,
+        observedAt: OBSERVED_AT,
+        resourceUrls: ["https://app.chizhik.club/api/v1/catalog/unauthorized/products/"],
+      }),
+    ).resolves.toEqual({ status: "missing-context", observations: [] });
+    expect(searchStore).not.toHaveBeenCalled();
+  });
+
+  it("ignores foreign-origin and unknown-store delivery resource candidates", async () => {
+    for (const resourceUrls of [
+      ["https://app.chizhik.club.evil.example/delivery/api/catalog/v3/stores/HD87/search"],
+      ["https://app.chizhik.club/delivery/api/catalog/v3/stores/UNKNOWN/search"],
+      ["https://app.chizhik.club/delivery/api/profile/v1/me"],
+    ]) {
+      const searchStore = vi.fn(async () => ({ status: "unavailable" as const }));
+      const adapter = createChizhikBrowserAdapter({
+        listStores: vi.fn(async () => VALID_DISCOVERY),
+        searchStore,
+      });
+
+      await expect(
+        adapter.collect({
+          document: documentWithGuessedProduct(),
+          url: PAGE_URL,
+          observedAt: OBSERVED_AT,
+          resourceUrls,
+        }),
+      ).resolves.toEqual({ status: "missing-context", observations: [] });
+      expect(searchStore).not.toHaveBeenCalled();
+    }
+  });
+
+  it("fails closed when retained delivery resources conflict across validated stores", async () => {
+    const searchStore = vi.fn(async () => ({ status: "unavailable" as const }));
+    const adapter = createChizhikBrowserAdapter({
+      listStores: vi.fn(async () => VALID_DISCOVERY),
+      searchStore,
+    });
+
+    await expect(
+      adapter.collect({
+        document: documentWithGuessedProduct(),
+        url: PAGE_URL,
+        observedAt: OBSERVED_AT,
+        resourceUrls: [
+          HD87_RESOURCE,
+          "https://app.chizhik.club/delivery/api/catalog/v2/stores/HD88/categories/drinks/products",
+        ],
+      }),
+    ).resolves.toEqual({ status: "missing-context", observations: [] });
     expect(searchStore).not.toHaveBeenCalled();
   });
 
@@ -71,7 +144,7 @@ describe("chizhikBrowserAdapter", () => {
       document: documentWithGuessedProduct(),
       url: PAGE_URL,
       observedAt: OBSERVED_AT,
-      resourceUrls: [] as string[],
+      resourceUrls: [HD87_RESOURCE],
     };
 
     await adapter.collect(input);
@@ -97,7 +170,7 @@ describe("chizhikBrowserAdapter", () => {
           document: documentWithGuessedProduct(),
           url: PAGE_URL,
           observedAt: OBSERVED_AT,
-          resourceUrls: ["https://app.chizhik.club/api/v1/catalog/unauthorized/products/"],
+          resourceUrls: [HD87_RESOURCE],
         }),
       ).resolves.toEqual({ status: "missing-context", observations: [] });
       expect(searchStore).not.toHaveBeenCalled();
@@ -116,7 +189,7 @@ describe("chizhikBrowserAdapter", () => {
         document: documentWithGuessedProduct(),
         url: PAGE_URL,
         observedAt: OBSERVED_AT,
-        resourceUrls: ["https://app.chizhik.club/api/v1/catalog/unauthorized/products/"],
+        resourceUrls: [HD87_RESOURCE],
       }),
     ).resolves.toEqual({ status: "observation-only", observations: [] });
     expect(searchStore).not.toHaveBeenCalled();
