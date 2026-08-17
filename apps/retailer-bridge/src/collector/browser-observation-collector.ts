@@ -95,7 +95,7 @@ export class BrowserObservationCollector {
       return { status: "unsupported-page", observationCount: 0 };
     }
 
-    const result = adapter.collect({ document, url, observedAt, resourceUrls });
+    const result = await adapter.collect({ document, url, observedAt, resourceUrls });
     if (result.status !== "ok") {
       return { status: result.status, observationCount: 0 };
     }
