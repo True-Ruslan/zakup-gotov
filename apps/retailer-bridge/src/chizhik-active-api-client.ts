@@ -24,8 +24,16 @@ function isNonBlank(value: unknown): value is string {
   return typeof value === "string" && value.trim().length > 0;
 }
 
-function isFiniteCoordinate(value: unknown): value is number {
+function isFiniteNumber(value: unknown): value is number {
   return typeof value === "number" && Number.isFinite(value);
+}
+
+function isLongitude(value: unknown): value is number {
+  return isFiniteNumber(value) && value >= -180 && value <= 180;
+}
+
+function isLatitude(value: unknown): value is number {
+  return isFiniteNumber(value) && value >= -90 && value <= 90;
 }
 
 function projectStore(raw: unknown): ChizhikStoreSummary | null {
@@ -34,8 +42,8 @@ function projectStore(raw: unknown): ChizhikStoreSummary | null {
   const record = raw as Record<string, unknown>;
   if (
     !isNonBlank(record.sap_id) ||
-    !isFiniteCoordinate(record.lon) ||
-    !isFiniteCoordinate(record.lat) ||
+    !isLongitude(record.lon) ||
+    !isLatitude(record.lat) ||
     typeof record.status !== "number" ||
     !Number.isInteger(record.status) ||
     !isNonBlank(record.name) ||
