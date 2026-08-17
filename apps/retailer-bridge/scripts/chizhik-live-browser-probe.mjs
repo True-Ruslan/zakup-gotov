@@ -23,24 +23,6 @@ function unavailableEvidence(status, pageStatus = -1, shopsStatus = -1) {
   });
 }
 
-function validStoreShape(value) {
-  return (
-    value &&
-    typeof value === "object" &&
-    typeof value.sap_id === "string" &&
-    value.sap_id.trim().length > 0 &&
-    typeof value.lat === "number" &&
-    Number.isFinite(value.lat) &&
-    typeof value.lon === "number" &&
-    Number.isFinite(value.lon) &&
-    Number.isInteger(value.status) &&
-    typeof value.name === "string" &&
-    value.name.trim().length > 0 &&
-    typeof value.locality === "string" &&
-    value.locality.trim().length > 0
-  );
-}
-
 async function runProbe() {
   const browser = await chromium.launch({ headless: true });
   try {
@@ -69,6 +51,21 @@ async function runProbe() {
         async ({ endpoint, timeoutMs }) => {
           const controller = new AbortController();
           const deadline = setTimeout(() => controller.abort(), timeoutMs);
+          const validStoreShape = (value) =>
+            value &&
+            typeof value === "object" &&
+            typeof value.sap_id === "string" &&
+            value.sap_id.trim().length > 0 &&
+            typeof value.lat === "number" &&
+            Number.isFinite(value.lat) &&
+            typeof value.lon === "number" &&
+            Number.isFinite(value.lon) &&
+            Number.isInteger(value.status) &&
+            typeof value.name === "string" &&
+            value.name.trim().length > 0 &&
+            typeof value.locality === "string" &&
+            value.locality.trim().length > 0;
+
           try {
             const response = await fetch(endpoint, {
               method: "GET",
@@ -83,23 +80,33 @@ async function runProbe() {
                 status: "HTTP_UNAVAILABLE",
                 httpStatus: response.status,
                 json: false,
-                payload: null,
+                array: false,
+                nonempty: false,
+                storeShape: false,
               };
             }
 
             try {
+              const payload = await response.json();
+              const isArray = Array.isArray(payload);
+              const nonempty = isArray && payload.length > 0;
+              const storeShape = nonempty && payload.every(validStoreShape);
               return {
-                status: "RECEIVED",
+                status: storeShape ? "PASS" : "SHAPE_INVALID",
                 httpStatus: response.status,
                 json: true,
-                payload: await response.json(),
+                array: isArray,
+                nonempty,
+                storeShape: Boolean(storeShape),
               };
             } catch {
               return {
                 status: "INVALID_JSON",
                 httpStatus: response.status,
                 json: false,
-                payload: null,
+                array: false,
+                nonempty: false,
+                storeShape: false,
               };
             }
           } catch {
@@ -107,7 +114,9 @@ async function runProbe() {
               status: "FETCH_UNAVAILABLE",
               httpStatus: -1,
               json: false,
-              payload: null,
+              array: false,
+              nonempty: false,
+              storeShape: false,
             };
           } finally {
             clearTimeout(deadline);
@@ -116,24 +125,14 @@ async function runProbe() {
         { endpoint: SHOPS_ENDPOINT, timeoutMs: FETCH_TIMEOUT_MS },
       );
 
-      const isArray = Array.isArray(result.payload);
-      const nonempty = isArray && result.payload.length > 0;
-      const storeShape = nonempty && result.payload.every(validStoreShape);
-      const status =
-        result.status === "RECEIVED" && result.httpStatus === 200 && result.json && storeShape
-          ? "PASS"
-          : result.status === "RECEIVED"
-            ? "SHAPE_INVALID"
-            : result.status;
-
       evidence({
-        status,
+        status: result.status,
         page_http_status: pageStatus,
         shops_http_status: result.httpStatus,
         json: result.json,
-        array: isArray,
-        nonempty,
-        store_shape: Boolean(storeShape),
+        array: result.array,
+        nonempty: result.nonempty,
+        store_shape: result.storeShape,
       });
     } finally {
       await context.close();
