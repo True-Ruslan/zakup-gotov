@@ -109,4 +109,78 @@ describe("ChizhikActiveApiClient", () => {
 
     await expect(client.listStores()).resolves.toEqual({ status: "unavailable", stores: [] });
   });
+
+  it("builds one fixed store-scoped delivery search request from a validated sap id", async () => {
+    const opaquePayload = { schema: "not-yet-accepted" };
+    const fetcher = vi.fn(async () =>
+      new Response(JSON.stringify(opaquePayload), {
+        status: 200,
+        headers: { "content-type": "application/json; charset=utf-8" },
+      }),
+    );
+    const client = createChizhikActiveApiClient(fetcher);
+
+    const result = await client.searchStore({ sapId: "HD87", query: "молоко" });
+
+    expect(fetcher).toHaveBeenCalledTimes(1);
+    expect(fetcher).toHaveBeenCalledWith(
+      "https://app.chizhik.club/delivery/api/catalog/v3/stores/HD87/search?mode=store&include_restrict=true&q=%D0%BC%D0%BE%D0%BB%D0%BE%D0%BA%D0%BE&limit=12",
+      {
+        method: "GET",
+        mode: "cors",
+        credentials: "same-origin",
+        headers: { Accept: "application/json, text/plain, */*" },
+        signal: expect.any(AbortSignal),
+      },
+    );
+    expect(result).toEqual({ status: "received", payload: opaquePayload });
+  });
+
+  it("rejects unsafe store ids, blank queries, and unbounded limits before transport", async () => {
+    const fetcher = vi.fn(async () =>
+      new Response("{}", { status: 200, headers: { "content-type": "application/json" } }),
+    );
+    const client = createChizhikActiveApiClient(fetcher);
+
+    await expect(client.searchStore({ sapId: "../shops", query: "молоко" })).resolves.toEqual({
+      status: "unavailable",
+    });
+    await expect(client.searchStore({ sapId: "HD87", query: "   " })).resolves.toEqual({
+      status: "unavailable",
+    });
+    await expect(
+      client.searchStore({ sapId: "HD87", query: "молоко", limit: 0 }),
+    ).resolves.toEqual({ status: "unavailable" });
+    await expect(
+      client.searchStore({ sapId: "HD87", query: "молоко", limit: 51 }),
+    ).resolves.toEqual({ status: "unavailable" });
+
+    expect(fetcher).not.toHaveBeenCalled();
+  });
+
+  it("keeps delivery search payload opaque and fails closed for non-json or transport failures", async () => {
+    const responses = [
+      new Response("blocked", { status: 403, headers: { "content-type": "text/plain" } }),
+      new Response("<html></html>", {
+        status: 200,
+        headers: { "content-type": "text/html" },
+      }),
+    ];
+
+    for (const response of responses) {
+      const client = createChizhikActiveApiClient(vi.fn(async () => response));
+      await expect(client.searchStore({ sapId: "HD87", query: "молоко" })).resolves.toEqual({
+        status: "unavailable",
+      });
+    }
+
+    const client = createChizhikActiveApiClient(
+      vi.fn(async () => {
+        throw new Error("transport details must not escape");
+      }),
+    );
+    await expect(client.searchStore({ sapId: "HD87", query: "молоко" })).resolves.toEqual({
+      status: "unavailable",
+    });
+  });
 });
