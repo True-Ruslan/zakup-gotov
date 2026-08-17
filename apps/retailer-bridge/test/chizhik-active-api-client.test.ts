@@ -5,7 +5,7 @@ import {
 } from "../src/chizhik-active-api-client";
 
 describe("ChizhikActiveApiClient", () => {
-  it("uses only the fixed first-party shops endpoint with ordinary CORS semantics", async () => {
+  it("uses only the fixed first-party shops endpoint with ordinary CORS semantics and an abort deadline", async () => {
     const fetcher = vi.fn(async () =>
       new Response(
         JSON.stringify([
@@ -35,7 +35,11 @@ describe("ChizhikActiveApiClient", () => {
       mode: "cors",
       credentials: "same-origin",
       headers: { Accept: "application/json, text/plain, */*" },
+      signal: expect.any(AbortSignal),
     });
+    const requestSignal = fetcher.mock.calls[0]?.[1]?.signal;
+    expect(requestSignal).toBeInstanceOf(AbortSignal);
+    expect(requestSignal?.aborted).toBe(false);
     expect(result).toEqual({
       status: "ok",
       stores: [
