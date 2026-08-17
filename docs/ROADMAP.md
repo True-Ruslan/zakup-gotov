@@ -1,6 +1,6 @@
 # Roadmap
 
-Updated: 2026-08-16
+Updated: 2026-08-18
 
 The roadmap is evidence-driven. Milestones change when integration evidence, product behavior or production constraints contradict an earlier assumption.
 
@@ -193,14 +193,25 @@ Server-side persistence/saved-plan history remains deferred until repeat-use evi
 
 ## Parallel connectivity / operational work
 
-Continue without blocking deterministic M5 work unless evidence invalidates accepted core assumptions:
+Continue without blocking deterministic M5/release work unless evidence invalidates accepted core assumptions.
 
-- **#54** browser-bridge persistent-session/store-change/SPA lifecycle hardening;
+Completed hardening:
+
+- **#54 / #153** browser-bridge persistent-session/store-change/SPA lifecycle hardening — **COMPLETE / ACCEPTED**. The accepted model uses event-driven navigation lifecycle handling, fresh-context gating, bounded retained resource evidence and revision-safe observation writes without widening production extension permissions.
+
+Current mandatory connectivity work:
+
 - **#36** Kuper supported aggregator investigation;
-- Chizhik, Ozon Fresh, Samokat, Lenta and VkusVill onboarding/hardening;
+- **Chizhik #167** — Phase A/B/C and D1 implementation are merged, but the D1 live transport decision remains open: an ordinary user browser successfully reached `GET https://app.chizhik.club/api/v1/shops/` with `200 + JSON + sap_id/lat/lon`, while the current CI-hosted stock-Chromium live result is `page-unavailable`;
+- if CI-hosted stock Chromium reproducibly obtains `200 + JSON + required store shape`, a server-controlled browser worker remains viable;
+- if CI-hosted Chromium remains blocked while the ordinary user browser succeeds, prefer the active MV3 Retailer Bridge path;
+- only after that D1 transport disposition, validate one store-scoped D2 product/delivery endpoint and map only evidenced fields into `BrowserObservation` / `ObservedOffer`; do not fabricate promo/package/availability semantics;
+- Ozon Fresh, Samokat, Lenta and VkusVill onboarding/hardening;
 - structured package semantics only where source evidence proves them;
 - retailer-specific production-access/right-to-operate decisions before activation;
 - successful real **`v0.1.0-rc.3`** release event with final image promotion, SBOM/attestation and digest smoke evidence.
+
+Chizhik D1 merged implementation is not equivalent to an accepted production acquisition path. D2 and production activation remain unimplemented/unaccepted until transport and right-to-operate evidence justify them.
 
 ## M4 — Basket Optimization — COMPLETE / ACCEPTED
 
