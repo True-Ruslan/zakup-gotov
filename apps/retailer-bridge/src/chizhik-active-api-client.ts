@@ -1,4 +1,5 @@
 export const CHIZHIK_SHOPS_ENDPOINT = "https://app.chizhik.club/api/v1/shops/";
+const REQUEST_TIMEOUT_MS = 8_000;
 
 export type ChizhikStoreSummary = Readonly<{
   sapId: string;
@@ -58,12 +59,15 @@ export function createChizhikActiveApiClient(
 ): ChizhikActiveApiClient {
   return {
     async listStores(): Promise<ChizhikStoreDiscoveryResult> {
+      const controller = new AbortController();
+      const deadline = globalThis.setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
       try {
         const response = await fetcher(CHIZHIK_SHOPS_ENDPOINT, {
           method: "GET",
           mode: "cors",
           credentials: "same-origin",
           headers: { Accept: "application/json, text/plain, */*" },
+          signal: controller.signal,
         });
 
         if (!response.ok) return { status: "unavailable", stores: [] };
@@ -86,6 +90,8 @@ export function createChizhikActiveApiClient(
         return { status: "ok", stores };
       } catch {
         return { status: "unavailable", stores: [] };
+      } finally {
+        globalThis.clearTimeout(deadline);
       }
     },
   };
