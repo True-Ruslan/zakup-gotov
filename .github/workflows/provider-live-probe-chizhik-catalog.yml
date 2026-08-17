@@ -105,9 +105,24 @@ jobs:
 
           context="Provider Live Probe / Chizhik Phase C / ${outcome}"
           description="${description:0:140}"
-          gh api \
-            --method POST \
-            "repos/${GITHUB_REPOSITORY}/statuses/${GITHUB_SHA}" \
-            -f state="$state" \
-            -f context="$context" \
-            -f description="$description" >/dev/null
+
+          published='false'
+          for attempt in 1 2 3; do
+            if gh api \
+                --method POST \
+                "repos/${GITHUB_REPOSITORY}/statuses/${GITHUB_SHA}" \
+                -f state="$state" \
+                -f context="$context" \
+                -f description="$description" >/dev/null; then
+              published='true'
+              break
+            fi
+            if [[ "$attempt" -lt 3 ]]; then
+              sleep $((attempt * 2))
+            fi
+          done
+
+          if [[ "$published" != 'true' ]]; then
+            echo 'Commit-status publication failed after 3 attempts.' >> "$GITHUB_STEP_SUMMARY"
+            echo '::warning::Unable to publish Phase C commit status after retries'
+          fi

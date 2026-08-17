@@ -43,10 +43,12 @@ final class ChizhikPublicCatalogHttpTransport implements ChizhikPublicCatalogDoc
                     contentType,
                     redirectLocation);
         } catch (IOException exception) {
-            throw new IllegalStateException("Chizhik public catalog document request failed", exception);
+            throw new ChizhikPublicCatalogTransportException(
+                    ChizhikPublicCatalogTransportException.classify(exception), exception);
         } catch (InterruptedException exception) {
             Thread.currentThread().interrupt();
-            throw new IllegalStateException("Chizhik public catalog document request was interrupted", exception);
+            throw new ChizhikPublicCatalogTransportException(
+                    ChizhikPublicCatalogTransportFailureKind.INTERRUPTED, exception);
         }
     }
 }
