@@ -1,0 +1,126 @@
+name: Provider Live Probe / Chizhik Phase D
+
+on:
+  issue_comment:
+    types: [created]
+
+permissions:
+  contents: read
+  statuses: write
+
+concurrency:
+  group: provider-live-probe-chizhik-browser-${{ github.event.issue.number }}
+  cancel-in-progress: false
+
+jobs:
+  chizhik_browser:
+    name: Chizhik Active Browser Phase D
+    if: >-
+      github.event_name == 'issue_comment' &&
+      github.event.issue.number == 167 &&
+      github.event.comment.user.login == github.repository_owner &&
+      github.event.comment.body == '/provider-probe chizhik-browser'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Set up Node.js
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v6
+        with:
+          node-version-file: .nvmrc
+
+      - name: Install pinned pnpm
+        shell: bash
+        run: npm install --global pnpm@11.4.0
+
+      - name: Install workspace dependencies
+        shell: bash
+        run: pnpm install --frozen-lockfile
+
+      - name: Install stock Playwright Chromium
+        shell: bash
+        run: pnpm --dir apps/retailer-bridge exec playwright install --with-deps chromium
+
+      - name: Run Chizhik active browser Phase D
+        shell: bash
+        run: |
+          set -euo pipefail
+          node apps/retailer-bridge/scripts/chizhik-live-browser-probe.mjs \
+            2>&1 | tee "$RUNNER_TEMP/chizhik-phase-d-live-probe.log"
+
+      - name: Publish sanitized evidence
+        if: always()
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          echo '## Chizhik active browser Phase D' >> "$GITHUB_STEP_SUMMARY"
+
+          evidence=''
+          if [[ -f "$RUNNER_TEMP/chizhik-phase-d-live-probe.log" ]]; then
+            evidence="$(grep -F 'CHIZHIK_PHASE_D' "$RUNNER_TEMP/chizhik-phase-d-live-probe.log" | tail -n 1 || true)"
+          fi
+
+          state='failure'
+          outcome='no-evidence'
+          description='CHIZHIK_PHASE_D no_sanitized_evidence=true'
+
+          if [[ -n "$evidence" ]]; then
+            description="$evidence"
+            printf '`%s`\n' "$evidence" >> "$GITHUB_STEP_SUMMARY"
+
+            status="$(sed -n 's/^CHIZHIK_PHASE_D status=\([^ ]*\).*/\1/p' <<<"$evidence")"
+            shops_http_status="$(sed -n 's/.* shops_http_status=\([-0-9]*\).*/\1/p' <<<"$evidence")"
+            store_shape="$(sed -n 's/.* store_shape=\([^ ]*\).*/\1/p' <<<"$evidence")"
+
+            if [[ "$status" == 'PASS' \
+               && "$shops_http_status" == '200' \
+               && "$store_shape" == 'true' ]]; then
+              state='success'
+              outcome='pass'
+            elif [[ "$status" == 'PAGE_UNAVAILABLE' ]]; then
+              outcome='page-unavailable'
+            elif [[ "$status" == 'HTTP_UNAVAILABLE' ]]; then
+              outcome="http-${shops_http_status:-unknown}"
+            elif [[ "$status" == 'FETCH_UNAVAILABLE' ]]; then
+              outcome='fetch-unavailable'
+            elif [[ "$status" == 'INVALID_JSON' ]]; then
+              outcome='invalid-json'
+            elif [[ "$status" == 'SHAPE_INVALID' ]]; then
+              outcome='shape-invalid'
+            else
+              outcome='failed'
+            fi
+          else
+            echo 'No sanitized Phase D evidence line was emitted.' >> "$GITHUB_STEP_SUMMARY"
+          fi
+
+          context="Provider Live Probe / Chizhik Phase D / ${outcome}"
+          description="${description:0:140}"
+
+          published='false'
+          for attempt in 1 2 3; do
+            if gh api \
+                --method POST \
+                "repos/${GITHUB_REPOSITORY}/statuses/${GITHUB_SHA}" \
+                -f state="$state" \
+                -f context="$context" \
+                -f description="$description" >/dev/null; then
+              published='true'
+              break
+            fi
+            if [[ "$attempt" -lt 3 ]]; then
+              sleep $((attempt * 2))
+            fi
+          done
+
+          if [[ "$published" != 'true' ]]; then
+            echo 'Commit-status publication failed after 3 attempts.' >> "$GITHUB_STEP_SUMMARY"
+            echo '::warning::Unable to publish Phase D commit status after retries'
+          fi

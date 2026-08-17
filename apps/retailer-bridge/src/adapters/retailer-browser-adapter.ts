@@ -18,5 +18,5 @@ export interface RetailerBrowserAdapter {
     url: URL;
     observedAt: string;
     resourceUrls?: readonly string[];
-  }): AdapterResult;
+  }): AdapterResult | Promise<AdapterResult>;
 }
