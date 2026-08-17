@@ -46,9 +46,10 @@ describe("chizhikBrowserAdapter", () => {
     expect(chizhikBrowserAdapter.supports(new URL("https://chizhik.club.evil.example/"))).toBe(false);
   });
 
-  it("reports observation-only after active fixed-endpoint store discovery succeeds", async () => {
+  it("reports observation-only after active fixed-endpoint store discovery succeeds without auto-searching products", async () => {
     const listStores = vi.fn(async () => VALID_DISCOVERY);
-    const adapter = createChizhikBrowserAdapter({ listStores });
+    const searchStore = vi.fn(async () => ({ status: "unavailable" as const }));
+    const adapter = createChizhikBrowserAdapter({ listStores, searchStore });
 
     await expect(
       adapter.collect({
@@ -59,11 +60,13 @@ describe("chizhikBrowserAdapter", () => {
       }),
     ).resolves.toEqual({ status: "observation-only", observations: [] });
     expect(listStores).toHaveBeenCalledTimes(1);
+    expect(searchStore).not.toHaveBeenCalled();
   });
 
   it("reuses one store discovery request for repeated collections in the same lifecycle", async () => {
     const listStores = vi.fn(async () => VALID_DISCOVERY);
-    const adapter = createChizhikBrowserAdapter({ listStores });
+    const searchStore = vi.fn(async () => ({ status: "unavailable" as const }));
+    const adapter = createChizhikBrowserAdapter({ listStores, searchStore });
     const input = {
       document: documentWithGuessedProduct(),
       url: PAGE_URL,
@@ -76,6 +79,7 @@ describe("chizhikBrowserAdapter", () => {
     await adapter.collect(input);
 
     expect(listStores).toHaveBeenCalledTimes(1);
+    expect(searchStore).not.toHaveBeenCalled();
   });
 
   it("fails closed when active store discovery is unavailable or empty", async () => {
@@ -83,7 +87,11 @@ describe("chizhikBrowserAdapter", () => {
       { status: "unavailable" as const, stores: [] as const },
       { status: "ok" as const, stores: [] as const },
     ]) {
-      const adapter = createChizhikBrowserAdapter({ listStores: vi.fn(async () => result) });
+      const searchStore = vi.fn(async () => ({ status: "unavailable" as const }));
+      const adapter = createChizhikBrowserAdapter({
+        listStores: vi.fn(async () => result),
+        searchStore,
+      });
       await expect(
         adapter.collect({
           document: documentWithGuessedProduct(),
@@ -92,11 +100,16 @@ describe("chizhikBrowserAdapter", () => {
           resourceUrls: ["https://app.chizhik.club/api/v1/catalog/unauthorized/products/"],
         }),
       ).resolves.toEqual({ status: "missing-context", observations: [] });
+      expect(searchStore).not.toHaveBeenCalled();
     }
   });
 
   it("does not fabricate product offers from DOM or passive resource names", async () => {
-    const adapter = createChizhikBrowserAdapter({ listStores: vi.fn(async () => VALID_DISCOVERY) });
+    const searchStore = vi.fn(async () => ({ status: "unavailable" as const }));
+    const adapter = createChizhikBrowserAdapter({
+      listStores: vi.fn(async () => VALID_DISCOVERY),
+      searchStore,
+    });
 
     await expect(
       adapter.collect({
@@ -106,5 +119,6 @@ describe("chizhikBrowserAdapter", () => {
         resourceUrls: ["https://app.chizhik.club/api/v1/catalog/unauthorized/products/"],
       }),
     ).resolves.toEqual({ status: "observation-only", observations: [] });
+    expect(searchStore).not.toHaveBeenCalled();
   });
 });
