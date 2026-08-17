@@ -34,6 +34,14 @@ class ChizhikPublicCatalogLiveProbeWorkflowContractTest {
         assertThat(WORKFLOW).doesNotContain("Cookie");
     }
 
+    @Test
+    void parsesStatusWithoutConfusingItWithHttpStatus() {
+        assertThat(WORKFLOW).contains(
+                "status=\"$(sed -n 's/^CHIZHIK_PHASE_C status=\\([^ ]*\\).*/\\1/p' <<<\"$evidence\")\"");
+        assertThat(WORKFLOW).contains(
+                "http_status=\"$(sed -n 's/.* http_status=\\([-0-9]*\\).*/\\1/p' <<<\"$evidence\")\"");
+    }
+
     private static String readWorkflow() {
         Path workflow = Path.of("..", "..", ".github", "workflows", "provider-live-probe-chizhik-catalog.yml").normalize();
         try {
