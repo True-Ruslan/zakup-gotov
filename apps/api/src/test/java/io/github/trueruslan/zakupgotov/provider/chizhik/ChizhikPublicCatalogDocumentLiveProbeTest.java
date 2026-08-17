@@ -20,8 +20,10 @@ class ChizhikPublicCatalogDocumentLiveProbeTest {
         ChizhikPublicCatalogDocumentObservation observation;
         try {
             observation = ChizhikPublicCatalogDocumentProbe.live().probe(candidate);
-        } catch (RuntimeException exception) {
-            System.out.println("CHIZHIK_PHASE_C status=TRANSPORT_ERROR");
+        } catch (ChizhikPublicCatalogTransportException exception) {
+            System.out.printf(
+                    "CHIZHIK_PHASE_C status=TRANSPORT_ERROR failure_kind=%s%n",
+                    exception.failureKind());
             fail("Chizhik Phase C live probe transport failed");
             return;
         }
