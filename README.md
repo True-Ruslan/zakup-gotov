@@ -7,11 +7,11 @@
 [![Web CI](https://github.com/True-Ruslan/zakup-gotov/actions/workflows/web-ci.yml/badge.svg)](https://github.com/True-Ruslan/zakup-gotov/actions/workflows/web-ci.yml)
 [![Release Bundle CI](https://github.com/True-Ruslan/zakup-gotov/actions/workflows/release-bundle-ci.yml/badge.svg)](https://github.com/True-Ruslan/zakup-gotov/actions/workflows/release-bundle-ci.yml)
 
-**Status:** M0 — Product & Integration Discovery · **pre-release**
+**Status:** M5 — Productization · **pre-release** · next release gate: **`v0.1.0-rc.3`**
 
-Zakup Gotov — сервис, который должен превращать рецепт, недельное меню или обычный список покупок в сравнение **полной корзины** по магазинам с учётом местоположения, актуальности цены, наличия и полноты сопоставления.
+Zakup Gotov — сервис, который превращает рецепт, недельное меню или обычный список покупок в сравнение **полной корзины** по магазинам с учётом местоположения, актуальности цены, наличия, упаковок, checkout-экономики и полноты сопоставления.
 
-Проект намеренно не маскирует неизвестность: пока реальные retailer-интеграции не доказаны в M0B, интерфейс не выдаёт сравнение магазинов за готовую функцию.
+Проект намеренно не маскирует неизвестность: продуктовые/core-семантики уже реализованы и приняты, но production retailer coverage остаётся отдельной evidence-driven работой для каждого магазина. Техническая доступность источника не считается автоматически разрешением на его production-использование.
 
 ## Зачем проект
 
@@ -32,34 +32,55 @@ Zakup Gotov — сервис, который должен превращать �
               ↓
       quantity / package fit
               ↓
+   checkout economics / eligibility
+              ↓
      complete basket ranking
 ```
 
-Целевой результат должен явно показывать:
+Результат явно показывает:
 
 - какие магазины способны закрыть весь список;
 - итоговую стоимость корзины, а не отдельных SKU;
 - отсутствующие и неоднозначно сопоставленные позиции;
 - свежесть цены и наличия;
-- разницу между удобством одной корзины и минимальной ценой нескольких магазинов.
+- известные/неизвестные delivery/service fees и minimum-order evidence;
+- разницу между complete/incomplete/uncertain/unavailable состояниями;
+- уникального победителя или честный tie только среди сопоставимых корзин.
 
 ## Текущее состояние
 
-Сейчас реализована и автоматически проверяется платформенная основа:
+Сейчас реализованы и автоматически проверяются:
 
+- **M1 Shopping Core — COMPLETE / ACCEPTED:** canonical quantities, deterministic matching, package-aware single-store basket semantics, truthful complete/uncertain/incomplete/unavailable states и production-access gating;
+- **M2 Recipes — COMPLETE / ACCEPTED:** Recipe domain, serving scaling, Recipe → ShoppingList → Comparison, responsive Recipe UI и deterministic multi-Recipe aggregation;
+- **M3 Weekly Planning / Pantry — COMPLETE / ACCEPTED:** WeeklyPlan composition, responsive planner, request-scoped Pantry subtraction с audit evidence и Pantry-aware comparison;
+- **M4 Basket Optimization — COMPLETE / ACCEPTED:** checkout economics, eligibility/comparability, deterministic cheapest-basket selection, explicit ties и responsive server-owned optimization UX;
+- **M5.1 Private local WeeklyPlan draft — COMPLETE / ACCEPTED:** versioned browser-local semantic input draft без серверных аккаунтов, generated IDs, comparison/economics/optimizer results или provider evidence;
 - Java 25 + Spring Boot 4.1 API;
 - PostgreSQL 18 + Flyway + jOOQ;
 - Spring Modulith architecture verification;
 - OpenAPI 3.1 как источник клиентского контракта;
 - генерируемый TypeScript API client;
-- Next.js 16.3 / React 19.2 responsive web shell;
+- Next.js 16.3 / React 19.2 responsive web;
 - Testcontainers с настоящим PostgreSQL;
 - Vitest + Testing Library + Playwright desktop/mobile;
 - безопасный Actuator health/readiness baseline;
 - воспроизводимый `./scripts/verify.sh`;
 - production Docker images для API/web и no-source-build `web + api + PostgreSQL` Compose topology, проверяемая отдельным `Release Bundle CI`.
 
-**Ещё не реализованы:** реальные retailer integrations, shopping-list domain, recipes, matching, basket optimization, auth и native mobile. Также пока не опубликован versioned GHCR release с multi-platform images, immutable release digests, SBOM, vulnerability report и provenance/attestation.
+### Retailer connectivity
+
+Product/core maturity и retailer acquisition readiness считаются разными измерениями:
+
+- Perekrestok/Pyaterochka имеют принятые browser-bridge acquisition evidence;
+- Magnit технически доступен через public web, но production access остаётся `BLOCKED` по operating policy проекта до появления подтверждённого права/поддерживаемого канала;
+- browser bridge для долгоживущих SPA/store-change сессий укреплён и принят (#153, закрывает #54);
+- Chizhik прошёл Phase A/B/C implementation и merged Phase D1 foundation: ordinary-user-browser field canary для `GET https://app.chizhik.club/api/v1/shops/` получил `200 + JSON`, но CI-hosted stock Chromium сейчас даёт live evidence `page-unavailable`, поэтому D1 transport disposition, D2 store-scoped offer mapping и production activation **ещё не приняты**;
+- Kuper, Ozon Fresh, Samokat, Lenta, VkusVill и остальные canonical retailers остаются обязательной connectivity work до воспроизводимого принятого acquisition path.
+
+**Ещё не выбраны/не завершены:** M5.2 (accounts/preferences, analytics abstraction, feature flags, provider health — только после release/manual-use evidence), server-side saved-plan history, полное production retailer coverage, richer substitute/package optimization, multi-store split optimization и native mobile.
+
+Новый stable `v0.1.0` также пока не разрешён: сначала должен успешно пройти полный immutable prerelease flow `v0.1.0-rc.3` с multi-platform images, Trivy, SBOM, digest smoke и provenance/attestation evidence.
 
 Фактический статус всегда фиксируется в [`docs/PROJECT_STATE.md`](docs/PROJECT_STATE.md).
 
@@ -82,7 +103,7 @@ pnpm install --frozen-lockfile
 ./scripts/verify-release-bundle.sh
 ```
 
-Полная настройка окружения и focused-команды: [`docs/DEVELOPMENT.md`](docs/DEVELOPMENT.md). Контейнерный/release contract и граница между уже проверенным bundle и ещё не реализованным GHCR publishing: [`docs/RELEASES.md`](docs/RELEASES.md).
+Полная настройка окружения и focused-команды: [`docs/DEVELOPMENT.md`](docs/DEVELOPMENT.md). Контейнерный/release contract и требования к immutable GHCR publishing: [`docs/RELEASES.md`](docs/RELEASES.md).
 
 ## Архитектура
 
@@ -109,7 +130,7 @@ pnpm install --frozen-lockfile
        retailer A     retailer B     retailer ...
 ```
 
-Основной путь retailer-интеграций — backend provider adapters. Client-side integration допускается только как осознанное исключение, если конкретный публичный API не требует секретов, разрешает CORS/browser use или действительно зависит от пользовательской browser-session.
+Основной путь retailer-интеграций — backend provider adapters. Client-side/browser integration допускается как осознанный acquisition mode, если конкретный first-party источник воспроизводимо работает только/лучше в пользовательском browser context и при этом не требует stealth, credential extraction или приватной mobile-client impersonation.
 
 Архитектурные решения: [`docs/adr/`](docs/adr/) и [`docs/superpowers/specs/`](docs/superpowers/specs/).
 
@@ -144,14 +165,14 @@ pnpm install --frozen-lockfile
 
 ## Roadmap
 
-- **M0A — Platform Foundation:** завершаем versioned GHCR/supply-chain release engineering и финальную проверку платформы.
-- **M0B — Retailer Feasibility:** доказываем минимум две технически и юридически приемлемые интеграции.
-- **M1 — Shopping Core**
-- **M2 — Recipes**
-- **M3 — Weekly Planning**
-- **M4 — Basket Optimization**
-- **M5 — Productization**
-- **M6 — Native Mobile**
+- **M0 — Product & Integration Discovery:** COMPLETE.
+- **M1 — Shopping Core:** COMPLETE / ACCEPTED.
+- **M2 — Recipes:** COMPLETE / ACCEPTED.
+- **M3 — Weekly Planning / Pantry:** COMPLETE / ACCEPTED.
+- **M4 — Basket Optimization:** COMPLETE / ACCEPTED.
+- **M5 — Productization:** CURRENT; M5.1 accepted, M5.2 intentionally unselected until RC/manual-use evidence.
+- **Immediate release gate:** immutable **`v0.1.0-rc.3`** end-to-end validation.
+- **M6 — Native Mobile:** future, after browser/API semantics stabilize enough to justify native clients.
 
 Подробные scope и exit criteria: [`docs/ROADMAP.md`](docs/ROADMAP.md).
 
