@@ -55,7 +55,7 @@ describe("ChizhikActiveApiClient", () => {
     });
   });
 
-  it("fails closed for non-JSON, non-2xx, and malformed store payloads", async () => {
+  it("fails closed for non-JSON, non-2xx, malformed rows, and impossible coordinates", async () => {
     const cases: Array<Response> = [
       new Response("blocked", { status: 403, headers: { "content-type": "text/plain" } }),
       new Response("<html></html>", {
@@ -66,6 +66,32 @@ describe("ChizhikActiveApiClient", () => {
         status: 200,
         headers: { "content-type": "application/json" },
       }),
+      new Response(
+        JSON.stringify([
+          {
+            sap_id: "HD87",
+            lon: 37.8,
+            lat: 155.7,
+            status: 1,
+            name: "Invalid latitude",
+            locality: "Москва",
+          },
+        ]),
+        { status: 200, headers: { "content-type": "application/json" } },
+      ),
+      new Response(
+        JSON.stringify([
+          {
+            sap_id: "HD87",
+            lon: 237.8,
+            lat: 55.7,
+            status: 1,
+            name: "Invalid longitude",
+            locality: "Москва",
+          },
+        ]),
+        { status: 200, headers: { "content-type": "application/json" } },
+      ),
     ];
 
     for (const response of cases) {
