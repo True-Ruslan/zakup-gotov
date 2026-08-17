@@ -42,6 +42,14 @@ class ChizhikPublicCatalogLiveProbeWorkflowContractTest {
                 "http_status=\"$(sed -n 's/.* http_status=\\([-0-9]*\\).*/\\1/p' <<<\"$evidence\")\"");
     }
 
+    @Test
+    void retriesSecondaryStatusPublicationWithoutReplacingProbeOutcome() {
+        assertThat(WORKFLOW).contains("for attempt in 1 2 3; do");
+        assertThat(WORKFLOW).contains("sleep $((attempt * 2))");
+        assertThat(WORKFLOW).contains("Commit-status publication failed after 3 attempts");
+        assertThat(WORKFLOW).contains("::warning::Unable to publish Phase C commit status after retries");
+    }
+
     private static String readWorkflow() {
         Path workflow = Path.of("..", "..", ".github", "workflows", "provider-live-probe-chizhik-catalog.yml").normalize();
         try {
