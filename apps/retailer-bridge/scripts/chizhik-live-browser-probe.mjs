@@ -58,8 +58,12 @@ async function runProbe() {
             value.sap_id.trim().length > 0 &&
             typeof value.lat === "number" &&
             Number.isFinite(value.lat) &&
+            value.lat >= -90 &&
+            value.lat <= 90 &&
             typeof value.lon === "number" &&
             Number.isFinite(value.lon) &&
+            value.lon >= -180 &&
+            value.lon <= 180 &&
             Number.isInteger(value.status) &&
             typeof value.name === "string" &&
             value.name.trim().length > 0 &&
