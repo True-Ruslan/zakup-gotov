@@ -12,7 +12,7 @@ class ChizhikPublicCatalogLiveProbeWorkflowContractTest {
     private static final String WORKFLOW = readWorkflow();
 
     @Test
-    void routesPhaseCThroughExistingOptInProviderProbeWorkflow() {
+    void routesPhaseCThroughOptInProviderProbeMechanism() {
         assertThat(WORKFLOW).contains("  chizhik_catalog:");
         assertThat(WORKFLOW).contains("github.event.issue.number == 163");
         assertThat(WORKFLOW).contains("github.actor == 'True-Ruslan'");
@@ -30,14 +30,16 @@ class ChizhikPublicCatalogLiveProbeWorkflowContractTest {
         assertThat(WORKFLOW).contains("contents: read");
         assertThat(WORKFLOW).contains("statuses: write");
         assertThat(WORKFLOW).doesNotContain("secrets:");
+        assertThat(WORKFLOW).doesNotContain("Authorization");
+        assertThat(WORKFLOW).doesNotContain("Cookie");
     }
 
     private static String readWorkflow() {
-        Path workflow = Path.of("..", "..", ".github", "workflows", "provider-live-probe.yml").normalize();
+        Path workflow = Path.of("..", "..", ".github", "workflows", "provider-live-probe-chizhik-catalog.yml").normalize();
         try {
             return Files.readString(workflow);
         } catch (IOException exception) {
-            throw new IllegalStateException("Unable to read provider live probe workflow", exception);
+            throw new IllegalStateException("Unable to read Chizhik Phase C provider live probe workflow", exception);
         }
     }
 }
