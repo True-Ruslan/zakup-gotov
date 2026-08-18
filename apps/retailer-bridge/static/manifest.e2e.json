@@ -4,6 +4,10 @@
   "version": "0.1.0",
   "description": "Local fixture build for deterministic extension tests.",
   "permissions": ["storage"],
+  "action": {
+    "default_title": "Chizhik D2 schema canary",
+    "default_popup": "popup.html"
+  },
   "background": {
     "service_worker": "service-worker.js"
   },
