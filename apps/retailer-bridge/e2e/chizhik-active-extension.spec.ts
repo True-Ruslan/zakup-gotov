@@ -13,6 +13,8 @@ const hd88Search =
   "https://app.chizhik.club/delivery/api/catalog/v3/stores/HD88/search?mode=store&q=cola";
 const unknownSearch =
   "https://app.chizhik.club/delivery/api/catalog/v3/stores/UNKNOWN/search?mode=store&q=cola";
+const foreignOriginSearch =
+  "https://app.chizhik.club.evil.example/delivery/api/catalog/v3/stores/HD87/search?mode=store&q=cola";
 
 const stores = [
   {
@@ -100,6 +102,19 @@ async function routeDeliveryEvidence(context: BrowserContext): Promise<void> {
   });
 }
 
+async function routeForeignDeliveryEvidence(context: BrowserContext): Promise<void> {
+  await context.route("https://app.chizhik.club.evil.example/**", async (route) => {
+    await route.fulfill({
+      status: 200,
+      headers: {
+        "access-control-allow-origin": "https://chizhik.club",
+        "content-type": "application/json; charset=utf-8",
+      },
+      body: JSON.stringify({ products: [] }),
+    });
+  });
+}
+
 async function emitDeliveryResource(page: Page, url: string): Promise<void> {
   await page.evaluate(async (resourceUrl) => {
     await fetch(resourceUrl, {
@@ -155,6 +170,28 @@ test("fails closed for an evidenced delivery store absent from the validated dir
     const page = await context.newPage();
     await page.goto("https://chizhik.club/catalog/chay-kofe--264C39224/");
     await emitDeliveryResource(page, unknownSearch);
+
+    await expect
+      .poll(() => page.locator("html").getAttribute("data-zg-bridge-status"))
+      .toBe("missing-context");
+    await expect.poll(() => page.locator("html").getAttribute("data-zg-bridge-count")).toBe("0");
+  } finally {
+    await context.close();
+    await rm(userDataDir, { recursive: true, force: true });
+  }
+});
+
+test("fails closed for a foreign-origin delivery resource even when it carries a validated store id", async () => {
+  const { context, userDataDir } = await launchBridge();
+
+  try {
+    await routeOfficialPage(context);
+    await routeShops(context);
+    await routeForeignDeliveryEvidence(context);
+
+    const page = await context.newPage();
+    await page.goto("https://chizhik.club/catalog/chay-kofe--264C39224/");
+    await emitDeliveryResource(page, foreignOriginSearch);
 
     await expect
       .poll(() => page.locator("html").getAttribute("data-zg-bridge-status"))
