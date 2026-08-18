@@ -2,28 +2,27 @@
 
 Updated: 2026-08-18
 
-The roadmap is evidence-driven. Milestones change when integration evidence, product behavior or production constraints contradict an earlier assumption.
+The roadmap is evidence-driven. Technical connectivity, production-access readiness and deterministic product/core maturity are separate dimensions.
 
 ## Product connectivity invariant
 
-Zakup Gotov targets **universal connectivity for the retailer registry**, not a permanently curated subset of easy integrations. Every retailer/banner remains mandatory coverage work until at least one reproducible acquisition path exists.
+Zakup Gotov targets **universal connectivity for the retailer registry**, not a permanently curated subset of easy integrations. Every retailer/banner remains mandatory coverage work until at least one reproducible accepted acquisition path exists.
 
 Durable design: [`superpowers/specs/2026-08-10-universal-retailer-connectivity-design.md`](superpowers/specs/2026-08-10-universal-retailer-connectivity-design.md).
 
-Technical coverage, production-access readiness and deterministic product/core maturity remain separate dimensions.
+A failed transport changes the acquisition mode under investigation; it does not remove the retailer from product scope. Technical accessibility is never treated as automatic production/right-to-operate approval.
 
 ## M0 — Product & Integration Discovery — COMPLETE
 
 Decision: **GO to M1** — [`superpowers/specs/2026-08-12-m0-to-m1-go-decision.md`](superpowers/specs/2026-08-12-m0-to-m1-go-decision.md).
 
-Accepted evidence: Perekrestok/Pyaterochka browser-bridge paths, Magnit public-web technical feasibility, multiple acquisition modes, deterministic sanitized verification and retailer-neutral architecture.
+Accepted evidence established Perekrestok/Pyaterochka browser-bridge acquisition, Magnit public-web technical feasibility, multiple acquisition modes, deterministic sanitized verification and retailer-neutral architecture.
 
 ## M1 — Shopping Core — COMPLETE / ACCEPTED
 
-Acceptance: [`m1-shopping-core-acceptance-2026-08-13.md`](m1-shopping-core-acceptance-2026-08-13.md).  
-Accepted hardening baseline: `779d0b219a13e0bf82263a1e655fb732553ed5fe`.
+Acceptance: [`m1-shopping-core-acceptance-2026-08-13.md`](m1-shopping-core-acceptance-2026-08-13.md).
 
-Accepted guarantees include canonical retailer visibility/readiness, deterministic Shopping quantities/identity, provider/location provenance, freshness/availability evidence, exact/normalized product matching, whole-package basket semantics, truthful incomplete/uncertain states, pre-acquisition production-access gating and stateless comparison preview + responsive manual-list flow.
+Goal achieved: deterministic provider-neutral shopping requirements, canonical quantities, matching, package-aware single-store basket calculation, truthful incomplete/uncertain/unavailable states, production-access gating, stateless comparison preview and responsive manual-list flow.
 
 ## M2 — Recipes — COMPLETE / ACCEPTED
 
@@ -31,379 +30,159 @@ Goal achieved: recipes are a deterministic first-class source of shopping requir
 
 Accepted slices:
 
-- **M2.1 Recipe domain + Recipe → ShoppingList** — COMPLETE / ACCEPTED;
-- **M2.2 stateless Recipe shopping preview API** — COMPLETE / ACCEPTED;
-- **M2.3 Recipe → Comparison composition** — COMPLETE / ACCEPTED;
-- **M2.4 responsive Recipe UI** — COMPLETE / ACCEPTED;
-- **M2.5 deterministic multi-Recipe aggregation** — COMPLETE / ACCEPTED.
+- M2.1 Recipe domain + Recipe → ShoppingList;
+- M2.2 stateless Recipe shopping preview API;
+- M2.3 Recipe → Comparison composition;
+- M2.4 responsive Recipe UI;
+- M2.5 deterministic multi-Recipe aggregation.
 
-Permanent direction: exact normalized requirement + canonical unit remains the only implicit Recipe merge rule. Fuzzy/synonym/AI equivalence is never introduced silently.
+Permanent rule: automatic Recipe merging remains exact normalized requirement + canonical unit. Fuzzy/synonym/AI equivalence is never implicit.
 
 ## M3 — Weekly Planning / Pantry — COMPLETE / ACCEPTED
 
-Goal: combine meals into one deterministic weekly shopping projection, compare it across retailers and subtract explicit request-scoped Pantry evidence without contaminating accepted Recipe, Shopping, planner or provider semantics.
+Goal achieved: combine ordered meal occurrences into deterministic weekly demand, compare it across retailers and subtract explicit request-scoped Pantry evidence without hidden ingredient loss.
 
-### M3.1 — WeeklyPlan domain + deterministic shopping composition — COMPLETE / ACCEPTED
+Accepted slices:
 
-Acceptance: [`m3-1-weekly-plan-acceptance-2026-08-14.md`](m3-1-weekly-plan-acceptance-2026-08-14.md).  
-Accepted merge: `13e09c63959b050d431cc913597fc868aa408718`.
+- M3.1 WeeklyPlan domain + deterministic shopping composition;
+- M3.2 stateless WeeklyPlan shopping preview;
+- M3.3 WeeklyPlan → Comparison composition;
+- M3.4 responsive Weekly Planning UI;
+- M3.5.1 pure Pantry subtraction semantics;
+- M3.5.2 Pantry-aware weekly shopping preview;
+- M3.5.3 Pantry-aware comparison composition;
+- M3.5.4 responsive Pantry controls.
 
-Established ordered meal occurrences, day metadata without meal-slot taxonomy, repeated Recipe use, target servings, deterministic WeeklyPlan ShoppingList and planner provenance while delegating Recipe scaling/merge/identity to accepted M2.5.
-
-### M3.2 — Stateless WeeklyPlan shopping preview API — COMPLETE / ACCEPTED
-
-Acceptance: [`m3-2-weekly-plan-shopping-preview-acceptance-2026-08-14.md`](m3-2-weekly-plan-shopping-preview-acceptance-2026-08-14.md).  
-Accepted merge: `9682ad1230910fc268ca3cddd8601a3fad7b100e`.
-
-Boundary: `POST /api/v1/weekly-plan-shopping-previews`.
-
-M3.2 owns transient planner/Recipe identity, validation, canonical weekly shopping projection and self-contained occurrence + Recipe + ingredient provenance.
-
-### M3.3 — WeeklyPlan → Comparison composition — COMPLETE / ACCEPTED
-
-Acceptance: [`m3-3-weekly-plan-comparison-preview-acceptance-2026-08-14.md`](m3-3-weekly-plan-comparison-preview-acceptance-2026-08-14.md).  
-Accepted merge: `89b9ef2ca95d07a7e4c964fdef38a9af1c5c3a43`.
-
-Boundary: `POST /api/v1/weekly-plan-comparison-previews`.
-
-M3.3 composes accepted M3.2 with accepted ComparisonPreview while preserving ShoppingItem identity/order/requirement/quantity and keeping comparison/provider semantics downstream.
-
-### M3.4 — Responsive Weekly Planning UI — COMPLETE / ACCEPTED
-
-Acceptance: [`m3-4-responsive-weekly-planning-ui-acceptance-2026-08-15.md`](m3-4-responsive-weekly-planning-ui-acceptance-2026-08-15.md).  
-Accepted merge: `1201030aed45075c676f796920b6268cdcf8e036`.
-
-Weekly Planning is the primary browser journey. It supports `1..35` ordered occurrences, day/serving/Recipe editing, canonical weekly-shopping rendering before comparison, fail-closed transport and deterministic desktop/mobile/accessibility Playwright. Browser acceptance makes no live retailer request.
-
-### M3.5 — Pantry / exclusions semantics — COMPLETE / ACCEPTED
-
-Goal: subtract explicitly known-at-home requirements from accepted weekly shopping demand with inspectable evidence and without hidden ingredient loss, then compose the remaining demand into retailer comparison and responsive controls.
-
-#### M3.5.1 — Pure Pantry subtraction semantics — COMPLETE / ACCEPTED
-
-Authoritative design: [`superpowers/specs/2026-08-15-m3-5-1-pantry-subtraction-semantics-design.md`](superpowers/specs/2026-08-15-m3-5-1-pantry-subtraction-semantics-design.md)  
-Acceptance: [`m3-5-1-pantry-subtraction-semantics-acceptance-2026-08-15.md`](m3-5-1-pantry-subtraction-semantics-acceptance-2026-08-15.md)  
-Accepted merge: `bcc644bb243a63941e7629755f1b3196d94332c2`.
-
-Accepted semantics:
-
-- pure provider-neutral `pantry` package over canonical Shopping types;
-- exact `(ShoppingRequirement, canonical QuantityUnit)` matching only;
-- accepted kg→g / l→ml canonicalization reused;
-- duplicate Pantry rows aggregate by exact key and stock is consumed once in source ShoppingList order;
-- subtraction is `min(required, available)` and never creates zero/negative remaining items;
-- partial coverage preserves ShoppingItem identity/order;
-- full coverage removes remaining demand but retains ordered audit evidence;
-- audit states: `UNCHANGED / PARTIALLY_COVERED / FULLY_COVERED`;
-- no endpoint, persistence, UI, provider behavior, fuzzy/AI matching or omit-all semantics.
-
-#### M3.5.2 — Stateless Pantry-aware WeeklyPlan shopping preview — COMPLETE / ACCEPTED
-
-Authoritative design: [`superpowers/specs/2026-08-15-m3-5-2-pantry-weekly-plan-shopping-preview-design.md`](superpowers/specs/2026-08-15-m3-5-2-pantry-weekly-plan-shopping-preview-design.md)  
-Implementation plan: [`superpowers/plans/2026-08-15-m3-5-2-pantry-weekly-plan-shopping-preview.md`](superpowers/plans/2026-08-15-m3-5-2-pantry-weekly-plan-shopping-preview.md)  
-Shipping evidence: [`superpowers/plans/2026-08-15-m3-5-2-pantry-weekly-plan-shopping-preview-shipping.md`](superpowers/plans/2026-08-15-m3-5-2-pantry-weekly-plan-shopping-preview-shipping.md)  
-Acceptance: [`m3-5-2-pantry-weekly-plan-shopping-preview-acceptance-2026-08-15.md`](m3-5-2-pantry-weekly-plan-shopping-preview-acceptance-2026-08-15.md)  
-Accepted merge: `0dfbef49d265069578968fdedd18828c9452baca`.
-
-Boundary:
-
-`POST /api/v1/weekly-plan-pantry-shopping-previews`
-
-Accepted result:
-
-- a new stateless composition, leaving M3.2 and M3.3 endpoints unchanged;
-- accepted M3.2 remains authoritative for WeeklyPlan/Recipe validation, scaling, aggregation, Shopping identity/order and provenance;
-- request-scoped Pantry rows may be empty and use accepted requirement/quantity vocabulary;
-- accepted M3.5.1 adjustment is applied exactly once;
-- response preserves original WeeklyPlan projection + original ShoppingList/provenance + ordered Pantry evidence + zero-or-more remaining ShoppingItems;
-- full Pantry coverage legitimately yields zero remaining items without losing audit evidence;
-- identity/order/requirement/quantity/evidence drift fails closed;
-- sanitized HTTP validation, OpenAPI 3.1 and generated TypeScript client are synchronized;
-- architecture keeps M3.5.2 on accepted M3.2 + Pantry + neutral Shopping boundaries only.
-
-Acceptance proof:
-
-- final reviewed head `1e08ee4f5111bb493eeb100cfc2579d6fbafa708` — **9/9 PR workflows SUCCESS**, 0 failure/skipped/cancelled;
-- read-only review **Looks good**, no P0/P1/P2/P3/nitpicks, no threads;
-- squash merge `0dfbef49d265069578968fdedd18828c9452baca`;
-- issue #124 closed `completed`;
-- exact merge — **8/8 post-merge normal push workflows SUCCESS, 0 failures**.
-
-#### M3.5.3 — Pantry-aware WeeklyPlan → Comparison composition — COMPLETE / ACCEPTED
-
-Authoritative design: [`superpowers/specs/2026-08-15-m3-5-3-pantry-weekly-plan-comparison-design.md`](superpowers/specs/2026-08-15-m3-5-3-pantry-weekly-plan-comparison-design.md)  
-Implementation plan: [`superpowers/plans/2026-08-15-m3-5-3-pantry-weekly-plan-comparison.md`](superpowers/plans/2026-08-15-m3-5-3-pantry-weekly-plan-comparison.md)  
-Shipping evidence: [`superpowers/plans/2026-08-15-m3-5-3-pantry-weekly-plan-comparison-shipping.md`](superpowers/plans/2026-08-15-m3-5-3-pantry-weekly-plan-comparison-shipping.md)  
-Acceptance: [`m3-5-3-pantry-weekly-plan-comparison-acceptance-2026-08-15.md`](m3-5-3-pantry-weekly-plan-comparison-acceptance-2026-08-15.md)  
-Accepted merge: `079a53be066fa488ee01da18a109f4f2b1484800`.
-
-Boundary:
-
-`POST /api/v1/weekly-plan-pantry-comparison-previews`
-
-Accepted result:
-
-- accepted M3.5.2 owns original weekly projection, Pantry evidence and remaining demand;
-- only remaining demand enters accepted ComparisonPreview;
-- `NO_REMAINING_DEMAND` is explicit and skips ComparisonPreviewService/runtime acquisition entirely;
-- zero-demand responses omit the comparison payload on the wire;
-- locality validation is independent of Pantry coverage;
-- UUID/order/requirement/canonical quantity preservation is fail-closed;
-- downstream comparison validation is sanitized;
-- OpenAPI/generated TypeScript and architecture/regression gates are synchronized;
-- M3.3 and M3.5.2 remain unchanged.
-
-Acceptance proof:
-
-- final reviewed head `2a10d5dd3e28ce6ff4eec21dd3555e8838d6f789` — **9/9 PR workflows SUCCESS**, 0 failure/skipped/cancelled;
-- read-only review **Looks good**, no unresolved review findings/threads;
-- squash merge `079a53be066fa488ee01da18a109f4f2b1484800`;
-- issue #127 closed `completed`;
-- exact merge — **8/8 post-merge normal push workflows SUCCESS, 0 failures**.
-
-#### M3.5.4 — Responsive Pantry controls — COMPLETE / ACCEPTED
-
-Authoritative design: [`superpowers/specs/2026-08-15-m3-5-4-responsive-pantry-controls-design.md`](superpowers/specs/2026-08-15-m3-5-4-responsive-pantry-controls-design.md)  
-Implementation plan: [`superpowers/plans/2026-08-15-m3-5-4-responsive-pantry-controls.md`](superpowers/plans/2026-08-15-m3-5-4-responsive-pantry-controls.md)  
-Shipping evidence: [`superpowers/plans/2026-08-15-m3-5-4-responsive-pantry-controls-shipping.md`](superpowers/plans/2026-08-15-m3-5-4-responsive-pantry-controls-shipping.md)  
-Acceptance: [`m3-5-4-responsive-pantry-controls-acceptance-2026-08-15.md`](m3-5-4-responsive-pantry-controls-acceptance-2026-08-15.md)  
-Accepted merge: `7a437b612b4e0a36e10f2ae2a5708346f93431ce`.
-
-Accepted result:
-
-- primary WeeklyPlan browser transport uses generated M3.5.3 only;
-- request-scoped Pantry controls are optional and stateless;
-- server-owned original/audit/remaining demand is rendered without browser subtraction;
-- full Pantry coverage renders `NO_REMAINING_DEMAND` without retailer output;
-- mobile/accessibility/fail-closed and Recipe/manual regressions are deterministic and network-safe.
-
-Acceptance proof:
-
-- final reviewed head `d2fefd5391b9ec471192aff4120adfc4e7c0cb4c` — **9/9 PR workflows SUCCESS**, 0 failure/skipped/cancelled;
-- read-only review **Looks good**, no unresolved findings/threads;
-- squash merge `7a437b612b4e0a36e10f2ae2a5708346f93431ce`;
-- issue #130 closed `completed`;
-- exact merge — **8/8 post-merge normal push workflows SUCCESS, 0 failures**.
-
-#### Explicit omit-all exclusions — DEFERRED SEMANTIC DECISION
-
-A boolean `never buy` / omit-all rule is not equivalent to Pantry stock and must not be encoded as zero/negative quantity. Add it only after a separate design establishes product need and truthful provenance semantics.
-
-Server-side persistence/saved-plan history remains deferred until repeat-use evidence demonstrates product value and correctness requirements justify it. M5.1 adds only a private browser-local input draft, not saved-plan history.
-
-## Parallel connectivity / operational work
-
-Continue without blocking deterministic M5/release work unless evidence invalidates accepted core assumptions.
-
-Completed hardening:
-
-- **#54 / #153** browser-bridge persistent-session/store-change/SPA lifecycle hardening — **COMPLETE / ACCEPTED**. The accepted model uses event-driven navigation lifecycle handling, fresh-context gating, bounded retained resource evidence and revision-safe observation writes without widening production extension permissions.
-
-Current mandatory connectivity work:
-
-- **#36** Kuper supported aggregator investigation;
-- **Chizhik #167** — Phase A/B/C and D1 implementation are merged, but the D1 live transport decision remains open: an ordinary user browser successfully reached `GET https://app.chizhik.club/api/v1/shops/` with `200 + JSON + sap_id/lat/lon`, while the current CI-hosted stock-Chromium live result is `page-unavailable`;
-- if CI-hosted stock Chromium reproducibly obtains `200 + JSON + required store shape`, a server-controlled browser worker remains viable;
-- if CI-hosted Chromium remains blocked while the ordinary user browser succeeds, prefer the active MV3 Retailer Bridge path;
-- only after that D1 transport disposition, validate one store-scoped D2 product/delivery endpoint and map only evidenced fields into `BrowserObservation` / `ObservedOffer`; do not fabricate promo/package/availability semantics;
-- Ozon Fresh, Samokat, Lenta and VkusVill onboarding/hardening;
-- structured package semantics only where source evidence proves them;
-- retailer-specific production-access/right-to-operate decisions before activation;
-- successful real **`v0.1.0-rc.3`** release event with final image promotion, SBOM/attestation and digest smoke evidence.
-
-Chizhik D1 merged implementation is not equivalent to an accepted production acquisition path. D2 and production activation remain unimplemented/unaccepted until transport and right-to-operate evidence justify them.
+Explicit omit-all / never-buy semantics remain deferred and must not be encoded as Pantry stock.
 
 ## M4 — Basket Optimization — COMPLETE / ACCEPTED
 
-Goal achieved at the currently planned deterministic product slice: optimize real checkout cost rather than naive SKU sums while preserving truthful eligibility, completeness, uncertainty, retailer visibility and production-access semantics.
+Goal achieved for the current deterministic slice: optimize truthful one-retailer checkout cost rather than naive SKU sums.
 
-Accepted scope includes explicit checkout economics, one-retailer truthful totals, deterministic cheapest-candidate selection and responsive optimization UX. Richer package/substitute optimization, multi-store lowest-total-cost mode and any confidence/freshness policy remain future work requiring separate explicit design.
+Accepted scope:
 
-### M4.1 — Basket economics foundation — COMPLETE / ACCEPTED
+- M4.1 explicit known/unknown delivery/service fees and minimum-order evidence;
+- M4.2 one-retailer checkout eligibility/comparability;
+- M4.3 deterministic cheapest comparable basket with explicit ties;
+- M4.4 server-owned Optimization Preview and responsive Optimization UX.
 
-Acceptance: [`m4-1-basket-economics-foundation-acceptance-2026-08-15.md`](m4-1-basket-economics-foundation-acceptance-2026-08-15.md)  
-Accepted implementation merge: `3ccaa7b2acc1e81d7360c55872882a4252c96cae`.
-
-Accepted result:
-
-- explicit known/unknown delivery and service fees with known zero preserved;
-- explicit known/unknown minimum-order threshold and `MET / NOT_MET / UNKNOWN` assessment from merchandise subtotal only;
-- merchandise subtotal remains inspectable independently from checkout-total knowledge;
-- unknown material fee fails closed rather than becoming zero;
-- exact currency-compatible `BigDecimal` checkout arithmetic with no hidden rounding;
-- self-validating assessment prevents contradictory economics state;
-- pure basket-domain boundary with no provider acquisition, optimizer, HTTP/OpenAPI/UI or M1 quote mutation.
-
-### M4.2 — One-retailer truthful total comparison — COMPLETE / ACCEPTED
-
-Acceptance: [`m4-2-one-retailer-truthful-total-acceptance-2026-08-15.md`](m4-2-one-retailer-truthful-total-acceptance-2026-08-15.md)  
-Accepted implementation merge: `69f9cb1afd1b16af938052bbca570cbd4ce52557`.
-
-Accepted result:
-
-- existing M1 merchandise subtotal remains unchanged;
-- retailer-bound M4.1 economics fail closed on cross-retailer identity mismatch before arithmetic;
-- eligibility is `ELIGIBLE / INELIGIBLE / UNKNOWN` and independent from checkout-total knowledge;
-- comparability is `COMPARABLE / NOT_COMPARABLE`; only `READY + ELIGIBLE + KNOWN checkout total` is comparable;
-- `INCOMPLETE / UNAVAILABLE` receive no fabricated checkout assessment;
-- known zero fees and known arithmetic totals remain inspectable without upgrading ineligible/uncertain candidates;
-- self-validating public objects and architecture guards reject contradictory/cross-boundary evidence;
-- no winner/ranking, provider acquisition, HTTP/OpenAPI/UI or live retailer request is introduced.
-
-Acceptance proof:
-
-- final reviewed head `1d6dae470c04ab1d8279f891766fc16698286edb` — **9/9 PR workflows SUCCESS**;
-- clean read-only review, no unresolved threads;
-- squash merge `69f9cb1afd1b16af938052bbca570cbd4ce52557`;
-- issue #136 closed `completed`;
-- exact merge — **8/8 normal push workflows SUCCESS**.
-
-### M4.3 — Deterministic basket optimizer — COMPLETE / ACCEPTED
-
-Authoritative design: [`superpowers/specs/2026-08-15-m4-3-deterministic-basket-optimizer-design.md`](superpowers/specs/2026-08-15-m4-3-deterministic-basket-optimizer-design.md)  
-Implementation plan: [`superpowers/plans/2026-08-15-m4-3-deterministic-basket-optimizer.md`](superpowers/plans/2026-08-15-m4-3-deterministic-basket-optimizer.md)  
-Shipping evidence: [`superpowers/plans/2026-08-15-m4-3-deterministic-basket-optimizer-shipping.md`](superpowers/plans/2026-08-15-m4-3-deterministic-basket-optimizer-shipping.md)  
-Acceptance: [`m4-3-deterministic-basket-optimizer-acceptance-2026-08-15.md`](m4-3-deterministic-basket-optimizer-acceptance-2026-08-15.md)  
-Accepted implementation merge: `c854526c30a1b0b1b6b435ae37608da0d9501955`.
-
-Accepted result:
-
-- ordered non-empty M4.2 candidate input with unique retailer identity and defensive-copy semantics;
-- only M4.2 `COMPARABLE` candidates compete, while all candidates remain inspectable in original order;
-- explicit `NO_COMPARABLE_CANDIDATES / UNIQUE_WINNER / TIE` outcomes;
-- mixed currencies among comparable candidates fail closed;
-- exact `BigDecimal.compareTo` selection with no rounding/rescaling;
-- every exact minimum remains in an explicit tie; input/canonical retailer order, retailer ID, freshness, provider timestamps and package/SKU metadata never break the tie;
-- accepted M1 package/basket choices are never recomputed and no substitute or multi-store optimization occurs;
-- freshness is not converted into a hidden monetary penalty or fabricated confidence score;
-- public optimization results self-validate against the deterministic rules;
-- M4.3 consumes retailer identity through the accepted M4.2 result boundary and has no direct `comparison` / `retailer` dependency;
-- deterministic acceptance remains supplied-evidence-only and makes no live retailer request.
-
-Acceptance proof:
-
-- final reviewed head `ddc5fed0d3bb98d9c17e5f1ec739ffad9ba77ad5` — **9/9 PR workflows SUCCESS**;
-- clean read-only review, no P0/P1/P2/P3/nitpicks and no unresolved threads;
-- squash merge `c854526c30a1b0b1b6b435ae37608da0d9501955` with expected-head protection;
-- issue #139 closed `completed`;
-- exact merge — **8/8 normal push workflows SUCCESS**.
-
-### M4.4 — Optimization UX — COMPLETE / ACCEPTED
-
-Goal achieved: accepted M4.1–M4.3 evidence is projected into the primary responsive browser journey with explainable merchandise subtotal, known/unknown fees, minimum-order state, eligibility/comparability and optimizer outcome while server-owned contracts remain authoritative.
-
-#### M4.4.1 — Server-owned Optimization Preview API — COMPLETE / ACCEPTED
-
-Acceptance: [`m4-4-1-server-owned-optimization-preview-acceptance-2026-08-16.md`](m4-4-1-server-owned-optimization-preview-acceptance-2026-08-16.md)  
-Authoritative design: [`superpowers/specs/2026-08-15-m4-4-1-server-owned-optimization-preview-design.md`](superpowers/specs/2026-08-15-m4-4-1-server-owned-optimization-preview-design.md)  
-Implementation plan: [`superpowers/plans/2026-08-15-m4-4-1-server-owned-optimization-preview.md`](superpowers/plans/2026-08-15-m4-4-1-server-owned-optimization-preview.md)  
-Accepted implementation merge: `67679282a388da16706c46a3caf3ff46b2b67d54`.
-
-Accepted result:
-
-- new `POST /api/v1/weekly-plan-pantry-optimization-previews` application/API boundary;
-- accepted M3.5.3 wire behavior remains unchanged and is embedded as the Pantry/comparison audit;
-- full Pantry coverage stays `NO_REMAINING_DEMAND`, omits optimization payload and skips checkout-economics/optimizer work;
-- provider-neutral checkout economics are requested only for assessable retailers and missing evidence stays explicit `UNKNOWN`;
-- M4.2 remains the sole eligibility/comparability authority and M4.3 remains the sole optimizer authority;
-- canonical product retailer IDs are exposed while internal optimizer/provider/acquisition/fulfillment data stays off the wire;
-- OpenAPI/generated TypeScript and architecture/regression guards are synchronized;
-- production default economics source is intentionally no-op/unknown; no live retailer acquisition is introduced.
-
-Acceptance proof:
-
-- final reviewed head `9d343f18e1391a9d249625e2cdab6de02b13e913` — **9/9 PR workflows SUCCESS**;
-- read-only Change Review **Looks good**, no P0/P1/P2/P3/nitpicks and no unresolved threads;
-- squash merge `67679282a388da16706c46a3caf3ff46b2b67d54` with expected-head protection;
-- issue #142 closed `completed`;
-- exact merge — **8/8 normal push workflows SUCCESS**, including CodeQL Java and JavaScript/TypeScript.
-
-#### M4.4.2 — Responsive Optimization UX — COMPLETE / ACCEPTED
-
-Acceptance: [`m4-4-2-responsive-optimization-ux-acceptance-2026-08-16.md`](m4-4-2-responsive-optimization-ux-acceptance-2026-08-16.md)  
-Authoritative design: [`superpowers/specs/2026-08-16-m4-4-2-responsive-optimization-ux-design.md`](superpowers/specs/2026-08-16-m4-4-2-responsive-optimization-ux-design.md)  
-Implementation plan: [`superpowers/plans/2026-08-16-m4-4-2-responsive-optimization-ux.md`](superpowers/plans/2026-08-16-m4-4-2-responsive-optimization-ux.md)  
-Accepted implementation merge: `7252b9264ed7a2ffe896b1a1fcddb09a78edc04c`.
-
-Accepted result:
-
-- primary WeeklyPlan/Pantry browser transport uses generated M4.4.1 only;
-- original demand, Pantry audit, remaining demand and retailer comparison remain visible from the nested accepted M3.5.3 projection;
-- `NO_REMAINING_DEMAND` is terminal and renders no fabricated optimization UI;
-- `NO_COMPARABLE_CANDIDATES`, `UNIQUE_WINNER` and `TIE` are rendered directly from server status/optimal IDs/lowest-total evidence;
-- per-retailer checkout economics preserve merchandise subtotal, known zero versus unknown fees, minimum-order state, checkout-total knowledge, eligibility and comparability;
-- canonical retailer metadata is joined by identity with a `Map`; duplicate/missing/mismatched identities or contradictory optimizer structure fail closed;
-- browser code does not add fees, evaluate minimum order, assess eligibility/comparability, compare checkout totals, rank retailers or break ties;
-- Recipe/manual-list journeys remain regression-covered;
-- deterministic desktop/mobile/accessibility Playwright acceptance makes no live retailer/provider request.
-
-Acceptance proof:
-
-- final reviewed head `ca2060546936f388556f62e49c6963d846274847` — **9/9 PR workflows SUCCESS**;
-- Web lint/typecheck/component tests/Next production build and Chromium Playwright — **SUCCESS**;
-- read-only Change Review **Looks good**, no P0/P1/P2/P3/nitpicks and no unresolved threads;
-- squash merge `7252b9264ed7a2ffe896b1a1fcddb09a78edc04c` with expected-head protection;
-- issue #145 closed `completed`;
-- exact merge — **8/8 normal push workflows SUCCESS**.
+Deferred: richer substitute/package optimization, multi-store split optimization and any confidence/freshness pricing policy.
 
 ## M5 — Productization — CURRENT
 
-Goal: reliable repeat use with privacy-aware accounts/preferences, analytics abstraction, feature flags, provider health monitoring and production provider activation only after access constraints are resolved.
+Goal: make the accepted product reliable for real repeat use, then choose further productization only from release/manual-use evidence.
 
 ### M5.1 — Private local WeeklyPlan draft — COMPLETE / ACCEPTED
 
-Acceptance: [`m5-1-private-local-weekly-plan-draft-acceptance-2026-08-16.md`](m5-1-private-local-weekly-plan-draft-acceptance-2026-08-16.md)  
-Authoritative design: [`superpowers/specs/2026-08-16-m5-1-private-local-weekly-plan-draft-design.md`](superpowers/specs/2026-08-16-m5-1-private-local-weekly-plan-draft-design.md)  
-Implementation plan: [`superpowers/plans/2026-08-16-m5-1-private-local-weekly-plan-draft.md`](superpowers/plans/2026-08-16-m5-1-private-local-weekly-plan-draft.md)  
-Accepted implementation merge: `2f2b96d18521b8bb04f6ee17182d61711322de08`.
+Acceptance: [`m5-1-private-local-weekly-plan-draft-acceptance-2026-08-16.md`](m5-1-private-local-weekly-plan-draft-acceptance-2026-08-16.md).
 
-Accepted result:
+Accepted result: one versioned same-origin semantic WeeklyPlan/Pantry draft. Generated identities, comparison/economics/optimizer output and provider evidence are never persisted as authority. Restore never implies submission and storage failures fail closed.
 
-- one versioned same-origin browser-local draft for the primary WeeklyPlan/Pantry editable input;
-- persisted state is semantic-only: locality, ordered occurrences, Recipe fields/ingredients and Pantry rows; presentation keys, generated IDs, comparison/economics/optimizer/provider evidence never enter storage;
-- numeric form values persist as strings so unfinished input round-trips without coercion;
-- restore happens only after client mount and never auto-submits comparison;
-- autosave is restore-gated, debounced and compares against the last confirmed semantic persisted baseline;
-- storage get/set/remove failures fail closed without breaking editing/submission;
-- failed reads do not cause blind blank overwrites and corrupt-draft cleanup failure is surfaced as storage unavailable;
-- explicit clear resets input/result/error state and removes local storage without an API call; clear is gated until restore settles and while comparison is pending;
-- deterministic browser acceptance proves exact semantic storage, reorder/Pantry restore, zero implicit POST before explicit submit, clear and blank second reload;
-- M4.4.2 server-owned comparison/economics/optimizer semantics remain unchanged.
+### M5.2 — INTENTIONALLY UNSELECTED
 
-Acceptance proof:
+Do not preselect accounts, analytics, feature flags, provider health or saved history before the real release-candidate/manual-use canary demonstrates the highest-value constraint.
 
-- final reviewed head `6c54479044e41e5177739b57eb891830a79691f8` — **9/9 PR workflows SUCCESS**;
-- read-only review found no remaining P0/P1/P2/P3/nitpicks and no unresolved threads;
-- squash merge `2f2b96d18521b8bb04f6ee17182d61711322de08` with expected-head protection;
-- issue #148 closed `completed`;
-- exact merge — **8/8 normal push workflows SUCCESS**, 0 failures, including CodeQL Java and JavaScript/TypeScript.
+## Immediate mainline target — `v0.1.0-rc.3`
 
-M5.2 is intentionally **not selected yet**. The next productization slice should be chosen only after the current product is exercised as a real release candidate; this avoids inventing account/analytics/monitoring scope before we have repeat-use and release evidence.
+Issue: #152.
 
-## Immediate operational target — v0.1.0-rc.3 — NEXT
+The previous M5.1-only target SHA is invalidated because accepted connectivity work merged afterwards. The next release must be cut from the **documentation-synchronized, fully verified final `main` SHA** recorded in #152.
 
-A new immutable **`v0.1.0-rc.3`** prerelease from documentation-synchronized verified `main` is the next highest-value validation.
+Required sequence:
 
-It must complete the existing release contract end to end:
+1. merge the post-D2 canonical documentation synchronization;
+2. record the exact resulting `main` SHA in #152;
+3. verify that exact SHA with all normal required push workflow groups and zero failures;
+4. confirm `v0.1.0-rc.3` Release and tag/ref are still absent;
+5. publish one GitHub prerelease targeting only that exact SHA;
+6. require `Release / Verify` and `Release / Publish` to complete the existing immutable release contract;
+7. inspect evidence/checksums/digests and verify `latest` remains unchanged;
+8. manually exercise the product from immutable rc.3 artifacts;
+9. fix release-canary defects before choosing M5.2.
 
-- `Release / Verify` and `Release / Publish` both succeed;
-- API/web multi-platform staging images cover `linux/amd64` and `linux/arm64`;
-- every release Trivy and SBOM step passes without suppression;
-- staging exact-digest Compose smoke succeeds;
-- verified indexes are copied without rebuild into final packages with digest identity preserved;
-- final exact-digest Compose smoke succeeds;
-- GitHub provenance attestations are created for final digests;
-- prerelease SemVer OCI tags are promoted from already verified digests;
-- final manifests contain both target architectures;
-- release evidence/checksums are attached;
-- prerelease publication leaves `latest` untouched;
-- staging packages remain private and final-package visibility is verified separately.
+The existing release contract must prove:
 
-Do not create stable `v0.1.0` until at least one prerelease completes the full workflow and its evidence has been inspected. Manual product canary should run against that successful release candidate rather than a source-checkout-only environment.
+- source/main ancestry and release metadata;
+- repository verification and production browser E2E;
+- `linux/amd64` + `linux/arm64` staging images;
+- unchanged fail-closed Trivy `HIGH,CRITICAL` gate;
+- SPDX SBOM per candidate image manifest;
+- staging exact-digest Compose smoke;
+- copy-without-rebuild promotion to final packages with digest identity preserved;
+- final exact-digest smoke;
+- GitHub provenance attestations;
+- prerelease SemVer OCI promotion without mutating `latest`;
+- final manifest architecture checks;
+- attached release evidence and checksums.
 
-## M6 — Native Mobile
+Stable `v0.1.0` remains blocked until prerelease evidence and manual acceptance are satisfactory.
 
-Goal: Android/iOS clients using shared API vocabulary/generated contracts after browser product semantics are stable enough to justify native clients.
+## Parallel retailer connectivity
+
+Connectivity work may proceed in parallel, but it must not silently move the final rc.3 SHA after the release issue is returned to READY.
+
+### Browser Bridge lifecycle — COMPLETE / ACCEPTED
+
+#54/#153 hardened long-lived browser sessions across SPA navigation/store changes with event-driven lifecycle handling, fresh-context gating, bounded resource evidence and revision-safe writes without widening production extension permissions.
+
+### Chizhik D1 — COMPLETE / ACCEPTED
+
+#167/#168 resolved the transport decision:
+
+- ordinary user browser: `/api/v1/shops/` returns valid JSON store directory;
+- stock GitHub-hosted Chromium: `page-unavailable`;
+- accepted path: normal **user-browser MV3 Retailer Bridge**;
+- managed CI/server browser worker: not selected;
+- no stealth, proxy rotation, fingerprint spoofing, credential/cookie/header extraction, mobile impersonation or arbitrary forwarding.
+
+The CI-browser negative result is evidence, not an unresolved decision gate.
+
+### Chizhik D2 transport — IMPLEMENTED / MERGED; SCHEMA GATE OPEN
+
+#169 remains open. PR #171 added the exact, bounded store-scoped delivery-search transport while deliberately keeping successful JSON opaque and preventing automatic search/offer production before schema acceptance.
+
+Canary: [`integrations/chizhik-d2-delivery-search-canary-2026-08-18.md`](integrations/chizhik-d2-delivery-search-canary-2026-08-18.md).
+
+### Chizhik D2 evidenced store context — COMPLETE / ACCEPTED
+
+#173/#174 establishes that store context cannot be guessed:
+
+- context comes only from exact first-party Chizhik delivery catalog resource paths already seen by the official browser session;
+- path-embedded `sap_id` must intersect with the validated `/api/v1/shops/` directory;
+- exactly one distinct validated store is required;
+- missing, foreign-origin, unknown-store and conflicting contexts fail closed;
+- `searchStore` remains disabled and observations remain empty;
+- Chromium E2E covers the accepted failure modes;
+- PR #174 merge: `6c0af6ffa347c434e02600e83533244f8e2d15db`.
+
+### Chizhik next slice — BLOCKED ON ORDINARY-USER-BROWSER EVIDENCE
+
+Do **not** implement `BrowserObservation` / `ObservedOffer` mapping until #169 receives sanitized evidence from the documented ordinary-user-browser canary proving:
+
+- product-array/container path;
+- product identifier field;
+- product-name field;
+- price field and monetary unit/scale;
+- explicit availability semantics, if any.
+
+If availability semantics are not proven, map `UNKNOWN`. Promotion, loyalty, package and discount semantics remain unavailable until separately evidenced.
+
+### Other mandatory retailer work
+
+Continue universal connectivity for:
+
+- #36 Kuper supported aggregator/API path and permitted reuse;
+- Ozon Fresh;
+- Samokat;
+- Lenta;
+- VkusVill;
+- additional canonical retailers/banners.
+
+For every retailer, keep technical feasibility and production-access/right-to-operate approval separate.
+
+## M6 — Native Mobile — FUTURE
+
+Goal: Android/iOS clients using the shared API vocabulary/generated contracts only after browser/API product semantics and release behavior are stable enough to justify native clients.
 
 ## Guiding rule
 
