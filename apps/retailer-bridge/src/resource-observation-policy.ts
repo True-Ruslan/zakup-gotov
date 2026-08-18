@@ -6,6 +6,8 @@ const PYATEROCHKA_STORE_RESOURCE_PATH = /^\/api\/catalog\/v2\/stores\/([A-Za-z0-
 const CHIZHIK_PAGE_HOST = "chizhik.club";
 const CHIZHIK_CATALOG_ORIGIN = "https://app.chizhik.club";
 const CHIZHIK_PUBLIC_CATALOG_RESOURCE_PATH = /^\/api\/v1\/catalog\/unauthorized\/(?:categories|products)\/?$/;
+const CHIZHIK_DELIVERY_STORE_RESOURCE_PATH =
+  /^\/delivery\/api\/catalog\/v(?:2|3)\/stores\/([A-Za-z0-9_-]{1,32})(?:\/|$)/;
 
 export type FulfillmentContextResource = Readonly<{
   contextKey: string;
@@ -40,12 +42,13 @@ export function canonicalObservedResourceUrl(rawUrl: string, pageUrl: URL): stri
       return `${resourceUrl.origin}${resourceUrl.pathname}`;
     }
 
-    if (
-      isOfficialChizhikPage(pageUrl) &&
-      resourceUrl.origin === CHIZHIK_CATALOG_ORIGIN &&
-      CHIZHIK_PUBLIC_CATALOG_RESOURCE_PATH.test(resourceUrl.pathname)
-    ) {
-      return `${resourceUrl.origin}${resourceUrl.pathname}`;
+    if (isOfficialChizhikPage(pageUrl) && resourceUrl.origin === CHIZHIK_CATALOG_ORIGIN) {
+      if (
+        CHIZHIK_PUBLIC_CATALOG_RESOURCE_PATH.test(resourceUrl.pathname) ||
+        CHIZHIK_DELIVERY_STORE_RESOURCE_PATH.test(resourceUrl.pathname)
+      ) {
+        return `${resourceUrl.origin}${resourceUrl.pathname}`;
+      }
     }
 
     return null;
@@ -81,8 +84,11 @@ export function fulfillmentContextResource(
         : null;
     }
 
-    // Chizhik Phase B deliberately does not infer fulfillment context from
-    // catalog query parameters because they are stripped before retention.
+    if (isOfficialChizhikPage(pageUrl) && resourceUrl.origin === CHIZHIK_CATALOG_ORIGIN) {
+      const contextId = resourceUrl.pathname.match(CHIZHIK_DELIVERY_STORE_RESOURCE_PATH)?.[1];
+      return contextId ? { contextKey: `chizhik:${contextId}`, canonicalUrl } : null;
+    }
+
     return null;
   } catch {
     return null;
