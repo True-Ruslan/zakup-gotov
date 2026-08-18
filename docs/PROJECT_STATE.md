@@ -9,7 +9,7 @@ Updated: 2026-08-18
 Repository: `True-Ruslan/zakup-gotov`  
 Visibility: Public  
 Current product phase: **M5 — Productization**  
-Immediate operational target: **`v0.1.0-rc.3` end-to-end release validation**
+Immediate operational target: **`v0.1.0-rc.4` end-to-end release validation**
 
 The product/core and retailer-connectivity tracks are intentionally separate. A retailer can be technically reachable without being approved for production acquisition, and a merged transport implementation is not automatically an accepted product/price provider.
 
@@ -34,60 +34,31 @@ The product/core and retailer-connectivity tracks are intentionally separate. A 
 
 Acceptance: [`m1-shopping-core-acceptance-2026-08-13.md`](m1-shopping-core-acceptance-2026-08-13.md).
 
-Accepted behavior includes:
-
-- canonical retailer visibility/readiness;
-- canonical shopping quantities and stable Shopping identities;
-- provider/location provenance and explicit freshness/availability evidence;
-- deterministic exact/normalized matching with explicit ambiguity;
-- whole-package single-store basket arithmetic;
-- truthful `READY / UNCERTAIN / INCOMPLETE / UNAVAILABLE` comparison states;
-- production-access gating before acquisition;
-- stateless comparison preview and responsive manual-list flow.
+Accepted behavior includes canonical retailer visibility/readiness, canonical quantities and stable Shopping identities, provider/location provenance, freshness/availability evidence, deterministic exact/normalized matching with explicit ambiguity, whole-package single-store basket arithmetic, truthful `READY / UNCERTAIN / INCOMPLETE / UNAVAILABLE` states, production-access gating before acquisition and stateless responsive comparison flows.
 
 ### M2 — Recipes
 
-Recipes are a deterministic first-class source of shopping requirements.
-
-Accepted behavior includes Recipe domain/conversion, serving scaling, Recipe → ShoppingList → Comparison, responsive Recipe UI and deterministic occurrence-aware multi-Recipe aggregation.
+Recipes are a deterministic first-class source of shopping requirements. Accepted behavior includes Recipe domain/conversion, serving scaling, Recipe → ShoppingList → Comparison, responsive Recipe UI and deterministic occurrence-aware multi-Recipe aggregation.
 
 Permanent rule: automatic Recipe merging is exact normalized requirement + canonical unit only. Fuzzy/synonym/AI equivalence is never implicit.
 
 ### M3 — Weekly Planning / Pantry
 
-Weekly Planning is the primary browser journey.
-
-Accepted behavior includes:
-
-- ordered WeeklyPlan meal occurrences with day metadata and explicit target servings;
-- deterministic multi-Recipe shopping composition;
-- stateless WeeklyPlan shopping/comparison boundaries;
-- request-scoped Pantry subtraction with ordered audit evidence;
-- `NO_REMAINING_DEMAND` as a truthful terminal state;
-- responsive desktop/mobile/accessibility coverage;
-- no browser-side Recipe scaling, Pantry subtraction, matching or basket arithmetic.
+Weekly Planning is the primary browser journey. Accepted behavior includes ordered meal occurrences, day metadata, target servings, deterministic weekly shopping composition, stateless WeeklyPlan shopping/comparison boundaries, request-scoped Pantry subtraction with ordered audit evidence, truthful `NO_REMAINING_DEMAND`, responsive browser acceptance and no browser-side Recipe scaling/Pantry subtraction/matching/basket arithmetic.
 
 Explicit omit-all / never-buy semantics remain intentionally deferred; they are not Pantry stock.
 
 ### M4 — Basket Optimization
 
-Accepted behavior includes:
+Accepted behavior includes explicit known/unknown delivery and service fees, explicit minimum-order evidence, separate merchandise subtotal / checkout-total knowledge / eligibility / comparability, deterministic single-retailer checkout assessment, exact cheapest comparable basket selection with explicit ties, server-owned Optimization Preview and responsive Optimization UX.
 
-- explicit known/unknown delivery and service fees;
-- explicit minimum-order evidence;
-- separate merchandise subtotal, checkout-total knowledge, eligibility and comparability;
-- deterministic single-retailer checkout assessment;
-- exact cheapest comparable basket selection with explicit ties;
-- server-owned Optimization Preview API and responsive Optimization UX;
-- no hidden monetary freshness penalty, substitute search or multi-store split optimization.
-
-The production checkout-economics source remains intentionally fail-closed/unknown until retailer-specific evidence is accepted.
+Production checkout economics remains fail-closed/unknown until retailer-specific evidence is accepted. Rich substitute/package optimization and multi-store split optimization remain deferred.
 
 ### M5.1 — Private local WeeklyPlan draft
 
 Acceptance: [`m5-1-private-local-weekly-plan-draft-acceptance-2026-08-16.md`](m5-1-private-local-weekly-plan-draft-acceptance-2026-08-16.md).
 
-Accepted browser-local persistence stores only editable semantic WeeklyPlan/Pantry input under one versioned same-origin key. Generated identities, retailer results, economics, optimizer output and provider evidence never become local draft authority. Restore never implies submission, and storage failures fail closed without breaking explicit editing/submission.
+Only editable semantic WeeklyPlan/Pantry input is persisted under one versioned same-origin key. Generated identities, retailer results, economics, optimizer output and provider evidence never become local draft authority. Restore never implies submission; storage failures fail closed without breaking explicit editing/submission.
 
 ## Retailer connectivity
 
@@ -99,14 +70,7 @@ Technical connectivity, production-access readiness and deterministic product/co
 
 ### Perekrestok / Pyaterochka
 
-Accepted browser-bridge acquisition evidence exists. The bridge lifecycle is hardened for long-lived SPA/store-change sessions through #153:
-
-- event-driven navigation lifecycle rather than polling;
-- fresh fulfillment-context gating after navigation/store change;
-- stale-resource and obsolete in-flight result rejection;
-- revision-safe writes;
-- bounded retained resource evidence;
-- production extension permissions remain minimal (`storage` only).
+Accepted browser-bridge acquisition evidence exists. #54/#153 hardened long-lived SPA/store-change sessions through event-driven navigation handling, fresh-context gating, stale/in-flight rejection, revision-safe writes and bounded retained resource evidence without widening production extension permissions.
 
 ### Magnit
 
@@ -125,95 +89,62 @@ Technical accessibility is not treated as permission for recurring production ac
 
 Issue #167 is closed completed; PR #168 merged as `e49c151fa44681dffe85fe90116009c86690672e`.
 
-Evidence:
+An ordinary user-opened official Chizhik page successfully fetched `GET https://app.chizhik.club/api/v1/shops/` with HTTP `200`, JSON and valid store rows containing `sap_id` and coordinates. Stock GitHub-hosted Chromium produced sanitized `page-unavailable` evidence. Therefore the accepted acquisition architecture is the normal **user-browser MV3 Retailer Bridge**; managed CI/server browser worker is not selected for Chizhik.
 
-- an ordinary user-opened official `https://chizhik.club/` page successfully fetched `GET https://app.chizhik.club/api/v1/shops/` with HTTP `200`, JSON and valid store rows including `sap_id` and coordinates;
-- stock GitHub-hosted Chromium produced sanitized `page-unavailable` evidence;
-- therefore the accepted Chizhik acquisition architecture is the normal **user-browser MV3 Retailer Bridge**;
-- a managed CI/server-browser worker is not selected for Chizhik;
-- stealth, fingerprint spoofing, proxy rotation, cookie/header/credential extraction, mobile impersonation and arbitrary URL forwarding remain out of scope.
-
-The CI-browser negative result is retained as evidence; it is no longer an unresolved architecture gate.
+Stealth, fingerprint spoofing, proxy rotation, cookie/header/credential extraction, private/mobile-client impersonation and arbitrary URL forwarding remain out of scope.
 
 #### D2 search transport — IMPLEMENTED / MERGED, NOT YET AN OFFER PROVIDER
 
 Issue #169 remains open. PR #171 merged as `bb11bd45d0c5da20eed2a24dfdf585714912c1b1`.
 
-Merged transport foundation:
+Merged foundation uses an exact store-scoped Chizhik delivery-search endpoint family, validated-form `sap_id`, URL-encoded query, bounded limit, finite abort deadline and ordinary browser CORS behavior. Successful JSON remains opaque until live schema acceptance; automatic delivery search and offer mapping remain disabled.
 
-- exact store-scoped endpoint family under `https://app.chizhik.club/delivery/api/catalog/v3/stores/{sap_id}/search`;
-- validated-form `sap_id`;
-- URL-encoded nonblank query;
-- bounded result limit and finite abort deadline;
-- ordinary page-origin CORS + same-origin credentials;
-- successful JSON remains opaque `unknown` until live schema acceptance;
-- the active adapter is regression-protected to perform **zero automatic delivery-search calls** before schema acceptance;
-- no offer/price/availability mapping is active.
-
-Privacy-safe canary instructions: [`integrations/chizhik-d2-delivery-search-canary-2026-08-18.md`](integrations/chizhik-d2-delivery-search-canary-2026-08-18.md).
+Privacy-safe canary: [`integrations/chizhik-d2-delivery-search-canary-2026-08-18.md`](integrations/chizhik-d2-delivery-search-canary-2026-08-18.md).
 
 #### D2 store-context binding — COMPLETE / ACCEPTED
 
 Issue #173 is closed completed. PR #174 squash-merged as `6c0af6ffa347c434e02600e83533244f8e2d15db`.
 
-Accepted rule:
-
-- candidate fulfillment context comes only from already-observed exact first-party delivery catalog resource paths;
-- only `https://app.chizhik.club/delivery/api/catalog/v2|v3/stores/{sap_id}/...` can contribute context;
-- query/fragment data is stripped before retention;
-- path-embedded `sap_id` must match the safe ID shape and exist in the validated `/api/v1/shops/` directory;
-- exactly one distinct validated context is required;
-- no candidate, foreign origin, unknown store or conflicting validated stores fail closed to `missing-context`;
-- `searchStore` remains uncalled and observations remain empty until #169 schema evidence is accepted;
-- Chromium extension E2E covers valid, foreign-origin, unknown-store, conflict and blocked-discovery paths;
-- no extension permission changes and no new live retailer traffic were introduced.
+Candidate fulfillment context comes only from already-observed exact first-party delivery catalog resource paths. Path-embedded `sap_id` must match the safe ID shape and exist in the validated `/api/v1/shops/` directory. Exactly one distinct validated context is required; missing, foreign, unknown or conflicting context fails closed. `searchStore` remains uncalled until #169 schema evidence is accepted.
 
 PR #174 final head `0a0da74d744b85a9a936fc6049946174d96a4d09` passed **9/9 PR workflow groups SUCCESS** before merge.
 
 #### Chizhik next evidence gate
 
-#169 is now blocked on **ordinary-user-browser schema and price-unit evidence**, not on transport implementation.
-
-The canary may retain only sanitized structural evidence. Before `BrowserObservation` / `ObservedOffer` mapping, evidence must establish:
-
-- actual product-array/container path;
-- stable product identifier field;
-- product-name field;
-- price field **and its unit/scale**;
-- explicit availability semantics if present; otherwise availability remains `UNKNOWN`.
-
-Do not infer promotion, loyalty, package or discount semantics. Do not persist raw response bodies or store/product values as live evidence.
+#169 is blocked on ordinary-user-browser sanitized schema and price-unit evidence. Before `BrowserObservation` / `ObservedOffer` mapping, evidence must establish product-array/container path, stable product identifier field, product-name field, price field **and its monetary unit/scale**, plus explicit availability semantics if present. Unknown availability stays `UNKNOWN`; promo/loyalty/package/discount semantics are never inferred.
 
 ## Other mandatory connectivity work
 
-Continue without removing retailers from scope:
+Continue universal coverage for #36 Kuper supported aggregator/API access and permitted reuse, Ozon Fresh, Samokat, Lenta, VkusVill and additional major banners. Retailer-specific production/right-to-operate decisions remain mandatory before activation.
 
-- #36 Kuper supported aggregator/API access and permitted reuse;
-- Ozon Fresh;
-- Samokat;
-- Lenta;
-- VkusVill;
-- additional major banners as they enter the canonical registry;
-- retailer-specific package semantics only where source evidence proves them;
-- retailer-specific production-access/right-to-operate decisions before activation.
+## Release history and next gate
 
-## Release gate — `v0.1.0-rc.3`
+### `v0.1.0-rc.3` — EXISTING HISTORICAL PRERELEASE
+
+The immutable `v0.1.0-rc.3` ref already exists and resolves to:
+
+`d988b8c596a737326aeac67f74b6f65a6aaed3bf`
+
+Current `main` is 13 commits ahead of that ref as of this correction. The rc.3 tag/release must not be deleted, moved or reused for later source.
+
+### `v0.1.0-rc.4` — NEXT OPERATIONAL TARGET
 
 Issue: #152.
 
-The old M5.1-only release target `d988b8c596a737326aeac67f74b6f65a6aaed3bf` is invalidated because accepted work merged after it.
+The `v0.1.0-rc.4` ref is currently absent. The required sequence is:
 
-The rc.3 sequence is now:
+1. synchronize canonical docs so rc.3 is historical and rc.4 is the next gate;
+2. merge that docs-only correction through fresh exact-head CI/review;
+3. record the exact resulting `main` SHA in #152;
+4. verify the final release target per repository policy;
+5. re-check that `v0.1.0-rc.4` tag/release is absent immediately before publication;
+6. publish one immutable GitHub prerelease targeting only that exact SHA;
+7. require the existing release workflow to pass repository verification, production browser E2E, `linux/amd64` + `linux/arm64` staging, unchanged Trivy `HIGH,CRITICAL`, SPDX SBOM, exact-digest staging/final smoke, copy-without-rebuild promotion, provenance attestations, manifest checks and release evidence attachment;
+8. leave `latest` untouched;
+9. run the manual product canary from immutable rc.4 artifacts;
+10. choose M5.2 only from resulting evidence.
 
-1. merge this post-D2 documentation synchronization;
-2. record the exact resulting `main` SHA in #152;
-3. verify that exact SHA with all normal required push workflow groups and zero failures;
-4. re-check that tag/release `v0.1.0-rc.3` is absent;
-5. only then publish an immutable GitHub prerelease targeting that exact SHA;
-6. require the existing release workflow to pass verify, multi-platform staging, Trivy `HIGH,CRITICAL`, SPDX SBOM, exact-digest staging/final smoke, digest-identical promotion, provenance attestations, final manifest checks and release evidence attachment;
-7. leave `latest` untouched;
-8. run the manual product canary from immutable rc.3 artifacts;
-9. choose M5.2 only from resulting evidence.
+`.github/workflows/release.yml` validates generic SemVer prereleases, so `v0.1.0-rc.4` requires no release-code change.
 
 Stable `v0.1.0` remains blocked until prerelease and manual-canary evidence are satisfactory.
 
@@ -252,14 +183,16 @@ Stable `v0.1.0` remains blocked until prerelease and manual-canary evidence are 
 18. Browser-local persistence contains semantic editable input only and restore never implies submission.
 19. Browser acquisition lifecycle evidence is revision-safe across SPA/store changes.
 20. Ordinary-user-browser evidence and CI/server-browser evidence are separate evidence classes.
-21. A browser fulfillment context must be evidenced by the current official session and validated against accepted retailer context evidence; it is never guessed from list order or convenience.
+21. Browser fulfillment context must be evidenced by the current official session and validated against accepted retailer context evidence; it is never guessed.
 22. No price mapping is accepted until the source field and monetary unit/scale are evidenced.
+23. Published prerelease tags are immutable historical evidence and are never repointed to newer source.
 
 ## Platform baseline
 
 - Java 25 / Spring Boot 4.1 / Spring MVC virtual threads / Spring Modulith;
 - PostgreSQL 18 / Flyway / jOOQ;
-- OpenAPI 3.1 with generated TypeScript client;
-- Next.js 16.3 / React 19.2 / TypeScript 5.9 / Node 24;
-- Vitest + Testing Library + Playwright;
-- deterministic CI/security/release gates before acceptance.
+- OpenAPI 3.1 + generated TypeScript client;
+- Next.js 16.3 / React 19.2;
+- Testcontainers / Vitest / Testing Library / Playwright;
+- Docker multi-stage production images + no-source-build Compose release topology;
+- CodeQL / Dependency Review / Container Security / Release Contract / Release Bundle CI.
