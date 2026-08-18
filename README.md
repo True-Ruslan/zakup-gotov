@@ -7,7 +7,7 @@
 [![Web CI](https://github.com/True-Ruslan/zakup-gotov/actions/workflows/web-ci.yml/badge.svg)](https://github.com/True-Ruslan/zakup-gotov/actions/workflows/web-ci.yml)
 [![Release Bundle CI](https://github.com/True-Ruslan/zakup-gotov/actions/workflows/release-bundle-ci.yml/badge.svg)](https://github.com/True-Ruslan/zakup-gotov/actions/workflows/release-bundle-ci.yml)
 
-**Status:** M5 — Productization · **pre-release** · next release gate: **`v0.1.0-rc.3`**
+**Status:** M5 — Productization · **pre-release** · next release gate: **`v0.1.0-rc.4`**
 
 Zakup Gotov превращает рецепт, недельное меню или обычный список покупок в сравнение **полной корзины** по магазинам с учётом местоположения, актуальности цены, наличия, упаковок, checkout-экономики и полноты сопоставления.
 
@@ -83,13 +83,15 @@ Privacy-safe Chizhik D2 canary: [`docs/integrations/chizhik-d2-delivery-search-c
 
 ## Release gate
 
-Следующий основной operational milestone — immutable **`v0.1.0-rc.3`**.
+`v0.1.0-rc.3` уже опубликован и его immutable tag указывает на `d988b8c596a737326aeac67f74b6f65a6aaed3bf`. Этот tag не переиспользуется и не перемещается.
+
+Следующий основной operational milestone — immutable **`v0.1.0-rc.4`**.
 
 Issue #152 требует:
 
 1. documentation-synchronized final `main`;
-2. exact final `main` SHA с зелёными required push workflows;
-3. отсутствие существующих `v0.1.0-rc.3` tag/release перед публикацией;
+2. exact final `main` SHA с необходимым verification evidence;
+3. отсутствие существующих `v0.1.0-rc.4` tag/release перед публикацией;
 4. published GitHub prerelease, направленный только на этот exact SHA;
 5. multi-platform `linux/amd64` + `linux/arm64` staging images;
 6. неизменённый fail-closed Trivy `HIGH,CRITICAL` gate;
@@ -98,7 +100,7 @@ Issue #152 требует:
 9. copy-without-rebuild promotion с сохранением digest identity;
 10. provenance attestations и release evidence/checksums;
 11. отсутствие `latest` promotion для prerelease;
-12. manual product canary именно из immutable rc.3 artifacts.
+12. manual product canary именно из immutable rc.4 artifacts.
 
 Stable `v0.1.0` остаётся заблокирован до успешного prerelease и manual acceptance.
 
@@ -184,7 +186,7 @@ pnpm install --frozen-lockfile
 - M3 — COMPLETE / ACCEPTED;
 - M4 — COMPLETE / ACCEPTED;
 - M5 — CURRENT; M5.1 accepted, M5.2 intentionally unselected;
-- immediate gate — `v0.1.0-rc.3`;
+- immediate gate — `v0.1.0-rc.4`;
 - M6 Native Mobile — future.
 
 Подробности: [`docs/ROADMAP.md`](docs/ROADMAP.md).

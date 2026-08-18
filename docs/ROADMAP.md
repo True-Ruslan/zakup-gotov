@@ -28,13 +28,7 @@ Goal achieved: deterministic provider-neutral shopping requirements, canonical q
 
 Goal achieved: recipes are a deterministic first-class source of shopping requirements.
 
-Accepted slices:
-
-- M2.1 Recipe domain + Recipe → ShoppingList;
-- M2.2 stateless Recipe shopping preview API;
-- M2.3 Recipe → Comparison composition;
-- M2.4 responsive Recipe UI;
-- M2.5 deterministic multi-Recipe aggregation.
+Accepted slices: Recipe domain + ShoppingList conversion, stateless Recipe shopping preview, Recipe → Comparison composition, responsive Recipe UI and deterministic multi-Recipe aggregation.
 
 Permanent rule: automatic Recipe merging remains exact normalized requirement + canonical unit. Fuzzy/synonym/AI equivalence is never implicit.
 
@@ -42,16 +36,7 @@ Permanent rule: automatic Recipe merging remains exact normalized requirement + 
 
 Goal achieved: combine ordered meal occurrences into deterministic weekly demand, compare it across retailers and subtract explicit request-scoped Pantry evidence without hidden ingredient loss.
 
-Accepted slices:
-
-- M3.1 WeeklyPlan domain + deterministic shopping composition;
-- M3.2 stateless WeeklyPlan shopping preview;
-- M3.3 WeeklyPlan → Comparison composition;
-- M3.4 responsive Weekly Planning UI;
-- M3.5.1 pure Pantry subtraction semantics;
-- M3.5.2 Pantry-aware weekly shopping preview;
-- M3.5.3 Pantry-aware comparison composition;
-- M3.5.4 responsive Pantry controls.
+Accepted slices include WeeklyPlan domain/composition, stateless shopping/comparison boundaries, responsive planning UI, pure Pantry subtraction, Pantry-aware shopping/comparison composition and responsive Pantry controls.
 
 Explicit omit-all / never-buy semantics remain deferred and must not be encoded as Pantry stock.
 
@@ -59,14 +44,9 @@ Explicit omit-all / never-buy semantics remain deferred and must not be encoded 
 
 Goal achieved for the current deterministic slice: optimize truthful one-retailer checkout cost rather than naive SKU sums.
 
-Accepted scope:
+Accepted scope: explicit known/unknown delivery/service fees and minimum-order evidence, checkout eligibility/comparability, deterministic cheapest comparable basket with explicit ties, server-owned Optimization Preview and responsive Optimization UX.
 
-- M4.1 explicit known/unknown delivery/service fees and minimum-order evidence;
-- M4.2 one-retailer checkout eligibility/comparability;
-- M4.3 deterministic cheapest comparable basket with explicit ties;
-- M4.4 server-owned Optimization Preview and responsive Optimization UX.
-
-Deferred: richer substitute/package optimization, multi-store split optimization and any confidence/freshness pricing policy.
+Deferred: richer substitute/package optimization, multi-store split optimization and confidence/freshness pricing policy.
 
 ## M5 — Productization — CURRENT
 
@@ -82,25 +62,33 @@ Accepted result: one versioned same-origin semantic WeeklyPlan/Pantry draft. Gen
 
 Do not preselect accounts, analytics, feature flags, provider health or saved history before the real release-candidate/manual-use canary demonstrates the highest-value constraint.
 
-## Immediate mainline target — `v0.1.0-rc.3`
+## Release history correction
+
+`v0.1.0-rc.3` is **already an existing immutable prerelease**. Its tag resolves to:
+
+`d988b8c596a737326aeac67f74b6f65a6aaed3bf`
+
+Current main is 13 commits ahead of that tag at the time of this correction. rc.3 must not be moved, deleted or reused for newer source.
+
+## Immediate mainline target — `v0.1.0-rc.4`
 
 Issue: #152.
 
-The previous M5.1-only target SHA is invalidated because accepted connectivity work merged afterwards. The next release must be cut from the **documentation-synchronized, fully verified final `main` SHA** recorded in #152.
+The next release must be cut from the documentation-synchronized, fully verified final `main` SHA recorded in #152. `v0.1.0-rc.4` is currently absent.
 
 Required sequence:
 
-1. merge the post-D2 canonical documentation synchronization;
+1. merge the rc.4 canonical-documentation correction;
 2. record the exact resulting `main` SHA in #152;
-3. verify that exact SHA with all normal required push workflow groups and zero failures;
-4. confirm `v0.1.0-rc.3` Release and tag/ref are still absent;
+3. verify the final target per repository release policy;
+4. confirm `v0.1.0-rc.4` Release and tag/ref are absent immediately before publication;
 5. publish one GitHub prerelease targeting only that exact SHA;
 6. require `Release / Verify` and `Release / Publish` to complete the existing immutable release contract;
 7. inspect evidence/checksums/digests and verify `latest` remains unchanged;
-8. manually exercise the product from immutable rc.3 artifacts;
+8. manually exercise the product from immutable rc.4 artifacts;
 9. fix release-canary defects before choosing M5.2.
 
-The existing release contract must prove:
+The release contract must prove:
 
 - source/main ancestry and release metadata;
 - repository verification and production browser E2E;
@@ -108,18 +96,20 @@ The existing release contract must prove:
 - unchanged fail-closed Trivy `HIGH,CRITICAL` gate;
 - SPDX SBOM per candidate image manifest;
 - staging exact-digest Compose smoke;
-- copy-without-rebuild promotion to final packages with digest identity preserved;
+- copy-without-rebuild promotion with digest identity preserved;
 - final exact-digest smoke;
 - GitHub provenance attestations;
 - prerelease SemVer OCI promotion without mutating `latest`;
 - final manifest architecture checks;
 - attached release evidence and checksums.
 
+`.github/workflows/release.yml` accepts generic SemVer prereleases, so rc.4 does not require release-code changes.
+
 Stable `v0.1.0` remains blocked until prerelease evidence and manual acceptance are satisfactory.
 
 ## Parallel retailer connectivity
 
-Connectivity work may proceed in parallel, but it must not silently move the final rc.3 SHA after the release issue is returned to READY.
+Connectivity work may proceed in parallel before the final rc.4 SHA is frozen. Once #152 returns to READY with an exact SHA, no merge may silently move that target.
 
 ### Browser Bridge lifecycle — COMPLETE / ACCEPTED
 
@@ -135,48 +125,25 @@ Connectivity work may proceed in parallel, but it must not silently move the fin
 - managed CI/server browser worker: not selected;
 - no stealth, proxy rotation, fingerprint spoofing, credential/cookie/header extraction, mobile impersonation or arbitrary forwarding.
 
-The CI-browser negative result is evidence, not an unresolved decision gate.
-
 ### Chizhik D2 transport — IMPLEMENTED / MERGED; SCHEMA GATE OPEN
 
-#169 remains open. PR #171 added the exact, bounded store-scoped delivery-search transport while deliberately keeping successful JSON opaque and preventing automatic search/offer production before schema acceptance.
+#169 remains open. PR #171 added the exact bounded store-scoped delivery-search transport while deliberately keeping successful JSON opaque and preventing automatic search/offer production before schema acceptance.
 
 Canary: [`integrations/chizhik-d2-delivery-search-canary-2026-08-18.md`](integrations/chizhik-d2-delivery-search-canary-2026-08-18.md).
 
 ### Chizhik D2 evidenced store context — COMPLETE / ACCEPTED
 
-#173/#174 establishes that store context cannot be guessed:
-
-- context comes only from exact first-party Chizhik delivery catalog resource paths already seen by the official browser session;
-- path-embedded `sap_id` must intersect with the validated `/api/v1/shops/` directory;
-- exactly one distinct validated store is required;
-- missing, foreign-origin, unknown-store and conflicting contexts fail closed;
-- `searchStore` remains disabled and observations remain empty;
-- Chromium E2E covers the accepted failure modes;
-- PR #174 merge: `6c0af6ffa347c434e02600e83533244f8e2d15db`.
+#173/#174 requires store context to come only from exact first-party Chizhik delivery resource evidence already seen by the official browser session, intersected with the validated `/api/v1/shops/` directory. Exactly one distinct validated store is required; missing/foreign/unknown/conflicting contexts fail closed. `searchStore` remains disabled before schema acceptance.
 
 ### Chizhik next slice — BLOCKED ON ORDINARY-USER-BROWSER EVIDENCE
 
-Do **not** implement `BrowserObservation` / `ObservedOffer` mapping until #169 receives sanitized evidence from the documented ordinary-user-browser canary proving:
-
-- product-array/container path;
-- product identifier field;
-- product-name field;
-- price field and monetary unit/scale;
-- explicit availability semantics, if any.
+Do **not** implement `BrowserObservation` / `ObservedOffer` mapping until #169 receives sanitized evidence proving product-array/container path, product identifier, product name, price field **and monetary unit/scale**, plus explicit availability semantics if any.
 
 If availability semantics are not proven, map `UNKNOWN`. Promotion, loyalty, package and discount semantics remain unavailable until separately evidenced.
 
 ### Other mandatory retailer work
 
-Continue universal connectivity for:
-
-- #36 Kuper supported aggregator/API path and permitted reuse;
-- Ozon Fresh;
-- Samokat;
-- Lenta;
-- VkusVill;
-- additional canonical retailers/banners.
+Continue universal connectivity for #36 Kuper supported aggregator/API path and permitted reuse, Ozon Fresh, Samokat, Lenta, VkusVill and additional canonical retailers/banners.
 
 For every retailer, keep technical feasibility and production-access/right-to-operate approval separate.
 

@@ -50,12 +50,12 @@ All notable project changes are recorded here. Zakup Gotov is pre-release; this 
 - Phase B adds exact-origin observation-only browser discovery and trusted `main` bridge canary artifact publication.
 - Phase C adds bounded body-less public catalog-document reachability probing with controlled live execution and finite sanitized transport-failure classification; document reachability is not product/price connectivity.
 - Phase D1 (#167/#168) adds active ordinary-browser access to the fixed `/api/v1/shops/` store directory with strict store-shape/coordinate validation and real extension Chromium E2E.
-- D1 transport decision is **COMPLETE / ACCEPTED**: an ordinary user-opened official Chizhik page receives `200 + JSON` store-directory evidence while stock GitHub-hosted Chromium is `page-unavailable`; the selected acquisition architecture is therefore the normal user-browser MV3 Retailer Bridge, not a managed CI/server browser worker.
-- D2 transport foundation (#169/#171) adds an exact bounded store-scoped delivery-search transport under `https://app.chizhik.club/delivery/api/catalog/v3/stores/{sap_id}/search`; successful JSON deliberately remains opaque and automatic search/offer production stays disabled pending live schema acceptance.
-- A privacy-safe ordinary-user-browser D2 schema canary is documented in `docs/integrations/chizhik-d2-delivery-search-canary-2026-08-18.md`; it retains structural evidence only and never raw response/product/store values.
-- D2 store-context binding (#173/#174) accepts only exact first-party delivery resource evidence already observed by the official browser session, intersects path-embedded `sap_id` with the validated `/api/v1/shops/` directory, and requires exactly one distinct validated context.
-- Missing context, foreign origin, unknown store and conflicting validated Chizhik stores fail closed; `searchStore` remains uncalled and observations remain empty before #169 schema acceptance.
-- Chizhik offer mapping is now blocked specifically on ordinary-user-browser evidence for product container/identifier/name, price field **and monetary unit/scale**, plus explicit availability semantics if present. Unknown availability remains `UNKNOWN`; promotion/loyalty/package/discount semantics are not inferred.
+- D1 transport decision is **COMPLETE / ACCEPTED**: ordinary user-browser store-directory evidence succeeds while stock GitHub-hosted Chromium is `page-unavailable`; the selected architecture is therefore normal user-browser MV3 Retailer Bridge, not managed CI/server browser worker.
+- D2 transport foundation (#169/#171) adds exact bounded store-scoped delivery search; successful JSON deliberately remains opaque and automatic search/offer production stays disabled pending live schema acceptance.
+- A privacy-safe ordinary-user-browser D2 schema canary retains structural evidence only and never raw response/product/store values.
+- D2 store-context binding (#173/#174) accepts only exact first-party delivery resource evidence already observed by the official browser session, intersects path-embedded `sap_id` with the validated store directory and requires exactly one distinct validated context.
+- Missing context, foreign origin, unknown store and conflicting validated stores fail closed; `searchStore` remains uncalled before #169 schema acceptance.
+- Chizhik offer mapping is blocked specifically on ordinary-user-browser evidence for product container/identifier/name, price field **and monetary unit/scale**, plus explicit availability semantics if present. Unknown availability remains `UNKNOWN`; promotion/loyalty/package/discount semantics are not inferred.
 - Chizhik safety boundary remains unchanged: no stealth/fingerprint spoofing, proxy rotation, credential/header/cookie extraction, private/mobile-client impersonation or arbitrary URL forwarding.
 
 #### Product and Shopping Core
@@ -73,12 +73,14 @@ All notable project changes are recorded here. Zakup Gotov is pre-release; this 
 - M5.1 Private local WeeklyPlan draft is **COMPLETE / ACCEPTED**; M5.2 remains intentionally unselected until real release-candidate/manual-use evidence identifies the next constraint.
 - Chizhik D1 no longer has an unresolved server-vs-browser transport decision: the accepted path is user-browser MV3 Retailer Bridge.
 - Chizhik D2 now has a merged fixed search transport and an accepted browser-evidenced store-context rule, but it is **not** yet an offer provider; #169 remains open for live schema/price-unit evidence and mapping acceptance.
-- The former `v0.1.0-rc.3` target `d988b8c596a737326aeac67f74b6f65a6aaed3bf` is invalidated because accepted work merged after it. Issue #152 requires a new documentation-synchronized, fully verified exact `main` SHA before publication.
+- Release history correction: `v0.1.0-rc.3` already exists and its immutable tag resolves to `d988b8c596a737326aeac67f74b6f65a6aaed3bf`; it must not be repointed to newer source.
+- The next operational release gate is **`v0.1.0-rc.4`**, tracked by #152. Its final exact target is selected only after this correction is merged and verified.
 - Stable `v0.1.0` remains blocked until a prerelease completes the immutable release workflow and manual product canary satisfactorily.
 - Technical retailer accessibility and production/right-to-operate readiness remain independent facts.
 
 ### Fixed
 
+- Corrected canonical release planning that had incorrectly attempted to reuse the already-published `v0.1.0-rc.3` tag for newer source.
 - Clean-checkout local web development builds the generated `@zakup-gotov/api-client` before `next dev`, preventing module-resolution failure found during pre-release manual testing (#150).
 - Manual-list SSR/hydration uses deterministic presentation identity and creates request UUIDs only on explicit submit (#150).
 - Local draft persistence prevents failed reads from causing blind blank autosave, gates clear until restore readiness and surfaces cleanup/storage failure instead of claiming success.
@@ -93,6 +95,12 @@ All notable project changes are recorded here. Zakup Gotov is pre-release; this 
 - Ordinary CI remains deterministic and does not perform live retailer acquisition; controlled live workflows are explicit and sanitized.
 - Chizhik connectivity adds no anti-bot bypass, stealth, proxy rotation, credential extraction or private-client impersonation.
 - Release vulnerability policy remains fail-closed at `HIGH,CRITICAL`; no ignore/suppression behavior is added to make a release pass.
+- Published prerelease tags are treated as immutable release evidence and are never repointed to later source.
+
+## [0.1.0-rc.3] — existing historical prerelease
+
+- GitHub prerelease/tag already exists at immutable source `d988b8c596a737326aeac67f74b6f65a6aaed3bf`.
+- Later accepted connectivity and documentation work advanced `main`; those changes belong to the next prerelease rather than a rewritten rc.3.
 
 ## [0.1.0-rc.2] — 2026-08-09
 
