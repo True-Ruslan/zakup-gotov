@@ -37,19 +37,24 @@ function clientWithPayload(payload: unknown) {
 }
 
 describe("runChizhikSchemaCanary", () => {
-  it("uses one browser-evidenced validated store and emits structural schema only", async () => {
+  it("uses one browser-evidenced validated store and emits only approved candidate schema keys", async () => {
     const client = clientWithPayload({
       products: [
         {
-          sku: "SECRET-SKU-123",
+          plu: 123456,
           name: "Secret product name",
-          price: 12999,
-          available: true,
+          prices: { regular: "129.99", discount: "99.99" },
+          is_available: true,
+          stock_limit: "7",
+          uom: "шт",
+          property_clarification: "0.5 л",
+          secretSkuValue: { nested: true },
+          sku123: "dynamic-key-must-not-leak",
           promotion: { label: "secret promo" },
-          "123456": "dynamic-key-must-not-leak",
         },
       ],
       requestId: "SECRET-REQUEST-ID",
+      SECRET_DYNAMIC_KEY: "must-not-leak",
     });
 
     const result = await runChizhikSchemaCanary({
@@ -66,34 +71,39 @@ describe("runChizhikSchemaCanary", () => {
       contentType: "application/json; charset=utf-8",
       rootType: "object",
       schema: [
-        { path: "$", type: "object", fields: { products: "array", requestId: "string" } },
+        { path: "$", type: "object", fields: { products: "array" } },
         { path: "$.products", type: "array" },
         {
           path: "$.products[]",
           type: "object",
           fields: {
-            sku: "string",
+            plu: "number",
             name: "string",
-            price: "number",
-            available: "boolean",
-            promotion: "object",
+            prices: "object",
+            is_available: "boolean",
+            stock_limit: "string",
+            uom: "string",
+            property_clarification: "string",
           },
         },
         {
-          path: "$.products[].promotion",
+          path: "$.products[].prices",
           type: "object",
-          fields: { label: "string" },
+          fields: { regular: "string" },
         },
       ],
     });
 
     const serialized = JSON.stringify(result);
-    expect(serialized).not.toContain("SECRET-SKU-123");
     expect(serialized).not.toContain("Secret product name");
-    expect(serialized).not.toContain("12999");
-    expect(serialized).not.toContain("secret promo");
+    expect(serialized).not.toContain("129.99");
+    expect(serialized).not.toContain("99.99");
     expect(serialized).not.toContain("SECRET-REQUEST-ID");
-    expect(serialized).not.toContain("123456");
+    expect(serialized).not.toContain("secretSkuValue");
+    expect(serialized).not.toContain("sku123");
+    expect(serialized).not.toContain("promotion");
+    expect(serialized).not.toContain("discount");
+    expect(serialized).not.toContain("SECRET_DYNAMIC_KEY");
   });
 
   it("fails closed without exactly one evidenced store and never searches", async () => {
