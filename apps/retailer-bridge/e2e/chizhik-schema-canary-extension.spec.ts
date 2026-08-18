@@ -24,14 +24,20 @@ const stores = [
 const secretPayload = {
   products: [
     {
-      sku: "SECRET-SKU-123",
+      plu: 123456,
       name: "Secret product name",
-      price: 12999,
-      available: true,
+      prices: { regular: "129.99", discount: "99.99" },
+      is_available: true,
+      stock_limit: "7",
+      uom: "шт",
+      property_clarification: "0.5 л",
+      secretSkuValue: { nested: true },
+      sku123: "dynamic-key-must-not-leak",
       promotion: { label: "secret promo" },
     },
   ],
   requestId: "SECRET-REQUEST-ID",
+  SECRET_DYNAMIC_KEY: "must-not-leak",
 };
 
 test("runs the Chizhik D2 schema canary only on user invocation and renders sanitized evidence", async () => {
@@ -104,19 +110,29 @@ test("runs the Chizhik D2 schema canary only on user invocation and renders sani
     const evidence = popup.locator("#evidence");
     await expect(evidence).toContainText("CHIZHIK_D2 status=PASS search_http_status=200");
     await expect(evidence).toContainText('"products":"array"');
-    await expect(evidence).toContainText('"sku":"string"');
+    await expect(evidence).toContainText('"plu":"number"');
     await expect(evidence).toContainText('"name":"string"');
-    await expect(evidence).toContainText('"price":"number"');
-    await expect(evidence).toContainText('"available":"boolean"');
+    await expect(evidence).toContainText('"prices":"object"');
+    await expect(evidence).toContainText('"regular":"string"');
+    await expect(evidence).toContainText('"is_available":"boolean"');
+    await expect(evidence).toContainText('"stock_limit":"string"');
+    await expect(evidence).toContainText('"uom":"string"');
+    await expect(evidence).toContainText('"property_clarification":"string"');
     expect(searchRequests).toBe(1);
 
     const rendered = await evidence.textContent();
     expect(rendered).not.toContain("HD87");
-    expect(rendered).not.toContain("SECRET-SKU-123");
+    expect(rendered).not.toContain("123456");
     expect(rendered).not.toContain("Secret product name");
-    expect(rendered).not.toContain("12999");
+    expect(rendered).not.toContain("129.99");
+    expect(rendered).not.toContain("99.99");
     expect(rendered).not.toContain("secret promo");
     expect(rendered).not.toContain("SECRET-REQUEST-ID");
+    expect(rendered).not.toContain("secretSkuValue");
+    expect(rendered).not.toContain("sku123");
+    expect(rendered).not.toContain("promotion");
+    expect(rendered).not.toContain("discount");
+    expect(rendered).not.toContain("SECRET_DYNAMIC_KEY");
   } finally {
     await context.close();
     await rm(userDataDir, { recursive: true, force: true });
