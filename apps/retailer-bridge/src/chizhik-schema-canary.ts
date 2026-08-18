@@ -2,10 +2,9 @@ import type {
   ChizhikDeliverySearchRequest,
   ChizhikStoreDiscoveryResult,
 } from "./chizhik-active-api-client";
-import { fulfillmentContextResource } from "./resource-observation-policy";
+import { resolveChizhikEvidencedStoreId } from "./chizhik-store-context";
 
 const OFFICIAL_PAGE_ORIGIN = "https://chizhik.club";
-const CONTEXT_PREFIX = "chizhik:";
 const CANARY_QUERY = "кола";
 const CANARY_LIMIT = 1;
 const SAFE_FIELD = /^[A-Za-z_][A-Za-z0-9_]{0,63}$/;
@@ -61,22 +60,6 @@ function valueType(value: unknown): JsonValueType {
   return typeof value;
 }
 
-function evidencedStoreIds(
-  resourceUrls: readonly string[],
-  pageUrl: URL,
-  validStoreIds: ReadonlySet<string>,
-): Set<string> {
-  const contexts = new Set<string>();
-  for (const rawUrl of resourceUrls) {
-    const resource = fulfillmentContextResource(rawUrl, pageUrl);
-    if (!resource?.contextKey.startsWith(CONTEXT_PREFIX)) continue;
-
-    const sapId = resource.contextKey.slice(CONTEXT_PREFIX.length);
-    if (validStoreIds.has(sapId)) contexts.add(sapId);
-  }
-  return contexts;
-}
-
 function summarizeSchema(payload: unknown): readonly SchemaNode[] {
   const schema: SchemaNode[] = [];
   const seenPaths = new Set<string>();
@@ -124,12 +107,11 @@ export async function runChizhikSchemaCanary(
   }
 
   const validStoreIds = new Set(stores.stores.map((store) => store.sapId));
-  const contexts = evidencedStoreIds(input.resourceUrls, input.pageUrl, validStoreIds);
-  if (contexts.size !== 1) {
-    return { status: "missing-context" };
-  }
-
-  const [sapId] = contexts;
+  const sapId = resolveChizhikEvidencedStoreId(
+    input.resourceUrls,
+    input.pageUrl,
+    validStoreIds,
+  );
   if (!sapId) return { status: "missing-context" };
 
   const search = await input.client.searchStore({
