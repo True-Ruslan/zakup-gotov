@@ -37,10 +37,13 @@ The implementation in #177:
 - requires exactly one distinct browser-evidenced store that is present in the validated directory;
 - fails closed on missing, foreign-origin, unknown or conflicting context;
 - issues exactly one fixed `кола`, `limit=1` D2 search per user invocation;
-- retains only HTTP status, base content type, root type and bounded field-name/type structure;
-- filters object keys to ASCII identifier-like names and bounds schema depth/node count;
+- retains only HTTP status, base content type, root type and bounded candidate-field/type structure;
+- reports only the fixed candidate keys already recorded in the external schema hypothesis: `products`, `plu`, `name`, `prices`, `regular`, `is_available`, `stock_limit`, `uom`, `property_clarification`;
+- ignores every other object key instead of attempting generic schema discovery, preventing dynamic IDs or unrelated payload keys from entering evidence;
 - never emits raw response bodies, store IDs, addresses, coordinates, product names, SKU values, numeric price values, promotion values, request IDs, cookies, headers or credentials;
 - leaves automatic D2 search and `BrowserObservation` / `ObservedOffer` production disabled.
+
+This fixed allowlist means the canary may report that an expected candidate is absent, but it will not reveal arbitrary replacement field names if the live schema changed. That is intentional privacy-first behavior; expanding the allowlist requires a separate reviewed hypothesis update rather than dumping raw schema.
 
 ## Running the canary
 
@@ -56,7 +59,7 @@ Expected successful shape:
 
 ```text
 CHIZHIK_D2 status=PASS search_http_status=200 content_type=application/json root=object
-CHIZHIK_D2_SCHEMA=[...field names and types only...]
+CHIZHIK_D2_SCHEMA=[...approved candidate field names and types only...]
 ```
 
 Possible fail-closed statuses include:
@@ -83,17 +86,23 @@ CHIZHIK_D2_SCHEMA=
 
 Do not paste screenshots of Network response bodies or raw DevTools objects into issues, PRs, chats or repository files.
 
-The schema evidence should establish candidate paths/types for at least:
+The accepted external hypothesis currently expects the canary to confirm or reject these minimum paths/types:
 
-- product array/container;
-- stable product identifier;
-- product name;
-- candidate price field;
-- explicit availability field, if one exists.
+```text
+$.products -> array
+$.products[] -> object
+$.products[].plu -> number/integer
+$.products[].name -> string
+$.products[].prices -> object
+$.products[].prices.regular -> string/number
+$.products[].is_available -> boolean
+```
+
+`stock_limit`, `uom` and `property_clarification` may also be reported as structural hints, but they do not become accepted stock/package semantics from this canary alone.
 
 ### Monetary unit remains a separate gate
 
-A field name and JSON number type do **not** prove whether a price is rubles, kopeks/minor units, or another scaled representation. The structural canary therefore does not authorize `priceMinor` mapping by itself.
+A field name and JSON number/string type do **not** prove whether a price is rubles, kopeks/minor units, or another scaled representation. The structural canary therefore does not authorize `priceMinor` mapping by itself.
 
 After the candidate price field is identified, #169 still requires independent sanitized evidence of its monetary unit/scale before any price mapping is implemented. Do not infer the unit from an integer-looking value or from a third-party implementation.
 
@@ -106,7 +115,8 @@ The draft implementation is regression-protected so that:
 - no D2 search occurs before the explicit user click;
 - exactly one search occurs after invocation;
 - valid, unknown, foreign and conflicting store contexts follow the accepted #173 fail-closed rule;
-- successful evidence includes only schema field names/types and sanitized HTTP metadata;
+- successful evidence includes only the fixed candidate-field allowlist plus sanitized HTTP metadata;
+- identifier-like dynamic keys and unrelated fields such as request IDs, promotion and discount keys are omitted from evidence;
 - sentinel store/product/SKU/price/promotion/request values are absent from rendered evidence;
 - production and E2E manifests keep `permissions: ["storage"]` with no host-permission widening;
 - real persistent-Chromium extension E2E exercises the popup → active Chizhik tab → content-script canary path.
@@ -115,7 +125,7 @@ The draft implementation is regression-protected so that:
 
 After real ordinary-user-browser evidence is supplied and accepted:
 
-1. identify the minimum evidenced product container/identifier/name/price fields;
+1. confirm the minimum evidenced product container/identifier/name/price candidate fields;
 2. establish monetary unit/scale independently;
 3. freeze a minimal sanitized fixture containing only accepted fields and semantics;
 4. add RED tests for exact `BrowserObservation` mapping;
