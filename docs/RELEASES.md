@@ -1,224 +1,188 @@
 # Releases
 
-Zakup Gotov is still **pre-release**. The production container topology is exercised in normal CI, and two real GitHub prereleases have now exercised progressively more of the versioned GHCR pipeline. The workflow is not yet considered end-to-end runtime-proven: `v0.1.0-rc.1` exposed a clean-checkout executable-mode defect, while `v0.1.0-rc.2` reached multi-platform publishing and then correctly failed closed at the first container vulnerability gate.
+Zakup Gotov is still **pre-release**. The release contract is deliberately fail-closed: every failed candidate remains historical evidence and receives a new prerelease number rather than a moved/reused tag.
 
-## Verified container bundle
+## Verified container baseline
 
-The repository has an executable production-container baseline:
+The production topology is built from the checked-in API/web Dockerfiles and `compose.release.yaml` without Compose `build:` directives. PostgreSQL health gates API startup, API readiness gates web startup, and only web is published to the host by default.
 
-- `apps/api/Dockerfile` builds the Spring Boot API and runs it as a non-root user;
-- `apps/web/Dockerfile` builds the Next.js standalone server and runs its final stage on distroless Node 24 Debian 13 as non-root;
-- the final web runtime does not require a shell or package manager;
-- `compose.release.yaml` starts PostgreSQL 18.4, API, and web without Compose `build:` directives;
-- PostgreSQL data uses the PostgreSQL 18-compatible `/var/lib/postgresql` volume path;
-- PostgreSQL health gates API startup, API readiness gates web startup;
-- web health verifies both its own HTTP surface and the configured API over the Compose network;
-- only web is published to the host by default;
-- `Release Bundle CI` builds both application images, starts the complete topology, waits for health, smoke-tests API readiness inside the API container, and verifies the public web page;
-- failing bundle verification prints Compose status/logs before cleanup.
+`Release Bundle CI` builds the production images, starts the complete PostgreSQL → API → web topology, waits for health, smoke-tests API readiness and verifies the public web page.
 
-Run the same contract locally with Docker and Compose v2:
+Local bundle verification:
 
 ```bash
 ./scripts/verify-release-bundle.sh
 ```
 
-## Pre-release container-security gate
+## Pre-release security gate
 
-`Container Security CI` now runs in ordinary read-only CI on pull requests, `main`, and a daily schedule. It:
-
-1. builds the exact production API and web Dockerfiles with `--pull`;
-2. scans each resulting production image with the same Trivy `vuln` policy used by release publication;
-3. fails on `HIGH` or `CRITICAL` findings (`exit-code: 1`).
-
-It intentionally has only `contents: read`; it cannot publish packages or request OIDC credentials. The release workflow still performs its stronger per-platform scans on both `linux/amd64` and `linux/arm64` staging candidates before promotion.
-
-No `.trivyignore`, `ignore-unfixed`, VEX suppression, severity downgrade, or scanner bypass was added to make this gate green.
+`Container Security CI` runs in ordinary read-only CI and scans the exact production API/web images with unchanged Trivy `HIGH,CRITICAL` fail-closed policy. No `.trivyignore`, `ignore-unfixed`, VEX suppression or severity downgrade is used to make the gate green.
 
 ## Versioned release contract
 
-### Read-only release contract
-
 `Release Contract CI` verifies without write permissions:
 
-- strict tags `vMAJOR.MINOR.PATCH` or `vMAJOR.MINOR.PATCH-prerelease`;
+- strict stable/prerelease SemVer tags;
 - consistency between SemVer prerelease state and the GitHub Release prerelease flag;
-- prereleases can never publish `latest`;
-- normalized lowercase final/staging GHCR package names;
-- unverified candidates remain in separate staging packages;
-- final-package pre-version copies use deterministic `verified-<source-sha>` tags;
-- release Compose application references must be GHCR `sha256` digests;
-- release helper scripts retain executable Git modes;
-- release Actions use immutable full-SHA pins;
-- QEMU and BuildKit helper images are digest-pinned;
-- build → scan → staging smoke → final-package copy → final smoke → attestation → version promotion → optional `latest` → evidence upload remains the approved trust order;
-- `release.yml` remains valid YAML.
+- prereleases never publish OCI `latest`;
+- deterministic final/staging GHCR names and digest-pinned release Compose references;
+- executable release helper modes;
+- immutable Action pins and pinned QEMU/BuildKit helper images;
+- approved trust order: build → scan → staging smoke → final copy → final smoke → attestation → version promotion → optional stable `latest` → evidence upload.
 
-### Published-release workflow
+`.github/workflows/release.yml` triggers only for `release: published`.
 
-`.github/workflows/release.yml` triggers only for a **published GitHub Release**.
+### `Release / Verify`
 
-`Release / Verify` stays read-only and requires the tagged commit to be contained in `main`. It reruns repository verification, production browser tests, and the production container-bundle smoke test.
+Read-only verification requires the tagged commit to be contained in `main`, validates release metadata, reruns repository verification, production browser E2E and the production container-bundle smoke test.
 
-Only after verification succeeds does `Release / Publish` receive `contents: write`, `packages: write`, `attestations: write`, and `id-token: write`. Its intended sequence is:
+### `Release / Publish`
 
-1. validate release metadata and derive final/staging image names;
+Only after Verify succeeds does the write-capable job receive package/attestation permissions. Its intended order is:
+
+1. validate metadata and derive names;
 2. authenticate to GHCR;
-3. build/push API and web staging indexes for `linux/amd64` and `linux/arm64` with BuildKit provenance/SBOM;
-4. scan both platforms of both staging images for `HIGH`/`CRITICAL` vulnerabilities;
-5. generate per-platform SPDX JSON SBOM evidence;
-6. render and smoke-test a Compose bundle pinned to exact staging digests;
-7. copy verified indexes **without rebuild** into final packages under `verified-<source-sha>`, requiring digest identity;
-8. render and smoke-test a Compose bundle pinned to exact final-package digests;
-9. create GitHub provenance attestations for final digests;
-10. create SemVer tags from the already verified digests, without rebuild;
-11. move `latest` only for stable releases;
-12. verify final manifests contain both target architectures;
-13. attach Compose, manifests, vulnerability reports, SBOMs, verification metadata, and checksums to the GitHub Release.
+3. build/push API and web staging indexes for `linux/amd64` and `linux/arm64` with provenance/SBOM;
+4. scan every platform candidate for `HIGH`/`CRITICAL` vulnerabilities;
+5. produce SPDX JSON SBOM evidence;
+6. smoke-test exact staging digests;
+7. copy verified indexes **without rebuild** into final packages, preserving digest identity;
+8. smoke-test exact final-package digests;
+9. create provenance attestations;
+10. promote SemVer tags from the already verified digests without rebuild;
+11. move OCI `latest` only for stable releases;
+12. verify final manifest architectures;
+13. attach release evidence/checksums to the GitHub Release.
 
-Staging packages are a private trust boundary. Final package visibility is a separate distribution decision and must be verified independently.
+Staging packages remain a private trust boundary. Final package visibility is a separate distribution decision.
 
-## Runtime validation 1: `v0.1.0-rc.1`
+## Runtime validation history
 
-`v0.1.0-rc.1` was published on 2026-08-09 as a GitHub prerelease targeting `d3066258915542c2488d9a3277680b2cc478d611`.
+### `v0.1.0-rc.1` — 2026-08-09
 
-Proven before failure:
+The first real release event proved metadata/main-ancestry validation, complete repository verification and responsive browser testing, then failed before container verification because release helper scripts were stored without executable Git mode. The defect was regression-tested and corrected before rc.2.
 
-- release metadata validation including `publish_latest=false`;
-- release source contained in `main`;
-- Java 25 / Node 24.18.1 / pnpm 11.4.0 setup;
-- complete `./scripts/verify.sh`;
-- production web build;
-- responsive Playwright **4/4**.
+### `v0.1.0-rc.2` — 2026-08-09
 
-It then failed before container verification because `scripts/verify-release-bundle.sh` was stored as Git mode `100644`. The later publish helper was found with the same mode. `Release / Publish` was skipped, so no GHCR publication evidence is attributed to rc.1.
+`Release / Verify` passed completely. `Release / Publish` authenticated to GHCR, set up QEMU/Buildx and published API/web multi-platform staging indexes. It then correctly failed closed at the first Trivy gate on pgJDBC `42.7.11` / `CVE-2026-54291` (`HIGH`, fixed in `42.7.12`).
 
-PR #28 added a regression test that was observed RED against the old modes, then changed both helpers to `100755` without changing their script contents.
+Subsequent mainline work upgraded pgJDBC, moved the web final runtime to distroless Node 24 Debian 13/non-root and added ordinary Container Security CI under the same fail-closed policy.
 
-## Runtime validation 2: `v0.1.0-rc.2`
+### `v0.1.0-rc.3` — historical prerelease
 
-`v0.1.0-rc.2` was published from corrected `main` at `184751e164f199fdc5262cf77ea86c931daf59f7`.
-
-This run advanced the proof boundary substantially:
-
-- **`Release / Verify` passed completely**, including production container-bundle verification;
-- `Release / Publish` started with its separate write-capable permission set;
-- GHCR authentication, QEMU, and Buildx setup passed;
-- API and web multi-platform staging candidate indexes were built and pushed for `linux/amd64` + `linux/arm64`;
-- the workflow reached the first real release vulnerability scan.
-
-The release then stopped fail-closed at `API / amd64` Trivy scanning. The concrete blocker was:
-
-- `org.postgresql:postgresql` `42.7.11`;
-- `CVE-2026-54291`;
-- severity `HIGH`;
-- fixed version `42.7.12`.
-
-The API's Ubuntu runtime OS itself produced zero HIGH/CRITICAL findings at that gate.
-
-### TDD reproduction and broader runtime finding
-
-Before changing production code, PR #29 introduced the ordinary `Container Security CI` and observed both production images fail under the unchanged HIGH/CRITICAL policy.
-
-The web failure showed that the previous `node:24.18.1-bookworm-slim` final runtime carried:
-
-- 22 Debian HIGH/CRITICAL findings;
-- 7 npm/runtime-library HIGH/CRITICAL findings;
-- no HIGH/CRITICAL findings in the actual Next.js/React application packages at that threshold.
-
-Rather than suppressing scanner results, PR #29:
-
-- updated pgJDBC to `42.7.12`;
-- moved only the final web runtime to `gcr.io/distroless/nodejs24-debian13:nonroot`;
-- removed shell/package-manager requirements from web startup;
-- changed Docker/Compose health execution to the distroless Node binary;
-- retained the same fail-closed Trivy policy.
-
-The same security workflow then passed for API and web, and `Release Bundle CI` passed the complete PostgreSQL → API → web topology on the exact final PR head.
-
-### What rc.2 does not prove
-
-Because `rc.2` stopped before staging smoke/promotion, it does **not** prove:
-
-- staging digest-pinned Compose smoke;
-- final-package copy or final-package digest smoke;
-- GitHub final-image attestations;
-- SemVer OCI version tags;
-- final manifest verification;
-- attached release SBOM/scan/checksum evidence;
-- final GHCR package visibility.
-
-No `latest` update is attributed to rc.2.
-
-## Next validation: `v0.1.0-rc.3`
-
-The next validation must be a **new immutable prerelease** from current verified `main`:
+Immutable source:
 
 ```text
-v0.1.0-rc.3
+d988b8c596a737326aeac67f74b6f65a6aaed3bf
 ```
 
-Do not rerun or retarget rc.1/rc.2.
+The tag must not be moved, deleted or reused for later source.
 
-A successful rc.3 must:
+### `v0.1.0-rc.4` — 2026-08-18 — FAILED METADATA GATE
 
-- pass both `Release / Verify` and `Release / Publish` end to end;
-- verify both target architectures for API and web;
-- pass every release Trivy and SBOM step;
-- pass staging and final-package exact-digest Compose smoke tests;
-- create final-package GitHub provenance attestations;
-- promote the exact verified digests to the prerelease SemVer tags without rebuild;
-- attach all expected release evidence and checksums;
-- demonstrate that prerelease publication leaves `latest` untouched;
-- keep staging packages private;
-- allow final package visibility/anonymous pull behavior to be verified independently.
+Immutable source:
 
-Do not create a stable release until at least one prerelease has completed the full workflow and its evidence has been inspected.
+```text
+8a269288addcb4aa8ea3d0ce46608b650cbdb6dc
+```
 
-## GHCR visibility
+Release workflow:
 
-Package publication and package visibility are separate concerns:
+```text
+run 32136955056
+```
 
-- staging packages must remain private;
-- final API/web packages may be public only as a deliberate distribution decision;
-- public repository visibility is not evidence that a new GHCR package is anonymously pullable.
+The tag/source was correct, but the GitHub Release was published with `prerelease=false` even though the tag is a SemVer prerelease. `Release / Verify → Validate release metadata` invoked the contract with:
 
-After the first successful prerelease, verify both staging privacy and final-package visibility explicitly before documenting anonymous pull instructions.
+```text
+--tag "v0.1.0-rc.4"
+--prerelease "false"
+```
+
+and failed with:
+
+```text
+ValueError: GitHub prerelease flag must match the SemVer prerelease state
+```
+
+All later verify steps were skipped. `Release / Publish` was skipped entirely, so rc.4 created no new GHCR promotion, OCI `latest` mutation, SBOM, attestation, staging/final release smoke or evidence/checksum assets.
+
+Because GitHub received `prerelease=false`, the rc.4 release object was temporarily exposed as the repository's `Latest release`. That is GitHub presentation metadata only; it is not evidence of OCI `latest` mutation. The existing release presentation should be corrected to **Set as a pre-release** without moving or deleting its tag. rc.4 nevertheless remains a failed release-contract attempt.
+
+Detailed record: [`v0.1.0-rc.4-release-failure-2026-08-18.md`](v0.1.0-rc.4-release-failure-2026-08-18.md).
+
+## Next validation — `v0.1.0-rc.5`
+
+The next attempt must be a **new immutable prerelease** from a newly selected exact verified `main` SHA:
+
+```text
+v0.1.0-rc.5
+```
+
+Issue #152 is the operational gate.
+
+Before publication:
+
+1. merge canonical rc.4-failure/rc.5 documentation through fresh CI/review;
+2. record the resulting exact `main` SHA in #152;
+3. verify all normal push workflow groups against that exact SHA;
+4. confirm `v0.1.0-rc.5` is absent;
+5. in the GitHub release form, explicitly enable **Set as a pre-release**;
+6. target the exact selected SHA, not floating `main`;
+7. publish rather than save a draft.
+
+A successful rc.5 must pass both release jobs end to end and prove:
+
+- exact metadata/main ancestry;
+- repository verification and production browser E2E;
+- API/web `linux/amd64` + `linux/arm64` staging indexes;
+- unchanged Trivy `HIGH,CRITICAL` gate;
+- SPDX SBOMs;
+- staging exact-digest Compose smoke;
+- copy-without-rebuild final promotion with digest identity;
+- final exact-digest smoke;
+- provenance attestations;
+- prerelease OCI `0.1.0-rc.5` tags without OCI `latest` mutation;
+- final manifest architecture checks;
+- attached evidence/checksum assets;
+- package visibility evidence.
+
+Do not create stable `v0.1.0` until at least one prerelease completes the entire workflow and its manual product canary is accepted.
+
+## Manual product canary after successful prerelease
+
+Run from immutable release artifacts, not a source checkout:
+
+- WeeklyPlan → Pantry → comparison → optimization;
+- local draft save → reload → restore → clear;
+- Recipe comparison;
+- manual-list comparison;
+- desktop/narrow layout sanity;
+- restart/reload and safe unavailable/error states.
+
+M5.2 remains intentionally unselected until this evidence is reviewed.
 
 ## Manual local start
 
-Build the images:
+Build images:
 
 ```bash
 docker build -t zakup-gotov-api:local -f apps/api/Dockerfile .
 docker build -t zakup-gotov-web:local -f apps/web/Dockerfile .
 ```
 
-Then start the bundle:
+Start:
 
 ```bash
 export API_IMAGE='zakup-gotov-api:local'
 export WEB_IMAGE='zakup-gotov-web:local'
 export POSTGRES_PASSWORD='local-development-only'
 export WEB_PORT='3000'
-
 docker compose -f compose.release.yaml up -d --wait
 ```
-
-Open `http://localhost:3000`.
-
-The API remains internal; web reaches it through `API_BASE_URL=http://api:8080`.
 
 Stop while retaining database data:
 
 ```bash
 docker compose -f compose.release.yaml down
 ```
-
-Remove containers **and** the PostgreSQL volume only when destructive removal is intended:
-
-```bash
-docker compose -f compose.release.yaml down --volumes
-```
-
-Never commit a real database password or populated local `.env` file.
