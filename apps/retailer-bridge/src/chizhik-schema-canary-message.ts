@@ -36,7 +36,7 @@ export function formatChizhikSchemaCanaryEvidence(
   }
 }
 
-function isCanaryRequest(message: unknown): boolean {
+export function isChizhikSchemaCanaryRequest(message: unknown): boolean {
   return (
     typeof message === "object" &&
     message !== null &&
@@ -47,7 +47,7 @@ function isCanaryRequest(message: unknown): boolean {
 
 export function createChizhikSchemaCanaryMessageHandler(runCanary: RunCanary) {
   return async (message: unknown): Promise<ChizhikSchemaCanaryMessageResult | null> => {
-    if (!isCanaryRequest(message)) return null;
+    if (!isChizhikSchemaCanaryRequest(message)) return null;
 
     const result = await runCanary();
     return {
