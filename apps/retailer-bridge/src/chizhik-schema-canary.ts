@@ -7,11 +7,31 @@ import { resolveChizhikEvidencedStoreId } from "./chizhik-store-context";
 const OFFICIAL_PAGE_ORIGIN = "https://chizhik.club";
 const CANARY_QUERY = "кола";
 const CANARY_LIMIT = 1;
-const SAFE_FIELD = /^[A-Za-z_][A-Za-z0-9_]{0,63}$/;
 const MAX_SCHEMA_DEPTH = 5;
-const MAX_SCHEMA_NODES = 80;
+const MAX_SCHEMA_NODES = 32;
+const CANDIDATE_FIELDS = new Set([
+  "products",
+  "plu",
+  "name",
+  "prices",
+  "regular",
+  "is_available",
+  "stock_limit",
+  "uom",
+  "property_clarification",
+]);
 
-type JsonValueType = "null" | "array" | "object" | "string" | "number" | "boolean" | "undefined" | "bigint" | "symbol" | "function";
+type JsonValueType =
+  | "null"
+  | "array"
+  | "object"
+  | "string"
+  | "number"
+  | "boolean"
+  | "undefined"
+  | "bigint"
+  | "symbol"
+  | "function";
 
 type SchemaNode =
   | Readonly<{ path: string; type: "array" }>
@@ -77,13 +97,15 @@ function summarizeSchema(payload: unknown): readonly SchemaNode[] {
     }
     if (typeof value !== "object" || value === null) return;
 
-    const safeEntries = Object.entries(value).filter(([key]) => SAFE_FIELD.test(key));
+    const candidateEntries = Object.entries(value).filter(([key]) => CANDIDATE_FIELDS.has(key));
     schema.push({
       path,
       type: "object",
-      fields: Object.fromEntries(safeEntries.map(([key, child]) => [key, valueType(child)])),
+      fields: Object.fromEntries(
+        candidateEntries.map(([key, child]) => [key, valueType(child)]),
+      ),
     });
-    for (const [key, child] of safeEntries) {
+    for (const [key, child] of candidateEntries) {
       if (typeof child === "object" && child !== null) {
         visit(child, `${path}.${key}`, depth + 1);
       }
