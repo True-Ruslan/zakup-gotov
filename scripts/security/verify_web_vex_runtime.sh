@@ -1,13 +1,28 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-image_ref="${1:?usage: verify_web_vex_runtime.sh IMAGE_REF [PLATFORM]}"
+image_ref="${1:?usage: verify_web_vex_runtime.sh IMAGE_REF [PLATFORM] [SOURCE]}"
 platform="${2:-linux/amd64}"
+source_mode="${3:-local}"
 
 python3 scripts/security/validate_web_vex.py
 command -v readelf >/dev/null
 
-docker pull --platform "${platform}" "${image_ref}" >/dev/null
+case "${source_mode}" in
+  local)
+    if ! docker image inspect "${image_ref}" >/dev/null 2>&1; then
+      echo "web VEX runtime guard failed: local image is missing: ${image_ref}" >&2
+      exit 1
+    fi
+    ;;
+  registry)
+    docker pull --platform "${platform}" "${image_ref}" >/dev/null
+    ;;
+  *)
+    echo "web VEX runtime guard failed: SOURCE must be local or registry" >&2
+    exit 64
+    ;;
+esac
 
 workdir="$(mktemp -d)"
 container_id=""
@@ -22,7 +37,7 @@ trap cleanup EXIT
 container_id="$(docker create --platform "${platform}" "${image_ref}")"
 container_config="$(docker inspect --format '{{json .Config.Entrypoint}} {{json .Config.Cmd}}' "${container_id}")"
 
-echo "web VEX runtime config (${platform}): ${container_config}"
+echo "web VEX runtime config (${platform}, ${source_mode}): ${container_config}"
 if grep -F -- '--experimental-quic' <<<"${container_config}" >/dev/null; then
   echo "web VEX runtime guard failed: --experimental-quic is enabled" >&2
   exit 1
@@ -55,4 +70,4 @@ while IFS= read -r -d '' addon; do
   check_elf "${addon}"
 done < <(find "${workdir}/app" -type f -name '*.node' -print0)
 
-echo "web VEX runtime guard OK (${platform}): Node + ${native_count} native addon(s) do not link libssl/libcrypto and QUIC is not enabled"
+echo "web VEX runtime guard OK (${platform}, ${source_mode}): Node + ${native_count} native addon(s) do not link libssl/libcrypto and QUIC is not enabled"
