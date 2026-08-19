@@ -4,6 +4,10 @@
   "version": "0.1.0",
   "description": "Reads sanitized grocery offer observations from supported first-party retailer pages.",
   "permissions": ["storage"],
+  "action": {
+    "default_title": "Chizhik D2 schema canary",
+    "default_popup": "popup.html"
+  },
   "background": {
     "service_worker": "service-worker.js"
   },

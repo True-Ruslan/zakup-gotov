@@ -113,3 +113,5 @@ await copyFile(
   resolve(root, e2e ? "static/service-worker.e2e.js" : "static/service-worker.js"),
   resolve(outDir, "service-worker.js"),
 );
+await copyFile(resolve(root, "static/popup.html"), resolve(outDir, "popup.html"));
+await copyFile(resolve(root, "static/popup.js"), resolve(outDir, "popup.js"));

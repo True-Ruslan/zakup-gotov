@@ -1,4 +1,11 @@
 import { retailerBrowserAdapters } from "./adapters/retailer-browser-adapters";
+import { createChizhikActiveApiClient } from "./chizhik-active-api-client";
+import { runChizhikSchemaCanary } from "./chizhik-schema-canary";
+import {
+  CHIZHIK_SCHEMA_CANARY_RESULT,
+  createChizhikSchemaCanaryMessageHandler,
+  isChizhikSchemaCanaryRequest,
+} from "./chizhik-schema-canary-message";
 import { BrowserObservationCollector } from "./collector/browser-observation-collector";
 import {
   createChromeObservationClearer,
@@ -14,6 +21,30 @@ const sendMessage = (message: unknown) => chrome.runtime.sendMessage(message);
 const storeObservations = createChromeObservationSink(sendMessage);
 const clearObservations = createChromeObservationClearer(sendMessage);
 const observedResourceUrls = new Set<string>();
+const chizhikSchemaCanaryClient = createChizhikActiveApiClient();
+const handleChizhikSchemaCanaryMessage = createChizhikSchemaCanaryMessageHandler(() =>
+  runChizhikSchemaCanary({
+    client: chizhikSchemaCanaryClient,
+    pageUrl: new URL(location.href),
+    resourceUrls: [...observedResourceUrls],
+  }),
+);
+
+chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
+  if (!isChizhikSchemaCanaryRequest(message)) return false;
+
+  void handleChizhikSchemaCanaryMessage(message)
+    .then((response) => {
+      if (response) sendResponse(response);
+    })
+    .catch(() => {
+      sendResponse({
+        type: CHIZHIK_SCHEMA_CANARY_RESULT,
+        evidence: "CHIZHIK_D2 status=PROBE_ERROR",
+      });
+    });
+  return true;
+});
 
 function nextObservationRevision(previous: number): number {
   const clockRevision = Math.floor((performance.timeOrigin + performance.now()) * 1_000);

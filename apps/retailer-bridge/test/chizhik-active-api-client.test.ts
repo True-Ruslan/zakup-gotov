@@ -133,7 +133,12 @@ describe("ChizhikActiveApiClient", () => {
         signal: expect.any(AbortSignal),
       },
     );
-    expect(result).toEqual({ status: "received", payload: opaquePayload });
+    expect(result).toEqual({
+      status: "received",
+      httpStatus: 200,
+      contentType: "application/json; charset=utf-8",
+      payload: opaquePayload,
+    });
   });
 
   it("rejects unsafe store ids, blank queries, and unbounded limits before transport", async () => {

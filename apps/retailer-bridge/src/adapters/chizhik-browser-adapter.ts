@@ -3,7 +3,7 @@ import {
   type ChizhikActiveApiClient,
   type ChizhikStoreDiscoveryResult,
 } from "../chizhik-active-api-client";
-import { fulfillmentContextResource } from "../resource-observation-policy";
+import { resolveChizhikEvidencedStoreId } from "../chizhik-store-context";
 import type {
   AdapterResult,
   RetailerBrowserAdapter,
@@ -11,28 +11,9 @@ import type {
 
 const RETAILER_ID = "chizhik";
 const OFFICIAL_PAGE_HOST = "chizhik.club";
-const CONTEXT_PREFIX = `${RETAILER_ID}:`;
 
 function isOfficialPageUrl(url: URL): boolean {
   return url.protocol === "https:" && url.hostname === OFFICIAL_PAGE_HOST;
-}
-
-function evidencedStoreIds(
-  resourceUrls: readonly string[],
-  pageUrl: URL,
-  validStoreIds: ReadonlySet<string>,
-): Set<string> {
-  const contexts = new Set<string>();
-
-  for (const rawUrl of resourceUrls) {
-    const resource = fulfillmentContextResource(rawUrl, pageUrl);
-    if (!resource?.contextKey.startsWith(CONTEXT_PREFIX)) continue;
-
-    const sapId = resource.contextKey.slice(CONTEXT_PREFIX.length);
-    if (validStoreIds.has(sapId)) contexts.add(sapId);
-  }
-
-  return contexts;
 }
 
 export function createChizhikBrowserAdapter(
@@ -56,8 +37,8 @@ export function createChizhikBrowserAdapter(
       }
 
       const validStoreIds = new Set(result.stores.map((store) => store.sapId));
-      const contexts = evidencedStoreIds(resourceUrls, url, validStoreIds);
-      if (contexts.size !== 1) {
+      const sapId = resolveChizhikEvidencedStoreId(resourceUrls, url, validStoreIds);
+      if (!sapId) {
         return { status: "missing-context", observations: [] };
       }
 

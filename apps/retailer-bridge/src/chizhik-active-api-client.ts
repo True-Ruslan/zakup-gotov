@@ -27,7 +27,12 @@ export type ChizhikDeliverySearchRequest = Readonly<{
 }>;
 
 export type ChizhikDeliverySearchResult =
-  | Readonly<{ status: "received"; payload: unknown }>
+  | Readonly<{
+      status: "received";
+      httpStatus: number;
+      contentType: string;
+      payload: unknown;
+    }>
   | Readonly<{ status: "unavailable" }>;
 
 export type ChizhikActiveApiClient = Readonly<{
@@ -154,7 +159,12 @@ export function createChizhikActiveApiClient(
         }
 
         const payload: unknown = await response.json();
-        return { status: "received", payload };
+        return {
+          status: "received",
+          httpStatus: response.status,
+          contentType,
+          payload,
+        };
       } catch {
         return { status: "unavailable" };
       } finally {
