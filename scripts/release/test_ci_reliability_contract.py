@@ -71,11 +71,19 @@ class PlaywrightInstallReliabilityContractTest(unittest.TestCase):
 
 
 class WebVexPlatformContractTest(unittest.TestCase):
-    def test_runtime_guard_always_resolves_the_requested_platform(self):
+    def test_runtime_guard_separates_local_and_registry_sources(self):
         guard = (ROOT / "scripts/security/verify_web_vex_runtime.sh").read_text(
             encoding="utf-8"
         )
+        container_workflow = (
+            ROOT / ".github/workflows/container-security-ci.yml"
+        ).read_text(encoding="utf-8")
+        release_workflow = (ROOT / ".github/workflows/release.yml").read_text(
+            encoding="utf-8"
+        )
 
+        self.assertIn('source_mode="${3:-registry}"', guard)
+        self.assertIn('docker image inspect "${image_ref}"', guard)
         self.assertIn(
             'docker pull --platform "${platform}" "${image_ref}"',
             guard,
@@ -84,7 +92,14 @@ class WebVexPlatformContractTest(unittest.TestCase):
             'docker create --platform "${platform}" "${image_ref}"',
             guard,
         )
-        self.assertNotIn("docker image inspect", guard)
+        self.assertIn(
+            'verify_web_vex_runtime.sh "${{ matrix.image }}" linux/amd64 local',
+            container_workflow,
+        )
+        self.assertEqual(
+            release_workflow.count("bash scripts/security/verify_web_vex_runtime.sh"),
+            2,
+        )
 
 
 if __name__ == "__main__":
