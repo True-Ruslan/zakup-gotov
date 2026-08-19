@@ -45,7 +45,6 @@ for (( attempt = 1; attempt <= max_attempts; attempt++ )); do
   echo "Playwright Chromium install attempt ${attempt}/${max_attempts} (timeout ${attempt_timeout_seconds}s)"
 
   if timeout \
-    --foreground \
     --signal=TERM \
     --kill-after=15s \
     "${attempt_timeout_seconds}s" \
