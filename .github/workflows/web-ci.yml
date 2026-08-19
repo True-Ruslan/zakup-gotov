@@ -104,7 +104,7 @@ jobs:
         run: pnpm --filter web build
 
       - name: Install Chromium
-        run: pnpm --filter web exec playwright install --with-deps chromium
+        run: bash scripts/ci/install-playwright-chromium.sh pnpm --filter web exec playwright install --with-deps chromium
 
       - name: Run responsive browser tests
         run: pnpm --filter web test:e2e
