@@ -64,6 +64,7 @@ All notable project changes are recorded here. Zakup Gotov is pre-release; this 
 - `v0.1.0-rc.4` metadata mismatch remains recorded as a failed historical candidate rather than being retroactively accepted.
 - `v0.1.0-rc.5` exposed a real web image security-gate blocker; recovery now distinguishes package inventory from reachable vulnerable code through evidence-backed VEX rather than weakening Trivy severity.
 - Failed release Trivy JSON evidence is no longer silently lost with the ephemeral runner.
+- Playwright Chromium installation in Web CI, Retailer Bridge CI and Release Verify now uses bounded APT retries/timeouts plus a descendant-safe Linux process supervisor, preventing timed-out privileged package-manager children from leaking into a same-run retry and holding `dpkg` locks.
 - Chizhik store context can no longer be guessed from the first active store; exactly one browser-evidenced validated context is required.
 
 ### Security
@@ -100,31 +101,49 @@ Source:
 8a269288addcb4aa8ea3d0ce46608b650cbdb6dc
 ```
 
-- Tag/source selection was correct and immutable.
-- Release workflow run `32136955056` failed at `Release / Verify → Validate release metadata` because GitHub supplied `prerelease=false` for the SemVer prerelease.
-- `Release / Publish` never started, so there was no final package/evidence/latest side effect.
+- GitHub Release was published with `prerelease=false` even though the tag is a SemVer prerelease.
+- `Release / Verify` failed closed at the metadata contract before repository verification, browser E2E or production-bundle verification.
+- `Release / Publish` never started, so rc.4 created no new GHCR promotion, Trivy/SBOM/provenance/final-smoke evidence and did not mutate OCI `latest`.
+- The immutable rc.4 tag remains historical failed release evidence; its GitHub presentation can be corrected without reusing or moving the tag.
 - Full record: `docs/v0.1.0-rc.4-release-failure-2026-08-18.md`.
 
-## [0.1.0-rc.3] — historical prerelease
+## [0.1.0-rc.3] — 2026-08-18 — AUTOMATED RELEASE CONTRACT ACCEPTED
 
-- Immutable source: `d988b8c596a737326aeac67f74b6f65a6aaed3bf`.
-- Later accepted connectivity/documentation changes belong to later prereleases rather than a rewritten rc.3.
+Source:
 
-## [0.1.0-rc.2] — 2026-08-09
+```text
+d988b8c596a737326aeac67f74b6f65a6aaed3bf
+```
 
-- `Release / Verify` completed and `Release / Publish` reached multi-platform staging publication.
-- The release correctly failed closed at the first real Trivy gate on pgJDBC `42.7.11` / `CVE-2026-54291` (`HIGH`, fixed in `42.7.12`).
-- Subsequent mainline work upgraded pgJDBC, moved the web final runtime to distroless Node 24 Debian 13/non-root and added ordinary Container Security CI.
+- `Release / Verify` and `Release / Publish` completed successfully.
+- API/web multi-platform images were published for `linux/amd64` + `linux/arm64`.
+- HIGH/CRITICAL Trivy gates passed.
+- Per-architecture SPDX SBOMs were produced.
+- Staging and final exact-digest Compose smoke tests passed.
+- Verified digests were copied/promoted without rebuild and digest identity was preserved.
+- API/web provenance attestations were created.
+- `0.1.0-rc.3` was promoted while OCI `latest` remained untouched.
+- Release verification metadata, checksums, manifests, vulnerability reports and SBOMs were attached to the GitHub Release.
+- Automated release contract accepted; separate manual product canary remained the product-acceptance gate.
 
-## [0.1.0-rc.1] — 2026-08-09
+## [0.1.0-rc.2] — 2026-08-17 — FAILED RELEASE CONTRACT
 
-- First real GitHub prerelease event proved metadata/main-ancestry validation, source verification and production browser testing.
-- It exposed executable-mode defects in release helper scripts; those modes were fixed before rc.2.
+Source:
 
-## Pre-release foundation — 2026-08-09 to 2026-08-11
+```text
+19e6080cff464de9701e2f38ff6f06959037971a
+```
 
-- Java 25 / Spring Boot 4.1 API foundation with PostgreSQL 18, Flyway, jOOQ and Testcontainers.
-- Contract-first OpenAPI 3.1 API plus generated TypeScript client.
-- Next.js 16 / React 19 responsive web foundation with Vitest and Playwright.
-- Reproducible verification, Docker/Compose release topology, CodeQL, Dependency Review, Container Security, Release Contract and Release Bundle CI.
-- Evidence-driven retailer feasibility research for X5, Magnit, Chizhik, Ozon Fresh, Samokat, Kuper, Lenta and VkusVill.
+- Release verification failed because the tag did not point to the required exact source after main moved.
+- No release publication/promotion was accepted from this candidate.
+
+## [0.1.0-rc.1] — 2026-08-17 — FAILED RELEASE CONTRACT
+
+Source:
+
+```text
+69a4566963ef99fd5204e1f0bc924f6ab242e6f7
+```
+
+- Initial release candidate exposed release-contract and publication-path defects.
+- Candidate remains immutable historical evidence and is not reused.
