@@ -1,0 +1,307 @@
+name: Release Product Canary / rc.7
+
+on:
+  issue_comment:
+    types: [created]
+
+permissions:
+  contents: read
+  packages: read
+  issues: write
+
+concurrency:
+  group: release-product-canary-rc7-${{ github.event.issue.number }}
+  cancel-in-progress: false
+
+jobs:
+  canary:
+    name: Release Product Canary / rc.7 evidence
+    if: >-
+      github.event_name == 'issue_comment' &&
+      github.event.issue.number == 152 &&
+      github.event.comment.user.login == github.repository_owner &&
+      github.event.comment.body == '/release-canary rc.7'
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    env:
+      RC7_TAG: v0.1.0-rc.7
+      RC7_SOURCE_SHA: b754f5193f852db0312011f3f6c3ec6c7dd22eb2
+      CANARY_ROOT: ${{ runner.temp }}/rc7-product-canary
+      RELEASE_DIR: ${{ runner.temp }}/rc7-product-canary/release
+      CANARY_EVIDENCE_DIR: ${{ runner.temp }}/rc7-product-canary/evidence
+      COMPOSE_FILE: ${{ runner.temp }}/rc7-product-canary/release/compose.release.yaml
+      CANARY_BASE_URL: http://127.0.0.1:3000
+      POSTGRES_PASSWORD: rc7-product-canary-only
+      WEB_PORT: "3000"
+
+    steps:
+      - name: Check out evidence harness
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Set up Node 24
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version-file: .nvmrc
+
+      - name: Prepare evidence directories
+        run: mkdir -p "$RELEASE_DIR" "$CANARY_EVIDENCE_DIR"
+
+      - name: Install pinned pnpm
+        run: npm install --global pnpm@11.4.0
+
+      - name: Install workspace dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Download and verify immutable rc.7 release evidence
+        id: release_evidence
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          actual_sha="$(gh api "repos/${GITHUB_REPOSITORY}/commits/${RC7_TAG}" --jq '.sha')"
+          if [[ "$actual_sha" != "$RC7_SOURCE_SHA" ]]; then
+            echo "rc.7 tag/source mismatch: expected $RC7_SOURCE_SHA, got $actual_sha" >&2
+            exit 1
+          fi
+
+          release_state="$(gh api "repos/${GITHUB_REPOSITORY}/releases/tags/${RC7_TAG}" --jq '[.draft, .prerelease] | @tsv')"
+          if [[ "$release_state" != $'false\ttrue' ]]; then
+            echo "rc.7 GitHub Release metadata is no longer draft=false/prerelease=true" >&2
+            exit 1
+          fi
+
+          gh release download "$RC7_TAG" \
+            --repo "$GITHUB_REPOSITORY" \
+            --dir "$RELEASE_DIR" \
+            --pattern 'compose.release.yaml' \
+            --pattern 'release-verification.json' \
+            --pattern 'SHA256SUMS'
+
+          cd "$RELEASE_DIR"
+          for required in compose.release.yaml release-verification.json; do
+            if ! grep -Eq "[ *]${required}$" SHA256SUMS; then
+              echo "SHA256SUMS does not cover required canary asset: $required" >&2
+              exit 1
+            fi
+          done
+          sha256sum --check --ignore-missing SHA256SUMS
+
+          cp compose.release.yaml release-verification.json SHA256SUMS "$CANARY_EVIDENCE_DIR/"
+          printf '%s\n' "$RC7_TAG" > "$CANARY_EVIDENCE_DIR/release-tag.txt"
+          printf '%s\n' "$RC7_SOURCE_SHA" > "$CANARY_EVIDENCE_DIR/release-source-sha.txt"
+
+      - name: Validate digest-pinned release Compose
+        id: compose_contract
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          if grep -Eq '^[[:space:]]*build:' "$COMPOSE_FILE"; then
+            echo 'published release compose must not contain build directives' >&2
+            exit 1
+          fi
+          if grep -Eq '\$\{(API_IMAGE|WEB_IMAGE)' "$COMPOSE_FILE"; then
+            echo 'published release compose must pin application images directly' >&2
+            exit 1
+          fi
+          if grep -q ':latest' "$COMPOSE_FILE"; then
+            echo 'published release compose must not reference latest' >&2
+            exit 1
+          fi
+
+          mapfile -t application_refs < <(
+            grep -E '^[[:space:]]+image: ghcr\.io/.+@sha256:[0-9a-f]{64}$' "$COMPOSE_FILE" \
+              | sed -E 's/^[[:space:]]+image:[[:space:]]+//'
+          )
+          if [[ ${#application_refs[@]} -ne 2 ]]; then
+            echo 'published release compose must contain exactly two digest-pinned GHCR application images' >&2
+            exit 1
+          fi
+
+          if ! printf '%s\n' "${application_refs[@]}" | grep -Eq '^ghcr\.io/true-ruslan/zakup-gotov-api@sha256:[0-9a-f]{64}$'; then
+            echo 'release canary did not receive the final digest-pinned API package' >&2
+            exit 1
+          fi
+          if ! printf '%s\n' "${application_refs[@]}" | grep -Eq '^ghcr\.io/true-ruslan/zakup-gotov-web@sha256:[0-9a-f]{64}$'; then
+            echo 'release canary did not receive the final digest-pinned Web package' >&2
+            exit 1
+          fi
+
+          printf '%s\n' "${application_refs[@]}" > "$CANARY_EVIDENCE_DIR/application-image-refs.txt"
+          docker compose -f "$COMPOSE_FILE" config >/dev/null
+
+      - name: Authenticate GHCR read-only
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: echo "$GH_TOKEN" | docker login ghcr.io --username "${{ github.actor }}" --password-stdin
+
+      - name: Install bounded Playwright Chromium
+        run: bash scripts/ci/install-playwright-chromium.sh pnpm --dir apps/web exec playwright install --with-deps chromium
+
+      - name: Pull immutable application images
+        run: docker compose -f "$COMPOSE_FILE" pull
+
+      - name: Start immutable rc.7 bundle
+        id: start_bundle
+        shell: bash
+        run: |
+          set -euo pipefail
+          docker compose -f "$COMPOSE_FILE" up --detach --wait --wait-timeout 180
+          docker compose -f "$COMPOSE_FILE" exec -T api \
+            curl --fail --silent --show-error http://127.0.0.1:8080/actuator/health/readiness \
+            | grep -q '"status":"UP"'
+          curl --fail --silent --show-error "$CANARY_BASE_URL/" | grep -q 'Закуп готов'
+          docker compose -f "$COMPOSE_FILE" ps > "$CANARY_EVIDENCE_DIR/compose-ps-started.txt"
+
+      - name: Capture normal product journeys
+        id: normal
+        continue-on-error: true
+        env:
+          CANARY_BASE_URL: ${{ env.CANARY_BASE_URL }}
+          CANARY_EVIDENCE_DIR: ${{ env.CANARY_EVIDENCE_DIR }}
+          RC7_TAG: ${{ env.RC7_TAG }}
+          RC7_SOURCE_SHA: ${{ env.RC7_SOURCE_SHA }}
+        run: node apps/web/scripts/release-canary-capture.mjs normal
+
+      - name: Stop API for fail-closed evidence
+        id: stop_api
+        if: always() && steps.start_bundle.outcome == 'success'
+        run: docker compose -f "$COMPOSE_FILE" stop api
+
+      - name: Capture API-unavailable product state
+        id: api_unavailable
+        if: always() && steps.stop_api.outcome == 'success'
+        continue-on-error: true
+        env:
+          CANARY_BASE_URL: ${{ env.CANARY_BASE_URL }}
+          CANARY_EVIDENCE_DIR: ${{ env.CANARY_EVIDENCE_DIR }}
+          RC7_TAG: ${{ env.RC7_TAG }}
+          RC7_SOURCE_SHA: ${{ env.RC7_SOURCE_SHA }}
+        run: node apps/web/scripts/release-canary-capture.mjs api-unavailable
+
+      - name: Restart API and Web
+        id: recover_bundle
+        if: always() && steps.start_bundle.outcome == 'success'
+        shell: bash
+        run: |
+          set -euo pipefail
+          docker compose -f "$COMPOSE_FILE" start api
+          for attempt in {1..30}; do
+            if docker compose -f "$COMPOSE_FILE" exec -T api \
+                curl --fail --silent --show-error http://127.0.0.1:8080/actuator/health/readiness \
+                | grep -q '"status":"UP"'; then
+              break
+            fi
+            if [[ "$attempt" -eq 30 ]]; then
+              echo 'API did not recover within the bounded wait' >&2
+              exit 1
+            fi
+            sleep 2
+          done
+          docker compose -f "$COMPOSE_FILE" restart web
+          for attempt in {1..30}; do
+            if curl --fail --silent --show-error "$CANARY_BASE_URL/" | grep -q 'Закуп готов'; then
+              break
+            fi
+            if [[ "$attempt" -eq 30 ]]; then
+              echo 'Web did not recover after restart within the bounded wait' >&2
+              exit 1
+            fi
+            sleep 2
+          done
+
+      - name: Capture recovered product state
+        id: recovered
+        if: always() && steps.recover_bundle.outcome == 'success'
+        continue-on-error: true
+        env:
+          CANARY_BASE_URL: ${{ env.CANARY_BASE_URL }}
+          CANARY_EVIDENCE_DIR: ${{ env.CANARY_EVIDENCE_DIR }}
+          RC7_TAG: ${{ env.RC7_TAG }}
+          RC7_SOURCE_SHA: ${{ env.RC7_SOURCE_SHA }}
+        run: node apps/web/scripts/release-canary-capture.mjs recovered
+
+      - name: Collect final runtime state
+        if: always() && steps.start_bundle.outcome == 'success'
+        shell: bash
+        run: |
+          set +e
+          docker compose -f "$COMPOSE_FILE" ps --all > "$CANARY_EVIDENCE_DIR/compose-ps-final.txt"
+          docker compose -f "$COMPOSE_FILE" config --images > "$CANARY_EVIDENCE_DIR/compose-images-final.txt"
+
+      - name: Upload manual-review evidence
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: rc7-manual-product-canary-${{ github.run_id }}
+          path: ${{ env.CANARY_EVIDENCE_DIR }}
+          if-no-files-found: error
+          retention-days: 14
+
+      - name: Publish manual-review pointer
+        if: always()
+        continue-on-error: true
+        env:
+          GH_TOKEN: ${{ github.token }}
+          NORMAL_OUTCOME: ${{ steps.normal.outcome }}
+          API_UNAVAILABLE_OUTCOME: ${{ steps.api_unavailable.outcome }}
+          RECOVERED_OUTCOME: ${{ steps.recovered.outcome }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          run_url="${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}"
+          gh issue comment 152 --repo "$GITHUB_REPOSITORY" --body "$(cat <<EOF
+          ## rc.7 product canary evidence capture
+
+          Run: ${run_url}
+          Exact release: \`${RC7_TAG}\` / \`${RC7_SOURCE_SHA}\`
+
+          - normal journeys: \`${NORMAL_OUTCOME}\`
+          - API unavailable state: \`${API_UNAVAILABLE_OUTCOME}\`
+          - recovered/restarted state: \`${RECOVERED_OUTCOME}\`
+
+          The workflow only captures review evidence from digest-pinned rc.7 artifacts; **manual review is still required** before stable \`v0.1.0\` can be accepted.
+          EOF
+          )"
+
+      - name: Require complete evidence capture
+        if: always()
+        env:
+          RELEASE_OUTCOME: ${{ steps.release_evidence.outcome }}
+          COMPOSE_OUTCOME: ${{ steps.compose_contract.outcome }}
+          START_OUTCOME: ${{ steps.start_bundle.outcome }}
+          NORMAL_OUTCOME: ${{ steps.normal.outcome }}
+          STOP_API_OUTCOME: ${{ steps.stop_api.outcome }}
+          API_UNAVAILABLE_OUTCOME: ${{ steps.api_unavailable.outcome }}
+          RECOVER_BUNDLE_OUTCOME: ${{ steps.recover_bundle.outcome }}
+          RECOVERED_OUTCOME: ${{ steps.recovered.outcome }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          failures=0
+          for outcome in \
+            "$RELEASE_OUTCOME" \
+            "$COMPOSE_OUTCOME" \
+            "$START_OUTCOME" \
+            "$NORMAL_OUTCOME" \
+            "$STOP_API_OUTCOME" \
+            "$API_UNAVAILABLE_OUTCOME" \
+            "$RECOVER_BUNDLE_OUTCOME" \
+            "$RECOVERED_OUTCOME"; do
+            if [[ "$outcome" != 'success' ]]; then
+              failures=$((failures + 1))
+            fi
+          done
+          if (( failures > 0 )); then
+            echo "release canary evidence capture has ${failures} failed/skipped required phase(s); manual review remains blocked" >&2
+            exit 1
+          fi
+          echo 'release canary evidence capture complete; manual review is still required'
+
+      - name: Clean up canary bundle
+        if: always()
+        run: docker compose -f "$COMPOSE_FILE" down --volumes --remove-orphans || true
