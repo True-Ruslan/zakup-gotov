@@ -4,10 +4,7 @@ on:
   issue_comment:
     types: [created]
 
-permissions:
-  contents: read
-  packages: read
-  issues: write
+permissions: {}
 
 concurrency:
   group: release-product-canary-rc7-${{ github.event.issue.number }}
@@ -21,8 +18,15 @@ jobs:
       github.event.issue.number == 152 &&
       github.event.comment.user.login == github.repository_owner &&
       github.event.comment.body == '/release-canary rc.7'
+    permissions:
+      contents: read
+      packages: read
     runs-on: ubuntu-latest
     timeout-minutes: 35
+    outputs:
+      normal: ${{ steps.phase_outcomes.outputs.normal }}
+      api_unavailable: ${{ steps.phase_outcomes.outputs.api_unavailable }}
+      recovered: ${{ steps.phase_outcomes.outputs.recovered }}
     env:
       RC7_TAG: v0.1.0-rc.7
       RC7_SOURCE_SHA: b754f5193f852db0312011f3f6c3ec6c7dd22eb2
@@ -38,6 +42,7 @@ jobs:
       - name: Check out evidence harness
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
+          ref: ${{ github.sha }}
           persist-credentials: false
 
       - name: Set up Node 24
@@ -46,7 +51,9 @@ jobs:
           node-version-file: .nvmrc
 
       - name: Prepare evidence directories
-        run: mkdir -p "$RELEASE_DIR" "$CANARY_EVIDENCE_DIR"
+        run: |
+          mkdir -p "$RELEASE_DIR" "$CANARY_EVIDENCE_DIR"
+          printf '%s\n' "$GITHUB_SHA" > "$CANARY_EVIDENCE_DIR/evidence-harness-sha.txt"
 
       - name: Install pinned pnpm
         run: npm install --global pnpm@11.4.0
@@ -233,6 +240,18 @@ jobs:
           docker compose -f "$COMPOSE_FILE" ps --all > "$CANARY_EVIDENCE_DIR/compose-ps-final.txt"
           docker compose -f "$COMPOSE_FILE" config --images > "$CANARY_EVIDENCE_DIR/compose-images-final.txt"
 
+      - name: Record phase outcomes
+        id: phase_outcomes
+        if: always()
+        env:
+          NORMAL_OUTCOME: ${{ steps.normal.outcome }}
+          API_UNAVAILABLE_OUTCOME: ${{ steps.api_unavailable.outcome }}
+          RECOVERED_OUTCOME: ${{ steps.recovered.outcome }}
+        run: |
+          echo "normal=${NORMAL_OUTCOME}" >> "$GITHUB_OUTPUT"
+          echo "api_unavailable=${API_UNAVAILABLE_OUTCOME}" >> "$GITHUB_OUTPUT"
+          echo "recovered=${RECOVERED_OUTCOME}" >> "$GITHUB_OUTPUT"
+
       - name: Upload manual-review evidence
         if: always()
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
@@ -241,32 +260,6 @@ jobs:
           path: ${{ env.CANARY_EVIDENCE_DIR }}
           if-no-files-found: error
           retention-days: 14
-
-      - name: Publish manual-review pointer
-        if: always()
-        continue-on-error: true
-        env:
-          GH_TOKEN: ${{ github.token }}
-          NORMAL_OUTCOME: ${{ steps.normal.outcome }}
-          API_UNAVAILABLE_OUTCOME: ${{ steps.api_unavailable.outcome }}
-          RECOVERED_OUTCOME: ${{ steps.recovered.outcome }}
-        shell: bash
-        run: |
-          set -euo pipefail
-          run_url="${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}"
-          gh issue comment 152 --repo "$GITHUB_REPOSITORY" --body "$(cat <<EOF
-          ## rc.7 product canary evidence capture
-
-          Run: ${run_url}
-          Exact release: \`${RC7_TAG}\` / \`${RC7_SOURCE_SHA}\`
-
-          - normal journeys: \`${NORMAL_OUTCOME}\`
-          - API unavailable state: \`${API_UNAVAILABLE_OUTCOME}\`
-          - recovered/restarted state: \`${RECOVERED_OUTCOME}\`
-
-          The workflow only captures review evidence from digest-pinned rc.7 artifacts; **manual review is still required** before stable \`v0.1.0\` can be accepted.
-          EOF
-          )"
 
       - name: Require complete evidence capture
         if: always()
@@ -305,3 +298,43 @@ jobs:
       - name: Clean up canary bundle
         if: always()
         run: docker compose -f "$COMPOSE_FILE" down --volumes --remove-orphans || true
+
+  notify:
+    needs: canary
+    name: Release Product Canary / rc.7 review pointer
+    if: >-
+      always() &&
+      github.event_name == 'issue_comment' &&
+      github.event.issue.number == 152 &&
+      github.event.comment.user.login == github.repository_owner &&
+      github.event.comment.body == '/release-canary rc.7'
+    permissions:
+      issues: write
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Publish manual-review pointer
+        env:
+          GH_TOKEN: ${{ github.token }}
+          CANARY_RESULT: ${{ needs.canary.result }}
+          NORMAL_OUTCOME: ${{ needs.canary.outputs.normal }}
+          API_UNAVAILABLE_OUTCOME: ${{ needs.canary.outputs.api_unavailable }}
+          RECOVERED_OUTCOME: ${{ needs.canary.outputs.recovered }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          run_url="${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}"
+          gh issue comment 152 --repo "$GITHUB_REPOSITORY" --body "$(cat <<EOF
+          ## rc.7 product canary evidence capture
+
+          Run: ${run_url}
+          Exact release: \`v0.1.0-rc.7\` / \`b754f5193f852db0312011f3f6c3ec6c7dd22eb2\`
+          Canary job: \`${CANARY_RESULT}\`
+
+          - normal journeys: \`${NORMAL_OUTCOME:-not-run}\`
+          - API unavailable state: \`${API_UNAVAILABLE_OUTCOME:-not-run}\`
+          - recovered/restarted state: \`${RECOVERED_OUTCOME:-not-run}\`
+
+          The workflow only captures review evidence from digest-pinned rc.7 artifacts; **manual review is still required** before stable \`v0.1.0\` can be accepted.
+          EOF
+          )"
