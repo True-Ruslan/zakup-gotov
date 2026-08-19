@@ -26,8 +26,9 @@ jobs:
 
       - name: Parse release workflow YAML
         run: |
-          ruby -e 'require "yaml"; YAML.load_file(ARGV.fetch(0), aliases: true)' \
-            .github/workflows/release.yml
+          ruby -e 'require "yaml"; ARGV.each { |path| YAML.load_file(path, aliases: true) }' \
+            .github/workflows/release.yml \
+            .github/workflows/release-product-canary.yml
 
       - name: Verify release semantics
         run: python3 -m unittest discover -s scripts/release -p 'test_*.py' -v
