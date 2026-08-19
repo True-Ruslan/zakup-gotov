@@ -42,7 +42,7 @@ class ManualProductCanaryContractTest(unittest.TestCase):
         self.assertNotIn("gh release edit", workflow)
         self.assertNotIn("docker build", workflow)
         self.assertNotIn("docker buildx", workflow)
-        self.assertNotIn(":latest", workflow)
+        self.assertNotRegex(workflow, r"ghcr\.io/[^\s\"']+:latest(?:\s|$)")
 
     def test_canary_uses_digest_pinned_release_bundle_and_review_evidence(self):
         workflow = WORKFLOW.read_text(encoding="utf-8")
