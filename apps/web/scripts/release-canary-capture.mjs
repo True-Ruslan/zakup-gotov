@@ -1,9 +1,12 @@
+import { execFile as execFileCallback } from "node:child_process";
 import fs from "node:fs/promises";
 import path from "node:path";
 import process from "node:process";
+import { promisify } from "node:util";
 
 import { chromium, expect } from "@playwright/test";
 
+const execFile = promisify(execFileCallback);
 const mode = process.argv[2];
 const allowedModes = new Set(["normal", "api-unavailable", "recovered"]);
 if (!allowedModes.has(mode)) {
@@ -15,6 +18,7 @@ const evidenceDir = path.resolve(process.env.CANARY_EVIDENCE_DIR ?? "release-can
 const reportPath = path.join(evidenceDir, "release-canary-report.json");
 const releaseTag = process.env.RC7_TAG ?? "v0.1.0-rc.7";
 const releaseSource = process.env.RC7_SOURCE_SHA ?? "b754f5193f852db0312011f3f6c3ec6c7dd22eb2";
+const composeFile = process.env.COMPOSE_FILE;
 const draftStorageKey = "zakup-gotov.weekly-plan-draft.v1";
 
 await fs.mkdir(evidenceDir, { recursive: true });
@@ -50,6 +54,49 @@ async function persistReport() {
 function compactError(error) {
   const firstLine = String(error?.message ?? error).split("\n", 1)[0].slice(0, 300);
   return { name: error?.name ?? "Error", summary: firstLine };
+}
+
+async function capturePostgresRuntimeImage() {
+  if (!composeFile) {
+    throw new Error("COMPOSE_FILE is required to capture PostgreSQL runtime digest evidence");
+  }
+
+  const { stdout: imageIdOutput } = await execFile("docker", ["compose", "-f", composeFile, "images", "-q", "postgres"]);
+  const imageId = imageIdOutput.trim().split(/\s+/).filter(Boolean)[0];
+  if (!imageId) {
+    throw new Error("PostgreSQL runtime image ID is unavailable after Compose startup");
+  }
+
+  const { stdout: repoDigestsOutput } = await execFile("docker", [
+    "image",
+    "inspect",
+    imageId,
+    "--format",
+    "{{json .RepoDigests}}",
+  ]);
+  const repoDigests = JSON.parse(repoDigestsOutput.trim());
+  const immutableDigest = Array.isArray(repoDigests)
+    ? repoDigests.find((value) => typeof value === "string" && /postgres.*@sha256:[0-9a-f]{64}$/.test(value))
+    : undefined;
+  if (!immutableDigest) {
+    throw new Error("Pulled PostgreSQL image does not expose an immutable RepoDigest");
+  }
+
+  const evidence = {
+    composeReference: "postgres:18.4-alpine",
+    imageId,
+    repoDigests,
+    immutableDigest,
+    capturedAt: new Date().toISOString(),
+  };
+  report.runtimeDependencies ??= {};
+  report.runtimeDependencies.postgres = evidence;
+  await fs.writeFile(
+    path.join(evidenceDir, "postgres-runtime-image.json"),
+    `${JSON.stringify(evidence, null, 2)}\n`,
+    "utf8",
+  );
+  await persistReport();
 }
 
 async function capture(page, name) {
@@ -241,6 +288,10 @@ async function recoveredScenario(browser) {
     await expect(page.getByRole("heading", { level: 2, name: "Результат для Москва" }).last()).toBeVisible();
     await capture(page, "recovered-manual-comparison");
   });
+}
+
+if (mode === "normal") {
+  await capturePostgresRuntimeImage();
 }
 
 const browser = await chromium.launch({ headless: true });
