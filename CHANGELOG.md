@@ -155,7 +155,7 @@ Source:
 - The immutable rc.4 tag remains historical failed release evidence; its GitHub presentation can be corrected without reusing or moving the tag.
 - Full record: `docs/v0.1.0-rc.4-release-failure-2026-08-18.md`.
 
-## [0.1.0-rc.3] — 2026-08-18 — AUTOMATED RELEASE CONTRACT ACCEPTED
+## [0.1.0-rc.3] — 2026-08-16 — AUTOMATED RELEASE CONTRACT ACCEPTED
 
 Source:
 
@@ -174,24 +174,27 @@ d988b8c596a737326aeac67f74b6f65a6aaed3bf
 - Release verification metadata, checksums, manifests, vulnerability reports and SBOMs were attached to the GitHub Release.
 - Automated release contract accepted; separate manual product canary remained the product-acceptance gate.
 
-## [0.1.0-rc.2] — 2026-08-17 — FAILED RELEASE CONTRACT
+## [0.1.0-rc.2] — 2026-08-09 — FAILED WEB SECURITY GATE
 
 Source:
 
 ```text
-19e6080cff464de9701e2f38ff6f06959037971a
+184751e164f199fdc5262cf77ea86c931daf59f7
 ```
 
-- Release verification failed because the tag did not point to the required exact source after main moved.
-- No release publication/promotion was accepted from this candidate.
+- `Release / Verify` completed successfully.
+- `Release / Publish` failed closed on pgJDBC `42.7.11` / `CVE-2026-54291` (`HIGH`, fixed in `42.7.12`).
+- Mainline subsequently upgraded pgJDBC and retained the unchanged HIGH/CRITICAL fail-closed security gate.
+- No release publication/promotion was accepted from this candidate; the immutable tag remains historical evidence and is never reused or repointed.
 
-## [0.1.0-rc.1] — 2026-08-17 — FAILED RELEASE CONTRACT
+## [0.1.0-rc.1] — 2026-08-09 — FAILED RELEASE VERIFY
 
 Source:
 
 ```text
-69a4566963ef99fd5204e1f0bc924f6ab242e6f7
+d3066258915542c2488d9a3277680b2cc478d611
 ```
 
-- Initial release candidate exposed release-contract and publication-path defects.
-- Candidate remains immutable historical evidence and is not reused.
+- The first real `release: published` prerelease passed metadata/main-ancestry checks, repository verification, production Web build and responsive browser tests.
+- `Release / Verify` then failed on executable Git modes for the checked-in release helper scripts in a clean checkout; `Release / Publish` was skipped.
+- PR #28 fixed the executable modes and added a regression guard; the immutable rc.1 tag remains historical evidence and is never reused or repointed.
