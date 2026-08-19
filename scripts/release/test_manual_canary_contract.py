@@ -5,6 +5,7 @@ import unittest
 ROOT = pathlib.Path(__file__).resolve().parents[2]
 WORKFLOW = ROOT / ".github/workflows/release-product-canary.yml"
 CAPTURE_SCRIPT = ROOT / "apps/web/scripts/release-canary-capture.mjs"
+RELEASE_CONTRACT_WORKFLOW = ROOT / ".github/workflows/release-contract-ci.yml"
 
 
 class ManualProductCanaryContractTest(unittest.TestCase):
@@ -75,6 +76,19 @@ class ManualProductCanaryContractTest(unittest.TestCase):
         for fragment in required_capture:
             with self.subTest(fragment=fragment):
                 self.assertIn(fragment, capture)
+
+    def test_canary_workflow_uses_immutable_action_pins(self):
+        workflow = WORKFLOW.read_text(encoding="utf-8")
+
+        for line in workflow.splitlines():
+            stripped = line.strip()
+            if stripped.startswith("uses:"):
+                with self.subTest(line=stripped):
+                    self.assertRegex(stripped, r"@[0-9a-f]{40}(?:\s+#.*)?$")
+
+    def test_release_contract_ci_parses_canary_workflow_yaml(self):
+        release_contract_ci = RELEASE_CONTRACT_WORKFLOW.read_text(encoding="utf-8")
+        self.assertIn(".github/workflows/release-product-canary.yml", release_contract_ci)
 
 
 if __name__ == "__main__":
