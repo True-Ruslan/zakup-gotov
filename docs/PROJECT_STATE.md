@@ -9,7 +9,7 @@ Updated: 2026-08-20
 Repository: `True-Ruslan/zakup-gotov`  
 Visibility: Public  
 Current product phase: **M5 — Productization**  
-Current `main`: `9822659c1b43df978e191e6f7826775fc615926d`  
+Verified executable baseline: `9822659c1b43df978e191e6f7826775fc615926d` (#177 merge; later docs-only commits do not change executable behavior)  
 Immediate operational targets: **manual product acceptance of immutable `v0.1.0-rc.7`** and **ordinary-user-browser Chizhik D2 evidence for #169**.
 
 The product/core and retailer-connectivity tracks remain independent. Technical retailer reachability is not production approval, merged transport code is not automatically an accepted offer provider, and automated release acceptance is not manual product acceptance.
@@ -58,7 +58,7 @@ D1 is accepted: an ordinary user browser can access the fixed `/api/v1/shops/` d
 
 D2 transport (#171) is merged but successful JSON remains opaque to production. D2 store context (#174) is accepted only when exactly one current-session first-party delivery resource produces a `sap_id` that intersects the validated store directory; missing/foreign/unknown/conflicting context fails closed.
 
-PR #177 was refreshed after rc.7 automated acceptance, passed fresh exact-head **9/9 PR workflow groups** plus final security/privacy review, and was squash-merged as current `main` commit `9822659c1b43df978e191e6f7826775fc615926d`.
+PR #177 was refreshed after rc.7 automated acceptance, passed fresh exact-head **9/9 PR workflow groups** plus final security/privacy review, and was squash-merged as executable baseline commit `9822659c1b43df978e191e6f7826775fc615926d`.
 
 The merged schema canary:
 
@@ -94,15 +94,15 @@ The downloaded ZIP hash matches GitHub's artifact digest. It contains only `cont
 
 This artifact is suitable as the exact verified bridge build for the ordinary-user-browser #169 canary. Its availability does not itself accept the live retailer schema.
 
-## Current main CI state
+## Verified executable-baseline CI state
 
-Exact post-merge source:
+Exact executable source:
 
 ```text
 9822659c1b43df978e191e6f7826775fc615926d
 ```
 
-All **8 expected `main` push workflow groups** are accepted successfully:
+All **8 expected `main` push workflow groups** are accepted successfully for this executable baseline:
 
 - Release Contract CI;
 - Contract CI;
