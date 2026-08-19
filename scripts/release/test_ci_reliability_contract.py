@@ -12,7 +12,7 @@ class PlaywrightInstallReliabilityContractTest(unittest.TestCase):
             encoding="utf-8"
         )
 
-    def test_install_is_bounded_and_retried_without_foreground_escape(self):
+    def test_install_is_bounded_retried_and_descendant_safe(self):
         helper = self._helper()
 
         required_fragments = (
@@ -21,15 +21,17 @@ class PlaywrightInstallReliabilityContractTest(unittest.TestCase):
             'Acquire::Retries "3";',
             'Acquire::http::Timeout "20";',
             'Acquire::https::Timeout "20";',
-            '--signal=TERM',
-            '--kill-after=15s',
-            '"${attempt_timeout_seconds}s"',
+            'supervisor="scripts/ci/run_with_timeout.py"',
+            'python3 "${supervisor}"',
+            '--timeout-seconds "${attempt_timeout_seconds}"',
+            '--kill-after-seconds 15',
         )
 
         for fragment in required_fragments:
             with self.subTest(fragment=fragment):
                 self.assertIn(fragment, helper)
 
+        self.assertNotIn("command -v timeout", helper)
         self.assertNotIn("--foreground", helper)
 
     def test_all_browser_ci_paths_delegate_to_the_bounded_helper(self):
