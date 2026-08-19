@@ -20,7 +20,7 @@ Local bundle verification:
 
 API has no vulnerability suppression. Web has one machine-readable OpenVEX assessment for `CVE-2026-14456` scoped to the exact inherited package `pkg:deb/debian/libssl3t64@3.5.6-1~deb13u2`. It is accepted only after final-image guards prove that experimental QUIC is disabled and runtime Node/native addons do not dynamically link system `libssl`/`libcrypto`. Every other HIGH/CRITICAL finding remains fail-closed.
 
-Normal web CI enables suppressed-result output so the assessed CVE remains visible. The release workflow repeats the runtime guard for both `linux/amd64` and `linux/arm64` before applying the same VEX.
+Normal web CI enables suppressed-result output so the assessed CVE remains visible. The release workflow repeats the runtime guard for both `linux/amd64` and `linux/arm64` before applying the same VEX. Registry-mode guards resolve the requested architecture to its exact child-manifest digest from the immutable parent OCI index before pulling the image, preventing cross-platform local-image-store collisions while preserving content-addressed evidence.
 
 Assessment: [`security/CVE-2026-14456-vex-assessment.md`](security/CVE-2026-14456-vex-assessment.md).
 
@@ -48,7 +48,7 @@ Only after Verify succeeds does the write-capable job receive package/attestatio
 1. validate metadata and derive names;
 2. authenticate to GHCR;
 3. build/push API and web staging indexes for `linux/amd64` and `linux/arm64`;
-4. validate the web VEX contract and final-image runtime assumptions on both architectures;
+4. validate the web VEX contract and final-image runtime assumptions on both architectures using exact platform child manifests;
 5. scan every platform candidate for unsuppressed `HIGH`/`CRITICAL` vulnerabilities;
 6. produce SPDX JSON SBOM evidence;
 7. smoke-test exact staging digests;
@@ -102,27 +102,54 @@ No final `0.1.0-rc.5` OCI promotion, `latest`, final smoke, provenance or releas
 
 Detailed record: [`v0.1.0-rc.5-release-failure-2026-08-19.md`](v0.1.0-rc.5-release-failure-2026-08-19.md).
 
-## Next validation — `v0.1.0-rc.6`
+### `v0.1.0-rc.6` — 2026-08-19 — FAILED ARM64 RUNTIME-GUARD MATERIALIZATION
 
-Issue #152 and recovery PR #179 are the operational gate.
+Immutable source: `946bc19d6ca4a544c13d74f420fce12b1e5fe815`.
 
-The recovery does **not** lower severity or set `ignore-unfixed`. It keeps the minimal Distroless Debian 13 runtime and applies one exact-version OpenVEX `not_affected` statement only after final-image reachability guards pass. Two base-image alternatives were tested and rejected because fresh Trivy evidence showed materially larger HIGH/CRITICAL surfaces.
+GitHub prerelease metadata and tag/source were correct. `Release / Verify` completed successfully. `Release / Publish` then built both multi-architecture staging candidates, validated the exact web VEX contract and passed the real amd64 runtime guard.
+
+The following arm64 runtime guard failed before Trivy with:
+
+```text
+cannot overwrite digest sha256:715c4484cabfcac849bf3d2b9bbbede380f705fb9b666fef67287021a764b460
+```
+
+The immutable parent web OCI index had been pulled sequentially as amd64 and arm64 through the same local digest reference. Recovery PR #180 reproduced the failure on a fresh GitHub runner and proved the fix against the exact same rc.6 index by resolving distinct immutable child manifests before pull/create:
+
+```text
+linux/amd64 -> sha256:9eb77c8f70331def690af0e20e2ae2160ef4ef37d2666826499ddb968fa41d35
+linux/arm64 -> sha256:387275fa31e3b06a39264533d3f7409646af600079aea04d1216518bef5ca0c5
+```
+
+Both runtime guards then passed, including the real arm64 `@img/sharp-linux-arm64@0.35.3` ELF inspection. The OpenVEX statement and Trivy fail-closed policy were not widened or weakened.
+
+No rc.6 Trivy-release completion, SBOM completion, staging/final smoke, final OCI promotion, provenance, `latest` mutation or verified release assets occurred.
+
+Detailed record: [`v0.1.0-rc.6-release-failure-2026-08-19.md`](v0.1.0-rc.6-release-failure-2026-08-19.md).
+
+## Next validation — `v0.1.0-rc.7`
+
+Issue #152 and recovery PR #180 are the operational gate.
+
+The recovery changes only registry materialization for multi-architecture runtime inspection. It keeps the exact reviewed OpenVEX assessment and unchanged Trivy `CRITICAL,HIGH` + `exit-code=1` policy.
 
 Before publication:
 
-1. #179 must finish on one exact head with 9/9 PR workflow groups SUCCESS;
-2. Container Security/Web must prove VEX contract + final-image guard + visible exact suppression + zero unsuppressed HIGH/CRITICAL findings;
-3. merge #179 and verify all normal exact-main push workflow groups;
-4. record the exact verified `main` SHA in #152;
-5. confirm `v0.1.0-rc.6` is absent;
-6. create one GitHub prerelease targeting that exact SHA with **Set as a pre-release enabled**.
+1. #180 must finish on one exact head with all normal PR workflow groups SUCCESS;
+2. Release Contract CI must pass the permanent multi-platform collision regression and fail-closed OCI resolver tests;
+3. Container Security CI must prove the local final-image VEX/runtime guard still passes before the web scan;
+4. merge #180 only after fresh review/CI;
+5. verify all normal exact-main push workflow groups;
+6. record the exact verified `main` SHA in #152;
+7. confirm `v0.1.0-rc.7` is absent;
+8. create one GitHub prerelease targeting that exact SHA with **Set as a pre-release enabled**.
 
-A successful rc.6 must prove:
+A successful rc.7 must prove:
 
 - exact metadata/main ancestry;
 - repository verification and production browser E2E;
 - API/web `linux/amd64` + `linux/arm64` staging indexes;
-- VEX/runtime guards on both web architectures;
+- parent-index → exact child-manifest resolution and VEX/runtime guards on both web architectures;
 - API scans without VEX and web scans with only the reviewed suppression;
 - unchanged fail-closed `HIGH,CRITICAL` behavior for every other finding;
 - SPDX SBOMs;
@@ -130,7 +157,7 @@ A successful rc.6 must prove:
 - digest-preserving copy-without-rebuild final promotion;
 - final exact-digest smoke;
 - provenance attestations;
-- prerelease OCI `0.1.0-rc.6` tags without OCI `latest` mutation;
+- prerelease OCI `0.1.0-rc.7` tags without OCI `latest` mutation;
 - final manifest architecture checks;
 - attached manifests, vulnerability reports, SBOMs, OpenVEX and checksums.
 
