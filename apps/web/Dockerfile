@@ -2,6 +2,7 @@ FROM node:24.18.1-bookworm-slim AS dependencies
 
 WORKDIR /workspace
 RUN npm install --global pnpm@11.4.0
+RUN echo "=== Node dynamic dependencies ===" && ldd /usr/local/bin/node
 
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
 COPY apps/web/package.json apps/web/package.json
@@ -16,9 +17,11 @@ COPY openapi openapi
 
 ENV NEXT_TELEMETRY_DISABLED=1
 RUN pnpm --filter @zakup-gotov/api-client build \
-    && pnpm --filter web build
+    && pnpm --filter web build \
+    && echo "=== Native addon dynamic dependencies ===" \
+    && find apps/web/.next/standalone -type f -name '*.node' -print -exec ldd {} \;
 
-FROM gcr.io/distroless/nodejs24-debian12:nonroot AS runtime
+FROM gcr.io/distroless/nodejs24-debian13:nonroot AS runtime
 
 ENV NODE_ENV=production \
     NEXT_TELEMETRY_DISABLED=1 \
