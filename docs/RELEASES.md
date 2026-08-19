@@ -16,19 +16,24 @@ Local bundle verification:
 
 ## Pre-release security gate
 
-`Container Security CI` runs in ordinary read-only CI and scans the exact production API/web images with unchanged Trivy `HIGH,CRITICAL` fail-closed policy. No `.trivyignore`, `ignore-unfixed`, VEX suppression or severity downgrade is used to make the gate green.
+`Container Security CI` scans the exact production API/web images with Trivy `HIGH,CRITICAL` + `exit-code=1`.
+
+API has no vulnerability suppression. Web has one machine-readable OpenVEX assessment for `CVE-2026-14456` scoped to the exact inherited package `pkg:deb/debian/libssl3t64@3.5.6-1~deb13u2`. It is accepted only after final-image guards prove that experimental QUIC is disabled and runtime Node/native addons do not dynamically link system `libssl`/`libcrypto`. Every other HIGH/CRITICAL finding remains fail-closed.
+
+Normal web CI enables suppressed-result output so the assessed CVE remains visible. The release workflow repeats the runtime guard for both `linux/amd64` and `linux/arm64` before applying the same VEX.
+
+Assessment: [`security/CVE-2026-14456-vex-assessment.md`](security/CVE-2026-14456-vex-assessment.md).
 
 ## Versioned release contract
 
 `Release Contract CI` verifies without write permissions:
 
 - strict stable/prerelease SemVer tags;
-- consistency between SemVer prerelease state and the GitHub Release prerelease flag;
+- consistency between SemVer prerelease state and GitHub Release prerelease flag;
 - prereleases never publish OCI `latest`;
 - deterministic final/staging GHCR names and digest-pinned release Compose references;
-- executable release helper modes;
-- immutable Action pins and pinned QEMU/BuildKit helper images;
-- approved trust order: build → scan → staging smoke → final copy → final smoke → attestation → version promotion → optional stable `latest` → evidence upload.
+- immutable Action pins and pinned QEMU/BuildKit helpers;
+- approved trust order: build → guard/scan → staging smoke → final copy → final smoke → attestation → version promotion → optional stable `latest` → evidence upload.
 
 `.github/workflows/release.yml` triggers only for `release: published`.
 
@@ -42,110 +47,92 @@ Only after Verify succeeds does the write-capable job receive package/attestatio
 
 1. validate metadata and derive names;
 2. authenticate to GHCR;
-3. build/push API and web staging indexes for `linux/amd64` and `linux/arm64` with provenance/SBOM;
-4. scan every platform candidate for `HIGH`/`CRITICAL` vulnerabilities;
-5. produce SPDX JSON SBOM evidence;
-6. smoke-test exact staging digests;
-7. copy verified indexes **without rebuild** into final packages, preserving digest identity;
-8. smoke-test exact final-package digests;
-9. create provenance attestations;
-10. promote SemVer tags from the already verified digests without rebuild;
-11. move OCI `latest` only for stable releases;
-12. verify final manifest architectures;
-13. attach release evidence/checksums to the GitHub Release.
+3. build/push API and web staging indexes for `linux/amd64` and `linux/arm64`;
+4. validate the web VEX contract and final-image runtime assumptions on both architectures;
+5. scan every platform candidate for unsuppressed `HIGH`/`CRITICAL` vulnerabilities;
+6. produce SPDX JSON SBOM evidence;
+7. smoke-test exact staging digests;
+8. copy verified indexes **without rebuild** into final packages, preserving digest identity;
+9. smoke-test exact final-package digests;
+10. create provenance attestations;
+11. promote SemVer tags from already verified digests;
+12. move OCI `latest` only for stable releases;
+13. verify final manifest architectures;
+14. attach release evidence/checksums, including the exact OpenVEX document.
 
-Staging packages remain a private trust boundary. Final package visibility is a separate distribution decision.
+If a vulnerability scan fails, already-created Trivy JSON reports are summarized into the durable Actions log so root-cause evidence is not lost when downstream release-asset upload is skipped.
 
 ## Runtime validation history
 
 ### `v0.1.0-rc.1` — 2026-08-09
 
-The first real release event proved metadata/main-ancestry validation, complete repository verification and responsive browser testing, then failed before container verification because release helper scripts were stored without executable Git mode. The defect was regression-tested and corrected before rc.2.
+First real release event exposed executable-mode defects in release helper scripts. They were fixed before rc.2.
 
 ### `v0.1.0-rc.2` — 2026-08-09
 
-`Release / Verify` passed completely. `Release / Publish` authenticated to GHCR, set up QEMU/Buildx and published API/web multi-platform staging indexes. It then correctly failed closed at the first Trivy gate on pgJDBC `42.7.11` / `CVE-2026-54291` (`HIGH`, fixed in `42.7.12`).
-
-Subsequent mainline work upgraded pgJDBC, moved the web final runtime to distroless Node 24 Debian 13/non-root and added ordinary Container Security CI under the same fail-closed policy.
+Verify passed; Publish failed closed on pgJDBC `42.7.11` / `CVE-2026-54291` (`HIGH`, fixed in `42.7.12`). Mainline subsequently upgraded pgJDBC and retained the security gate.
 
 ### `v0.1.0-rc.3` — historical prerelease
 
-Immutable source:
-
-```text
-d988b8c596a737326aeac67f74b6f65a6aaed3bf
-```
-
-The tag must not be moved, deleted or reused for later source.
+Immutable source: `d988b8c596a737326aeac67f74b6f65a6aaed3bf`. Do not move/delete/reuse the tag.
 
 ### `v0.1.0-rc.4` — 2026-08-18 — FAILED METADATA GATE
 
-Immutable source:
+Immutable source: `8a269288addcb4aa8ea3d0ce46608b650cbdb6dc`.
 
-```text
-8a269288addcb4aa8ea3d0ce46608b650cbdb6dc
-```
-
-Release workflow:
-
-```text
-run 32136955056
-```
-
-The tag/source was correct, but the GitHub Release was published with `prerelease=false` even though the tag is a SemVer prerelease. `Release / Verify → Validate release metadata` invoked the contract with:
-
-```text
---tag "v0.1.0-rc.4"
---prerelease "false"
-```
-
-and failed with:
-
-```text
-ValueError: GitHub prerelease flag must match the SemVer prerelease state
-```
-
-All later verify steps were skipped. `Release / Publish` was skipped entirely, so rc.4 created no new GHCR promotion, OCI `latest` mutation, SBOM, attestation, staging/final release smoke or evidence/checksum assets.
-
-Because GitHub received `prerelease=false`, the rc.4 release object was temporarily exposed as the repository's `Latest release`. That is GitHub presentation metadata only; it is not evidence of OCI `latest` mutation. The existing release presentation should be corrected to **Set as a pre-release** without moving or deleting its tag. rc.4 nevertheless remains a failed release-contract attempt.
+Run `32136955056` failed before write-capable publication because GitHub supplied `prerelease=false` for a SemVer prerelease. No final package/evidence/latest side effects occurred.
 
 Detailed record: [`v0.1.0-rc.4-release-failure-2026-08-18.md`](v0.1.0-rc.4-release-failure-2026-08-18.md).
 
-## Next validation — `v0.1.0-rc.5`
+### `v0.1.0-rc.5` — 2026-08-19 — FAILED WEB SECURITY GATE
 
-The next attempt must be a **new immutable prerelease** from a newly selected exact verified `main` SHA:
+Immutable source: `a485c80dc1eb36122791c629f92b247354b0ee09`.
+
+Run `32224834303` eventually completed Verify on attempt 2 after an infrastructure-only Chromium/Ubuntu-mirror timeout on attempt 1. Publish built API/web multi-arch staging candidates and passed both API HIGH/CRITICAL gates, then failed at web amd64.
+
+Fresh normal CI reproduced exactly one OS-level HIGH finding on the unchanged Distroless Debian 13 web runtime:
 
 ```text
-v0.1.0-rc.5
+libssl3t64 3.5.6-1~deb13u2
+CVE-2026-14456
+status: fix_deferred
 ```
 
-Issue #152 is the operational gate.
+No final `0.1.0-rc.5` OCI promotion, `latest`, final smoke, provenance or release evidence assets occurred.
+
+Detailed record: [`v0.1.0-rc.5-release-failure-2026-08-19.md`](v0.1.0-rc.5-release-failure-2026-08-19.md).
+
+## Next validation — `v0.1.0-rc.6`
+
+Issue #152 and recovery PR #179 are the operational gate.
+
+The recovery does **not** lower severity or set `ignore-unfixed`. It keeps the minimal Distroless Debian 13 runtime and applies one exact-version OpenVEX `not_affected` statement only after final-image reachability guards pass. Two base-image alternatives were tested and rejected because fresh Trivy evidence showed materially larger HIGH/CRITICAL surfaces.
 
 Before publication:
 
-1. merge canonical rc.4-failure/rc.5 documentation through fresh CI/review;
-2. record the resulting exact `main` SHA in #152;
-3. verify all normal push workflow groups against that exact SHA;
-4. confirm `v0.1.0-rc.5` is absent;
-5. in the GitHub release form, explicitly enable **Set as a pre-release**;
-6. target the exact selected SHA, not floating `main`;
-7. publish rather than save a draft.
+1. #179 must finish on one exact head with 9/9 PR workflow groups SUCCESS;
+2. Container Security/Web must prove VEX contract + final-image guard + visible exact suppression + zero unsuppressed HIGH/CRITICAL findings;
+3. merge #179 and verify all normal exact-main push workflow groups;
+4. record the exact verified `main` SHA in #152;
+5. confirm `v0.1.0-rc.6` is absent;
+6. create one GitHub prerelease targeting that exact SHA with **Set as a pre-release enabled**.
 
-A successful rc.5 must pass both release jobs end to end and prove:
+A successful rc.6 must prove:
 
 - exact metadata/main ancestry;
 - repository verification and production browser E2E;
 - API/web `linux/amd64` + `linux/arm64` staging indexes;
-- unchanged Trivy `HIGH,CRITICAL` gate;
+- VEX/runtime guards on both web architectures;
+- API scans without VEX and web scans with only the reviewed suppression;
+- unchanged fail-closed `HIGH,CRITICAL` behavior for every other finding;
 - SPDX SBOMs;
 - staging exact-digest Compose smoke;
-- copy-without-rebuild final promotion with digest identity;
+- digest-preserving copy-without-rebuild final promotion;
 - final exact-digest smoke;
 - provenance attestations;
-- prerelease OCI `0.1.0-rc.5` tags without OCI `latest` mutation;
+- prerelease OCI `0.1.0-rc.6` tags without OCI `latest` mutation;
 - final manifest architecture checks;
-- attached evidence/checksum assets;
-- package visibility evidence.
+- attached manifests, vulnerability reports, SBOMs, OpenVEX and checksums.
 
 Do not create stable `v0.1.0` until at least one prerelease completes the entire workflow and its manual product canary is accepted.
 
