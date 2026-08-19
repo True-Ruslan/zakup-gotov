@@ -45,7 +45,7 @@ jobs:
         run: pnpm --dir apps/retailer-bridge build
 
       - name: Install Playwright Chromium
-        run: pnpm --dir apps/retailer-bridge exec playwright install --with-deps chromium
+        run: bash scripts/ci/install-playwright-chromium.sh pnpm --dir apps/retailer-bridge exec playwright install --with-deps chromium
 
       - name: Run bridge Chromium E2E
         run: pnpm --dir apps/retailer-bridge test:e2e

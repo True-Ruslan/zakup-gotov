@@ -41,8 +41,30 @@ jobs:
             --tag "${{ matrix.image }}" \
             .
 
-      - name: Scan HIGH/CRITICAL vulnerabilities
+      - name: Validate web VEX contract
+        if: matrix.name == 'Web'
+        run: python3 scripts/security/validate_web_vex.py
+
+      - name: Verify web VEX runtime assumptions
+        if: matrix.name == 'Web'
+        run: bash scripts/security/verify_web_vex_runtime.sh "${{ matrix.image }}" linux/amd64 local
+
+      - name: Scan API HIGH/CRITICAL vulnerabilities
+        if: matrix.name == 'API'
         uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
+        with:
+          image-ref: ${{ matrix.image }}
+          format: table
+          severity: CRITICAL,HIGH
+          exit-code: "1"
+          scanners: vuln
+
+      - name: Scan Web HIGH/CRITICAL vulnerabilities with reviewed VEX
+        if: matrix.name == 'Web'
+        uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
+        env:
+          TRIVY_VEX: security/vex/CVE-2026-14456.openvex.json
+          TRIVY_SHOW_SUPPRESSED: "true"
         with:
           image-ref: ${{ matrix.image }}
           format: table
