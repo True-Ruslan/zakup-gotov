@@ -64,6 +64,7 @@ jobs:
         uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
         env:
           TRIVY_VEX: security/vex/CVE-2026-14456.openvex.json
+          TRIVY_SHOW_SUPPRESSED: "true"
         with:
           image-ref: ${{ matrix.image }}
           format: table
