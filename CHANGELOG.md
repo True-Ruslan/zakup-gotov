@@ -52,6 +52,7 @@ All notable project changes are recorded here. Zakup Gotov is pre-release; this 
 - Added durable release failure diagnostics that summarize already-created Trivy JSON findings into the Actions log when a fail-closed scan stops publication before release assets can be attached.
 - Successful releases include the exact OpenVEX document in release assets and `SHA256SUMS`.
 - Playwright Chromium installation in Web CI, Retailer Bridge CI and Release Verify uses bounded APT retries/timeouts plus descendant-safe process supervision so a timed-out privileged package-manager subtree cannot leak into a same-run retry and keep `dpkg` locks.
+- Added an owner-gated review-assisted rc.7 product canary evidence workflow that verifies the immutable tag, release metadata, checksums and digest-pinned API/Web image refs; runs the published bundle without rebuilding application images; captures desktop/narrow, draft, Recipe, manual-list, unavailable and restart/recovery evidence; and deliberately leaves the stable-release verdict to manual review.
 
 ### Changed
 
@@ -114,7 +115,7 @@ Release workflow: `32293764820`, attempt 1 — **SUCCESS**.
 Source:
 
 ```text
-946bc19d6ca4a544c13d74f420fce12b1e5fe815
+946bc19d6ca4aa544c13d74f420fce12b1e5fe815
 ```
 
 - GitHub prerelease metadata and immutable tag/source were correct.
