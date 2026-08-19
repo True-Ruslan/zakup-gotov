@@ -1,6 +1,6 @@
 # Project State
 
-Updated: 2026-08-18
+Updated: 2026-08-19
 
 ## Project
 
@@ -9,7 +9,7 @@ Updated: 2026-08-18
 Repository: `True-Ruslan/zakup-gotov`  
 Visibility: Public  
 Current product phase: **M5 — Productization**  
-Immediate operational target: **`v0.1.0-rc.5` end-to-end release validation**
+Immediate operational target: **recover the release security gate and validate `v0.1.0-rc.6` end to end**
 
 The product/core and retailer-connectivity tracks remain independent. Technical retailer reachability is not production approval, and merged transport code is not automatically an accepted offer provider.
 
@@ -27,6 +27,7 @@ The product/core and retailer-connectivity tracks remain independent. Technical 
 - Chizhik D2 fixed store-scoped search transport — **IMPLEMENTED / MERGED, OFFER MAPPING DISABLED** (#169/#171);
 - Chizhik D2 browser-evidenced store-context binding — **COMPLETE / ACCEPTED** (#173/#174);
 - Chizhik D2 user-invoked schema-canary implementation — **IMPLEMENTED / DRAFT, NOT MERGED** (#177);
+- release recovery after rc.5 web security-gate failure — **IN PROGRESS** (#179);
 - M5.2 — **INTENTIONALLY UNSELECTED** until release/manual-use evidence identifies the next productization constraint.
 
 ## Accepted product/core baseline
@@ -55,7 +56,7 @@ D2 transport (#171) is merged but successful JSON remains opaque to production. 
 
 Issue #169 remains open for ordinary-user-browser schema and monetary-unit evidence before any `BrowserObservation` / `ObservedOffer` mapping. Availability remains `UNKNOWN` unless explicit semantics are proven.
 
-Draft PR #177 implements a user-invoked privacy-hardened schema canary. Exact head `c38173f3b15b66fa892534989e1aa2f51d98468d` passed 9/9 PR workflow groups, including persistent-Chromium E2E, but remains unmerged until the current release-target sequence permits it.
+Draft PR #177 implements a user-invoked privacy-hardened schema canary. Exact head `c38173f3b15b66fa892534989e1aa2f51d98468d` passed 9/9 PR workflow groups on its previous baseline, but remains unmerged while release recovery is active. After rc.6 acceptance it must be refreshed against current `main` and reverified before merge.
 
 ## Release history and current gate
 
@@ -77,36 +78,81 @@ Immutable source:
 8a269288addcb4aa8ea3d0ce46608b650cbdb6dc
 ```
 
-Release workflow run `32136955056` failed in `Release / Verify` at `Validate release metadata` because GitHub published the SemVer prerelease tag with `prerelease=false`.
+Release run `32136955056` failed at `Release / Verify → Validate release metadata` because GitHub supplied `prerelease=false` for a SemVer prerelease tag. `Release / Publish` never started, so there was no GHCR promotion, OCI `latest` mutation, release SBOM/attestation or release smoke/evidence publication.
 
-The contract raised:
-
-```text
-ValueError: GitHub prerelease flag must match the SemVer prerelease state
-```
-
-All later verify work was skipped and `Release / Publish` never started. Therefore rc.4 produced no new GHCR publication/promotion, no OCI `latest` mutation, no release SBOM/attestation/evidence assets and no staging/final release smoke evidence.
-
-GitHub temporarily treats rc.4 as `Latest release` because the release object was published as non-prerelease. Its presentation metadata should be corrected to `prerelease=true`, but the tag must remain immutable and rc.4 remains a **failed** release-contract attempt.
+The historical GitHub release presentation still reports `prerelease=false`; this UI metadata should be corrected without moving/deleting the tag. rc.4 remains failed historical evidence regardless.
 
 Failure record: [`v0.1.0-rc.4-release-failure-2026-08-18.md`](v0.1.0-rc.4-release-failure-2026-08-18.md).
 
-### `v0.1.0-rc.5` — NEXT OPERATIONAL TARGET
+### `v0.1.0-rc.5` — FAILED CLOSED AT WEB SECURITY GATE
 
-Issue: #152.
+Immutable source:
+
+```text
+a485c80dc1eb36122791c629f92b247354b0ee09
+```
+
+Release workflow `32224834303` had two Verify attempts. The first reached repository verification and then timed out while Ubuntu package mirrors stalled during Playwright Chromium dependency installation. The exact immutable Verify job was rerun; attempt 2 completed metadata, ancestry, repository verification, browser E2E and production release-bundle verification successfully.
+
+`Release / Publish` then built API and web staging indexes for `linux/amd64` + `linux/arm64`; both API HIGH/CRITICAL Trivy gates passed. The web amd64 gate failed closed on the exact staging digest:
+
+```text
+ghcr.io/true-ruslan/zakup-gotov-staging-web@sha256:8483c5e5a17d9208964230f715b312475b780cb001d7aafe684eea0f6a0fd171
+```
+
+Fresh ordinary Container Security CI reproduced the finding on the unchanged production image:
+
+```text
+package: libssl3t64
+version: 3.5.6-1~deb13u2
+CVE: CVE-2026-14456
+severity: HIGH
+status: fix_deferred
+```
+
+No Node/application package vulnerability was reported. Because the web gate failed, all downstream SBOM completion, staging/final exact-digest smoke, digest-preserving final copy, provenance, `0.1.0-rc.5` OCI promotion, `latest`, manifests/checksums and release assets were skipped. The release contract therefore failed closed correctly.
+
+Failure record: [`v0.1.0-rc.5-release-failure-2026-08-19.md`](v0.1.0-rc.5-release-failure-2026-08-19.md).
+
+### rc.5 security root cause and recovery
+
+CVE-2026-14456 affects an OpenSSL QUIC server-listener path. The production web runtime does not enable Node experimental QUIC. A final-image guard now proves before scanning that:
+
+- final Entrypoint/Cmd does not contain `--experimental-quic`;
+- `/nodejs/bin/node` does not dynamically link system `libssl` or `libcrypto`;
+- no final native `*.node` addon dynamically links system `libssl` or `libcrypto`.
+
+Two base-image substitutions were tested and rejected: full Node Debian 12 expanded the runtime surface to 29 HIGH/CRITICAL findings; Distroless Debian 12 exposed seven HIGH/CRITICAL OpenSSL findings including a CRITICAL fixable issue.
+
+Recovery PR #179 therefore keeps the minimal Distroless Debian 13 runtime and adds a reviewed OpenVEX statement scoped only to:
+
+```text
+CVE-2026-14456
+pkg:deb/debian/libssl3t64@3.5.6-1~deb13u2
+status: not_affected
+justification: vulnerable_code_not_in_execute_path
+```
+
+The VEX is guarded by an exact contract validator and final-image reachability checks. API scans receive no VEX. Web scans retain `CRITICAL,HIGH` and `exit-code=1` for every unsuppressed finding. Normal CI exposes suppressed findings for auditability; release CI guards both architectures, includes the VEX in checksummed release evidence, and prints concise Trivy JSON evidence to logs if a future security gate fails before assets can be attached.
+
+Security assessment: [`security/CVE-2026-14456-vex-assessment.md`](security/CVE-2026-14456-vex-assessment.md).
+
+### `v0.1.0-rc.6` — NEXT OPERATIONAL TARGET
+
+Issue: #152. Recovery implementation: #179.
 
 Required sequence:
 
-1. merge this canonical documentation correction through fresh exact-head CI/review;
-2. record the resulting exact `main` SHA in #152;
-3. verify all normal exact-main push workflow groups are SUCCESS;
-4. confirm `v0.1.0-rc.5` tag/release is absent immediately before publication;
-5. publish one GitHub prerelease targeting only the recorded exact SHA with **Set as a pre-release enabled**;
-6. require `Release / Verify` and `Release / Publish` to complete the existing immutable contract;
-7. inspect multi-arch staging, Trivy `HIGH,CRITICAL`, SPDX SBOM, exact-digest staging/final smoke, copy-without-rebuild promotion, provenance, manifests, evidence/checksums and package visibility;
-8. verify OCI `latest` remains untouched;
-9. run the manual product canary from immutable rc.5 artifacts;
-10. select M5.2 only from resulting evidence.
+1. complete #179 with canonical documentation and one final exact-head 9/9 PR CI pass;
+2. require Container Security/Web to prove VEX contract + final-image reachability and to show the exact suppressed finding while all other HIGH/CRITICAL findings remain fail-closed;
+3. merge #179 only after fresh review/CI;
+4. record the resulting exact `main` SHA and verify all normal exact-main push workflow groups;
+5. confirm `v0.1.0-rc.6` tag/release is absent immediately before publication;
+6. publish one GitHub prerelease targeting only that exact SHA with **Set as a pre-release enabled**;
+7. require `Release / Verify` and `Release / Publish` to complete end to end;
+8. inspect both architecture VEX guards, all four Trivy gates, SPDX SBOMs, staging/final exact-digest smoke, copy-without-rebuild digest identity, provenance, manifests, OpenVEX/checksums and package visibility;
+9. verify OCI `latest` remains untouched;
+10. run the manual product canary from immutable rc.6 artifacts.
 
 Stable `v0.1.0` remains blocked until a prerelease completes the full release workflow and manual acceptance is satisfactory.
 
@@ -122,6 +168,7 @@ Stable `v0.1.0` remains blocked until a prerelease completes the full release wo
 - Analytics abstraction, feature flags and provider-health monitoring remain possible M5.2 candidates, not preselected work.
 - Richer substitute/package optimization and multi-store split optimization are deferred.
 - Native mobile remains future M6 work.
+- rc.4 GitHub presentation metadata remains stale (`prerelease=false`).
 
 ## Permanent invariants
 
@@ -149,6 +196,7 @@ Stable `v0.1.0` remains blocked until a prerelease completes the full release wo
 22. No price mapping is accepted until the source field and monetary unit/scale are evidenced.
 23. Published release tags are immutable historical evidence and are never repointed, including failed release candidates.
 24. Release metadata must match SemVer prerelease state before any write-capable publication work.
+25. Security exceptions must be machine-readable, narrowly scoped, evidence-backed and fail closed when their runtime assumptions change.
 
 ## Platform baseline
 
