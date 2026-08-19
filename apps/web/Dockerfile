@@ -18,7 +18,7 @@ ENV NEXT_TELEMETRY_DISABLED=1
 RUN pnpm --filter @zakup-gotov/api-client build \
     && pnpm --filter web build
 
-FROM node:24.19.0-bookworm-slim@sha256:3638d9a6fe4030bd716be989438248074489337ba3275657f93595428be4fc03 AS runtime
+FROM gcr.io/distroless/nodejs24-debian12:nonroot AS runtime
 
 ENV NODE_ENV=production \
     NEXT_TELEMETRY_DISABLED=1 \
@@ -27,14 +27,13 @@ ENV NODE_ENV=production \
 
 WORKDIR /app
 
-COPY --from=build --chown=node:node /workspace/apps/web/.next/standalone ./
-COPY --from=build --chown=node:node /workspace/apps/web/.next/static /app/apps/web/.next/static
+COPY --from=build --chown=65532:65532 /workspace/apps/web/.next/standalone ./
+COPY --from=build --chown=65532:65532 /workspace/apps/web/.next/static /app/apps/web/.next/static
 
-USER node
+USER 65532
 EXPOSE 3000
 
 HEALTHCHECK --interval=10s --timeout=3s --start-period=10s --retries=10 \
-  CMD ["/usr/local/bin/node", "-e", "fetch('http://127.0.0.1:3000/').then(r => { if (!r.ok) process.exit(1) }).catch(() => process.exit(1))"]
+  CMD ["/nodejs/bin/node", "-e", "fetch('http://127.0.0.1:3000/').then(r => { if (!r.ok) process.exit(1) }).catch(() => process.exit(1))"]
 
-ENTRYPOINT ["/usr/local/bin/node"]
 CMD ["apps/web/server.js"]
