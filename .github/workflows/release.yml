@@ -74,7 +74,7 @@ jobs:
         run: ./scripts/verify.sh
 
       - name: Install Chromium
-        run: pnpm --filter web exec playwright install --with-deps chromium
+        run: bash scripts/ci/install-playwright-chromium.sh pnpm --filter web exec playwright install --with-deps chromium
 
       - name: Build shared API client
         run: pnpm --filter @zakup-gotov/api-client build
