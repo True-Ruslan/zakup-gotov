@@ -38,30 +38,59 @@ All notable project changes are recorded here. Zakup Gotov is pre-release; this 
 - D1 is **COMPLETE / ACCEPTED**: the normal user-browser MV3 Retailer Bridge is the selected acquisition architecture.
 - D2 transport foundation (#169/#171) adds exact bounded store-scoped delivery search while keeping successful JSON opaque and automatic search/offer production disabled.
 - D2 store-context binding (#173/#174) accepts only exactly one first-party browser-evidenced store intersecting the validated directory; missing/foreign/unknown/conflicting context fails closed.
-- Draft PR #177 implements an explicit user-invoked privacy-hardened schema canary with no permission widening, fixed candidate-field allowlist and persistent-Chromium E2E; exact head `c38173f3b15b66fa892534989e1aa2f51d98468d` passed 9/9 PR workflow groups.
+- Draft PR #177 implements an explicit user-invoked privacy-hardened schema canary with no permission widening, fixed candidate-field allowlist and persistent-Chromium E2E; it remains frozen until release recovery completes.
 - Chizhik offer mapping remains blocked on ordinary-user-browser product-schema evidence plus independent monetary-unit/scale evidence. Unknown availability remains `UNKNOWN`.
+
+#### Release security recovery
+
+- Added a machine-readable OpenVEX assessment for exactly `CVE-2026-14456` on `pkg:deb/debian/libssl3t64@3.5.6-1~deb13u2` with `not_affected / vulnerable_code_not_in_execute_path`.
+- Added a VEX contract validator that fails if the reviewed statement is widened to another CVE, package or version.
+- Added a final-image runtime guard that fails if web enables `--experimental-quic` or if runtime Node/native addons dynamically link system `libssl`/`libcrypto`.
+- Added durable release failure diagnostics that summarize already-created Trivy JSON findings into the Actions log when a fail-closed scan stops publication before release assets can be attached.
+- Successful releases now include the exact OpenVEX document in release assets and `SHA256SUMS`.
 
 ### Changed
 
-- Current deterministic product phase is **M5 Productization**; M5.1 is complete/accepted and M5.2 remains intentionally unselected until release/manual-use evidence identifies the next constraint.
-- `v0.1.0-rc.4` is now historical **failed release-contract evidence**, not the next operational target.
-- The next operational release gate is **`v0.1.0-rc.5`**, tracked by #152.
+- Current deterministic product phase remains **M5 Productization**; M5.2 remains intentionally unselected until release/manual-use evidence identifies the next constraint.
+- `v0.1.0-rc.5` is historical **failed release-contract evidence**, not an accepted prerelease.
+- The next operational release gate is **`v0.1.0-rc.6`**, tracked by #152 with recovery PR #179.
+- Web Container Security CI applies VEX only after its exact contract and final-image reachability assumptions pass; API scans remain completely unfiltered.
+- Release CI applies the same web VEX only after independent amd64 and arm64 runtime guards.
 - Stable `v0.1.0` remains blocked until a prerelease completes the immutable release workflow and manual product canary satisfactorily.
-- Technical retailer accessibility and production/right-to-operate readiness remain independent facts.
 
 ### Fixed
 
-- Release planning no longer attempts to reuse an already-published prerelease tag for newer source.
-- `v0.1.0-rc.4` exposed an operator metadata defect: a SemVer prerelease tag was published with GitHub `prerelease=false`. The release contract rejected the mismatch before any write-capable publication work.
-- Canonical release planning now requires explicit pre-release-checkbox verification before publishing `v0.1.0-rc.5`.
+- Release planning does not reuse published prerelease tags for newer source.
+- `v0.1.0-rc.4` metadata mismatch remains recorded as a failed historical candidate rather than being retroactively accepted.
+- `v0.1.0-rc.5` exposed a real web image security-gate blocker; recovery now distinguishes package inventory from reachable vulnerable code through evidence-backed VEX rather than weakening Trivy severity.
+- Failed release Trivy JSON evidence is no longer silently lost with the ephemeral runner.
 - Chizhik store context can no longer be guessed from the first active store; exactly one browser-evidenced validated context is required.
 
 ### Security
 
+- Trivy `CRITICAL,HIGH` and `exit-code=1` remain unchanged for all unsuppressed findings.
+- The rc.5 web finding was reproduced outside the release workflow as `libssl3t64 3.5.6-1~deb13u2 / CVE-2026-14456 / HIGH / fix_deferred` with zero Node-package findings.
+- The production Node process does not enable experimental QUIC, and the final image guard proves Node plus native addons do not dynamically link system `libssl`/`libcrypto` before VEX is accepted.
+- Full Node Debian 12 runtime was rejected after fresh Trivy found 29 HIGH/CRITICAL findings; Distroless Debian 12 was rejected after seven HIGH/CRITICAL OpenSSL findings. The project does not trade one non-reachable inherited finding for a broader actionable surface.
+- Normal web CI shows suppressed findings for auditability; a future package-version change is not silently covered because the VEX PURL is exact-version scoped.
 - Precise addresses, credentials, provider tokens, private headers and raw sensitive provider payloads remain excluded from ordinary evidence/logging.
-- Chizhik connectivity adds no anti-bot bypass, stealth, proxy rotation, credential extraction or private-client impersonation.
-- Release vulnerability policy remains fail-closed at `HIGH,CRITICAL`; no ignore/suppression behavior is added to make releases pass.
 - Published release tags, including failed candidates, are immutable historical evidence and are never repointed.
+
+## [0.1.0-rc.5] — 2026-08-19 — FAILED WEB SECURITY GATE
+
+Source:
+
+```text
+a485c80dc1eb36122791c629f92b247354b0ee09
+```
+
+- GitHub prerelease metadata and immutable tag/source were correct.
+- Release run `32224834303` attempt 1 timed out during external Ubuntu package retrieval while installing Chromium dependencies after repository verification had passed.
+- Exact immutable Verify was rerun; attempt 2 passed metadata, ancestry, repository verification, browser E2E and production release-bundle verification.
+- Publish built API and web staging indexes for `linux/amd64` + `linux/arm64` and passed API amd64/arm64 Trivy gates.
+- Web amd64 then failed closed on `CVE-2026-14456` in inherited `libssl3t64 3.5.6-1~deb13u2`.
+- No final `0.1.0-rc.5` OCI promotion, OCI `latest` mutation, final smoke, provenance or release evidence assets occurred.
+- Full record: `docs/v0.1.0-rc.5-release-failure-2026-08-19.md`.
 
 ## [0.1.0-rc.4] — 2026-08-18 — FAILED RELEASE METADATA CONTRACT
 
@@ -72,11 +101,8 @@ Source:
 ```
 
 - Tag/source selection was correct and immutable.
-- Release workflow run `32136955056` failed at `Release / Verify → Validate release metadata`.
-- GitHub supplied `prerelease=false` for SemVer prerelease tag `v0.1.0-rc.4`; `release_contract.py` correctly rejected the mismatch.
-- Every later verify step was skipped and `Release / Publish` never started.
-- Therefore rc.4 produced no new GHCR promotion, OCI `latest` mutation, release SBOM, provenance attestation, staging/final exact-digest release smoke or release evidence assets.
-- GitHub temporarily treated rc.4 as `Latest release` because the release object was published as non-prerelease; presentation metadata should be corrected without moving/deleting the tag.
+- Release workflow run `32136955056` failed at `Release / Verify → Validate release metadata` because GitHub supplied `prerelease=false` for the SemVer prerelease.
+- `Release / Publish` never started, so there was no final package/evidence/latest side effect.
 - Full record: `docs/v0.1.0-rc.4-release-failure-2026-08-18.md`.
 
 ## [0.1.0-rc.3] — historical prerelease
