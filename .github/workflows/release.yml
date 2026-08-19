@@ -137,7 +137,10 @@ jobs:
             image=moby/buildkit@sha256:2f5adac4ecd194d9f8c10b7b5d7bceb5186853db1b26e5abd3a657af0b7e26ec
 
       - name: Prepare release evidence directory
-        run: mkdir -p dist
+        run: |
+          set -euo pipefail
+          mkdir -p dist
+          cp security/vex/CVE-2026-14456.openvex.json dist/web-CVE-2026-14456.openvex.json
 
       - name: Build and push API candidate
         id: api-build
@@ -175,6 +178,21 @@ jobs:
           cache-from: type=gha,scope=release-web
           cache-to: type=gha,mode=max,scope=release-web
 
+      - name: Validate web VEX contract
+        run: python3 scripts/security/validate_web_vex.py
+
+      - name: Verify web VEX runtime assumptions on amd64
+        run: |
+          bash scripts/security/verify_web_vex_runtime.sh \
+            "${{ steps.release.outputs.web_staging_image }}@${{ steps.web-build.outputs.digest }}" \
+            linux/amd64
+
+      - name: Verify web VEX runtime assumptions on arm64
+        run: |
+          bash scripts/security/verify_web_vex_runtime.sh \
+            "${{ steps.release.outputs.web_staging_image }}@${{ steps.web-build.outputs.digest }}" \
+            linux/arm64
+
       - name: Scan API candidate for HIGH/CRITICAL vulnerabilities on amd64
         uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
         env:
@@ -209,6 +227,7 @@ jobs:
           TRIVY_USERNAME: ${{ github.actor }}
           TRIVY_PASSWORD: ${{ github.token }}
           TRIVY_PLATFORM: linux/amd64
+          TRIVY_VEX: security/vex/CVE-2026-14456.openvex.json
         with:
           image-ref: ${{ steps.release.outputs.web_staging_image }}@${{ steps.web-build.outputs.digest }}
           format: json
@@ -223,6 +242,7 @@ jobs:
           TRIVY_USERNAME: ${{ github.actor }}
           TRIVY_PASSWORD: ${{ github.token }}
           TRIVY_PLATFORM: linux/arm64
+          TRIVY_VEX: security/vex/CVE-2026-14456.openvex.json
         with:
           image-ref: ${{ steps.release.outputs.web_staging_image }}@${{ steps.web-build.outputs.digest }}
           format: json
@@ -230,6 +250,20 @@ jobs:
           severity: CRITICAL,HIGH
           exit-code: "1"
           scanners: vuln
+
+      - name: Report vulnerability gate failure evidence
+        if: failure()
+        run: |
+          set -euo pipefail
+          shopt -s nullglob
+          reports=(dist/*-vulnerabilities.json)
+          if (( ${#reports[@]} == 0 )); then
+            echo "No Trivy JSON report was created before the failure."
+            exit 0
+          fi
+          for report in "${reports[@]}"; do
+            python3 scripts/security/report_trivy_json.py "${report}"
+          done
 
       - name: Generate API amd64 SPDX SBOM
         uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
@@ -407,6 +441,7 @@ jobs:
             dist/web-manifest.json \
             dist/*-vulnerabilities.json \
             dist/*-sbom.spdx.json \
+            dist/*.openvex.json \
             > dist/SHA256SUMS
 
       - name: Attach verified release assets
@@ -422,4 +457,5 @@ jobs:
             dist/web-manifest.json \
             dist/*-vulnerabilities.json \
             dist/*-sbom.spdx.json \
+            dist/*.openvex.json \
             --clobber
