@@ -9,6 +9,7 @@ fi
 readonly max_attempts="${PLAYWRIGHT_INSTALL_ATTEMPTS:-2}"
 readonly attempt_timeout_seconds="${PLAYWRIGHT_INSTALL_TIMEOUT_SECONDS:-360}"
 readonly apt_conf="/etc/apt/apt.conf.d/80-zakup-gotov-ci-network"
+readonly supervisor="scripts/ci/run_with_timeout.py"
 
 if ! [[ "${max_attempts}" =~ ^[1-9][0-9]*$ ]]; then
   echo "PLAYWRIGHT_INSTALL_ATTEMPTS must be a positive integer" >&2
@@ -18,8 +19,12 @@ if ! [[ "${attempt_timeout_seconds}" =~ ^[1-9][0-9]*$ ]]; then
   echo "PLAYWRIGHT_INSTALL_TIMEOUT_SECONDS must be a positive integer" >&2
   exit 64
 fi
-if ! command -v timeout >/dev/null 2>&1; then
-  echo "GNU timeout is required for bounded Playwright installation" >&2
+if ! command -v python3 >/dev/null 2>&1; then
+  echo "python3 is required for descendant-safe Playwright installation" >&2
+  exit 1
+fi
+if [[ ! -f "${supervisor}" ]]; then
+  echo "bounded process supervisor is missing: ${supervisor}" >&2
   exit 1
 fi
 
@@ -44,10 +49,10 @@ fi
 for (( attempt = 1; attempt <= max_attempts; attempt++ )); do
   echo "Playwright Chromium install attempt ${attempt}/${max_attempts} (timeout ${attempt_timeout_seconds}s)"
 
-  if timeout \
-    --signal=TERM \
-    --kill-after=15s \
-    "${attempt_timeout_seconds}s" \
+  if python3 "${supervisor}" \
+    --timeout-seconds "${attempt_timeout_seconds}" \
+    --kill-after-seconds 15 \
+    -- \
     "$@"; then
     echo "Playwright Chromium install completed on attempt ${attempt}."
     exit 0
