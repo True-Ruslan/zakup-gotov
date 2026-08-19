@@ -52,7 +52,7 @@ class ManualProductCanaryContractTest(unittest.TestCase):
             "published release compose must contain exactly two digest-pinned GHCR application images",
             "docker compose -f \"$COMPOSE_FILE\" pull",
             "docker compose -f \"$COMPOSE_FILE\" up --detach --wait --wait-timeout 180",
-            "scripts/ci/install-playwright-chromium.sh apps/web",
+            "bash scripts/ci/install-playwright-chromium.sh pnpm --dir apps/web exec playwright install --with-deps chromium",
             "node apps/web/scripts/release-canary-capture.mjs normal",
             "docker compose -f \"$COMPOSE_FILE\" stop api",
             "node apps/web/scripts/release-canary-capture.mjs api-unavailable",
