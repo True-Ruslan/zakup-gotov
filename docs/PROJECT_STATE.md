@@ -1,6 +1,6 @@
 # Project State
 
-Updated: 2026-08-19
+Updated: 2026-08-20
 
 ## Project
 
@@ -9,9 +9,10 @@ Updated: 2026-08-19
 Repository: `True-Ruslan/zakup-gotov`  
 Visibility: Public  
 Current product phase: **M5 — Productization**  
-Immediate operational target: **complete rc.6 release-tooling recovery and validate `v0.1.0-rc.7` end to end**
+Current `main`: `9822659c1b43df978e191e6f7826775fc615926d`  
+Immediate operational targets: **manual product acceptance of immutable `v0.1.0-rc.7`** and **ordinary-user-browser Chizhik D2 evidence for #169**.
 
-The product/core and retailer-connectivity tracks remain independent. Technical retailer reachability is not production approval, and merged transport code is not automatically an accepted offer provider.
+The product/core and retailer-connectivity tracks remain independent. Technical retailer reachability is not production approval, merged transport code is not automatically an accepted offer provider, and automated release acceptance is not manual product acceptance.
 
 ## Milestone status
 
@@ -26,9 +27,11 @@ The product/core and retailer-connectivity tracks remain independent. Technical 
 - Chizhik D1 user-browser transport decision — **COMPLETE / ACCEPTED** (#167/#168);
 - Chizhik D2 fixed store-scoped search transport — **IMPLEMENTED / MERGED, OFFER MAPPING DISABLED** (#169/#171);
 - Chizhik D2 browser-evidenced store-context binding — **COMPLETE / ACCEPTED** (#173/#174);
-- Chizhik D2 user-invoked schema-canary implementation — **IMPLEMENTED / DRAFT, NOT MERGED** (#177);
-- rc.5 web security-gate recovery — **IMPLEMENTED / MERGED** (#179);
-- rc.6 multi-architecture VEX runtime-guard materialization recovery — **IMPLEMENTED IN RECOVERY PR #180; RC.7 VALIDATION NEXT**;
+- Chizhik D2 user-invoked sanitized schema canary — **IMPLEMENTED / MERGED, LIVE EVIDENCE PENDING** (#177);
+- rc.5 web security-gate recovery — **COMPLETE / VALIDATED IN RC.7** (#179);
+- rc.6 multi-architecture runtime-guard materialization recovery — **COMPLETE / VALIDATED IN RC.7** (#180);
+- `v0.1.0-rc.7` automated release contract — **ACCEPTED** (#152);
+- stable `v0.1.0` — **BLOCKED ON MANUAL RC.7 PRODUCT CANARY**;
 - M5.2 — **INTENTIONALLY UNSELECTED** until release/manual-use evidence identifies the next productization constraint.
 
 ## Accepted product/core baseline
@@ -55,13 +58,72 @@ D1 is accepted: an ordinary user browser can access the fixed `/api/v1/shops/` d
 
 D2 transport (#171) is merged but successful JSON remains opaque to production. D2 store context (#174) is accepted only when exactly one current-session first-party delivery resource produces a `sap_id` that intersects the validated store directory; missing/foreign/unknown/conflicting context fails closed.
 
-Issue #169 remains open for ordinary-user-browser schema and monetary-unit evidence before any `BrowserObservation` / `ObservedOffer` mapping. Availability remains `UNKNOWN` unless explicit semantics are proven.
+PR #177 was refreshed after rc.7 automated acceptance, passed fresh exact-head **9/9 PR workflow groups** plus final security/privacy review, and was squash-merged as current `main` commit `9822659c1b43df978e191e6f7826775fc615926d`.
 
-Draft PR #177 implements a user-invoked privacy-hardened schema canary. Exact head `c38173f3b15b66fa892534989e1aa2f51d98468d` passed 9/9 PR workflow groups on its previous baseline, but remains unmerged while release recovery is active. After rc.7 acceptance it must be refreshed against current `main` and reverified before merge.
+The merged schema canary:
+
+- runs only after an explicit toolbar-popup click;
+- adds no `host_permissions`; production permissions remain `storage` only;
+- requires the exact official `https://chizhik.club` page origin;
+- requires exactly one browser-evidenced store intersecting the validated directory;
+- performs exactly one fixed `кола`, `limit=1` D2 search per invocation;
+- emits only sanitized HTTP metadata plus bounded field/type structure for the reviewed allowlist;
+- never emits raw store/product/SKU/name/price/promotion/request/header/cookie/credential values;
+- leaves automatic D2 search and `BrowserObservation` / `ObservedOffer` production disabled.
+
+Issue #169 remains **OPEN**. Before any offer/price mapping it still requires:
+
+1. ordinary-user-browser live structural evidence from the merged sanitized canary;
+2. separate evidence proving the monetary unit/scale of `prices.regular` before `priceMinor` mapping;
+3. separately accepted availability semantics, otherwise availability stays `UNKNOWN`;
+4. no inferred promotion/loyalty/package/discount semantics.
+
+### Verified Retailer Bridge artifact
+
+Post-merge Retailer Bridge CI produced the exact-SHA artifact:
+
+```text
+retailer-bridge-9822659c1b43df978e191e6f7826775fc615926d
+```
+
+Artifact id: `9384831391`  
+Artifact SHA-256: `255429d51f5df9c6dae0d49c73aeb34ec8358287833027c8d7c93e293c130dc3`  
+Expires: 2026-09-02.
+
+The downloaded ZIP hash matches GitHub's artifact digest. It contains only `content.js`, `manifest.json`, `popup.html`, `popup.js` and `service-worker.js`; the packaged manifest retains only `permissions: ["storage"]`, no `host_permissions`, and the reviewed first-party content-script origins.
+
+This artifact is suitable as the exact verified bridge build for the ordinary-user-browser #169 canary. Its availability does not itself accept the live retailer schema.
+
+## Current main CI state
+
+Exact post-merge source:
+
+```text
+9822659c1b43df978e191e6f7826775fc615926d
+```
+
+All **8 expected `main` push workflow groups** are accepted successfully:
+
+- Release Contract CI;
+- Contract CI;
+- API CI;
+- Container Security CI;
+- CodeQL (Java + JavaScript/TypeScript);
+- Release Bundle CI;
+- Web CI / responsive Web E2E;
+- Retailer Bridge CI / persistent-Chromium extension E2E.
+
+Dependency Review is PR-only and therefore is not expected on a `main` push.
+
+The first post-merge Web E2E and Retailer Bridge browser jobs failed before tests because Ubuntu/Azure package mirrors stalled during bounded Playwright `--with-deps` installation. In both cases all source-level build/test gates preceding browser installation passed. Logs showed the configured 360-second bounded attempts terminating the package-manager process tree with exit 124; no product/browser-test assertion failed.
+
+Only those infrastructure-failed jobs were rerun against the **same exact SHA**, with no source change, timeout relaxation or security-threshold change. The targeted reruns completed Chromium installation and the real browser E2E successfully. Retailer Bridge additionally uploaded the verified exact-SHA artifact above.
+
+The bounded installer remains intentional: it uses finite attempts, APT network retries/timeouts and descendant-safe process termination rather than allowing an external mirror stall to hang CI indefinitely.
 
 ## Release history and current gate
 
-### `v0.1.0-rc.3` — historical prerelease
+### `v0.1.0-rc.3` — historical automated-accepted prerelease
 
 Immutable source:
 
@@ -81,7 +143,7 @@ Immutable source:
 
 Release run `32136955056` failed at `Release / Verify → Validate release metadata` because GitHub supplied `prerelease=false` for a SemVer prerelease tag. `Release / Publish` never started, so there was no GHCR promotion, OCI `latest` mutation, release SBOM/attestation or release smoke/evidence publication.
 
-The historical GitHub release presentation still reports `prerelease=false`; this UI metadata should be corrected without moving/deleting the tag. rc.4 remains failed historical evidence regardless.
+The historical GitHub Release presentation still reports `prerelease=false`; this UI metadata should be corrected without moving/deleting the tag. rc.4 remains failed historical evidence regardless.
 
 Failure record: [`v0.1.0-rc.4-release-failure-2026-08-18.md`](v0.1.0-rc.4-release-failure-2026-08-18.md).
 
@@ -93,49 +155,11 @@ Immutable source:
 a485c80dc1eb36122791c629f92b247354b0ee09
 ```
 
-Release workflow `32224834303` had two Verify attempts. The first reached repository verification and then timed out while Ubuntu package mirrors stalled during Playwright Chromium dependency installation. The exact immutable Verify job was rerun; attempt 2 completed metadata, ancestry, repository verification, browser E2E and production release-bundle verification successfully.
+Release run `32224834303` eventually completed Verify after one infrastructure-only Chromium/Ubuntu-mirror timeout, then failed closed at Web amd64 Trivy on inherited `libssl3t64 3.5.6-1~deb13u2 / CVE-2026-14456 / HIGH / fix_deferred`.
 
-`Release / Publish` then built API and web staging indexes for `linux/amd64` + `linux/arm64`; both API HIGH/CRITICAL Trivy gates passed. The web amd64 gate failed closed on the exact staging digest:
+Recovery #179 retained the minimal Distroless Debian 13 runtime and introduced one exact-version reviewed OpenVEX statement only after runtime reachability guards prove the affected OpenSSL path is not in the production execution path. API receives no VEX; every unsuppressed Web `HIGH,CRITICAL` finding retains `exit-code=1`.
 
-```text
-ghcr.io/true-ruslan/zakup-gotov-staging-web@sha256:8483c5e5a17d9208964230f715b312475b780cb001d7aafe684eea0f6a0fd171
-```
-
-Fresh ordinary Container Security CI reproduced the finding on the unchanged production image:
-
-```text
-package: libssl3t64
-version: 3.5.6-1~deb13u2
-CVE: CVE-2026-14456
-severity: HIGH
-status: fix_deferred
-```
-
-No Node/application package vulnerability was reported. Because the web gate failed, all downstream SBOM completion, staging/final exact-digest smoke, digest-preserving final copy, provenance, `0.1.0-rc.5` OCI promotion, `latest`, manifests/checksums and release assets were skipped. The release contract therefore failed closed correctly.
-
-Failure record: [`v0.1.0-rc.5-release-failure-2026-08-19.md`](v0.1.0-rc.5-release-failure-2026-08-19.md).
-
-### rc.5 security root cause and recovery
-
-CVE-2026-14456 affects an OpenSSL QUIC server-listener path. The production web runtime does not enable Node experimental QUIC. A final-image guard proves before scanning that:
-
-- final Entrypoint/Cmd does not contain `--experimental-quic`;
-- `/nodejs/bin/node` does not dynamically link system `libssl` or `libcrypto`;
-- no final native `*.node` addon dynamically links system `libssl` or `libcrypto`.
-
-Two base-image substitutions were tested and rejected: full Node Debian 12 expanded the runtime surface to 29 HIGH/CRITICAL findings; Distroless Debian 12 exposed seven HIGH/CRITICAL OpenSSL findings including a CRITICAL fixable issue.
-
-Recovery PR #179 kept the minimal Distroless Debian 13 runtime and added a reviewed OpenVEX statement scoped only to:
-
-```text
-CVE-2026-14456
-pkg:deb/debian/libssl3t64@3.5.6-1~deb13u2
-status: not_affected
-justification: vulnerable_code_not_in_execute_path
-```
-
-The VEX is guarded by an exact contract validator and final-image reachability checks. API scans receive no VEX. Web scans retain `CRITICAL,HIGH` and `exit-code=1` for every unsuppressed finding. Normal CI exposes suppressed findings for auditability; release CI guards both architectures, includes the VEX in checksummed release evidence, and prints concise Trivy JSON evidence to logs if a future security gate fails before assets can be attached.
-
+Failure record: [`v0.1.0-rc.5-release-failure-2026-08-19.md`](v0.1.0-rc.5-release-failure-2026-08-19.md).  
 Security assessment: [`security/CVE-2026-14456-vex-assessment.md`](security/CVE-2026-14456-vex-assessment.md).
 
 ### `v0.1.0-rc.6` — FAILED CLOSED AT ARM64 RUNTIME-GUARD MATERIALIZATION
@@ -146,55 +170,70 @@ Immutable source:
 946bc19d6ca4a544c13d74f420fce12b1e5fe815
 ```
 
-GitHub prerelease metadata and tag/source were correct. `Release / Verify` completed successfully. `Release / Publish` built both multi-architecture staging candidates, validated the exact web VEX contract and passed the real `linux/amd64` runtime guard.
-
-The following `linux/arm64` runtime guard failed before Trivy while pulling the same parent OCI index under a second platform:
+`Release / Verify` succeeded. `Release / Publish` built multi-architecture staging candidates and passed the amd64 Web runtime guard, then failed before Trivy when Docker attempted to materialize the same parent OCI-index digest as a second platform child:
 
 ```text
 cannot overwrite digest sha256:715c4484cabfcac849bf3d2b9bbbede380f705fb9b666fef67287021a764b460
 ```
 
-Recovery PR #180 reproduced the failure against the immutable rc.6 staging index on a fresh GitHub runner. The root cause is the local Docker image-store boundary: the same parent index digest cannot be materialized sequentially as two different platform children under one digest reference.
-
-Registry-mode runtime inspection now resolves the exact requested child manifest from the immutable parent index before pull/create and verifies the materialized OS/architecture. Missing, ambiguous or malformed descriptors fail closed. The same rc.6 index then passed both real architecture guards:
-
-```text
-linux/amd64 -> sha256:9eb77c8f70331def690af0e20e2ae2160ef4ef37d2666826499ddb968fa41d35
-linux/arm64 -> sha256:387275fa31e3b06a39264533d3f7409646af600079aea04d1216518bef5ca0c5
-```
-
-The arm64 child contained `@img/sharp-linux-arm64@0.35.3` and passed the same no-system-OpenSSL ELF checks. The VEX and Trivy policy remain unchanged.
-
-Because Publish stopped at the runtime guard, rc.6 produced no completed release vulnerability gates, SBOM/final-smoke/provenance, final OCI promotion, `latest` mutation or verified release assets.
+Recovery #180 reproduced the failure against the immutable rc.6 index and changed registry-mode runtime inspection to resolve the requested exact platform child manifest before local pull/create. Missing, ambiguous or malformed descriptors fail closed. That recovery was later validated by both real architecture guards in rc.7.
 
 Failure record: [`v0.1.0-rc.6-release-failure-2026-08-19.md`](v0.1.0-rc.6-release-failure-2026-08-19.md).
 
-### `v0.1.0-rc.7` — NEXT OPERATIONAL TARGET
+### `v0.1.0-rc.7` — AUTOMATED RELEASE CONTRACT ACCEPTED
 
-Issue: #152. Recovery implementation: #180.
+Immutable source:
 
-Required sequence:
+```text
+b754f5193f852db0312011f3f6c3ec6c7dd22eb2
+```
 
-1. complete #180 on one final exact head with all normal PR workflow groups green;
-2. require Release Contract CI to pass the permanent parent-index collision regression and strict OCI platform-resolver tests;
-3. require Container Security CI to prove local final-image guard behavior remains intact;
-4. review the final diff and merge #180 only after all gates pass;
-5. record the resulting exact `main` SHA and verify all normal exact-main push workflow groups;
-6. confirm `v0.1.0-rc.7` tag/release is absent immediately before publication;
-7. publish one GitHub prerelease targeting only that exact SHA with **Set as a pre-release enabled**;
-8. require `Release / Verify` and `Release / Publish` to complete end to end;
-9. inspect exact child-manifest resolution for both web architectures, all four Trivy gates, SPDX SBOMs, staging/final exact-digest smoke, copy-without-rebuild digest identity, provenance, manifests, OpenVEX/checksums and package visibility;
-10. verify OCI `latest` remains untouched;
-11. run the manual product canary from immutable rc.7 artifacts.
+GitHub Release metadata is correct: `draft=false`, `prerelease=true`, exact tag/source identity. Release workflow `32293764820`, attempt 1, completed **SUCCESS**.
 
-Stable `v0.1.0` remains blocked until a prerelease completes the full release workflow and manual acceptance is satisfactory.
+`Release / Verify` passed metadata, ancestry, pinned toolchain, repository verification, production Web build, responsive browser E2E and release-bundle verification.
+
+`Release / Publish` passed:
+
+- API/Web multi-architecture staging builds for `linux/amd64` + `linux/arm64`;
+- exact Web VEX contract;
+- Web runtime reachability guards on both architectures;
+- all four API/Web architecture-specific Trivy HIGH/CRITICAL gates;
+- four SPDX SBOM generations;
+- exact-digest staging smoke;
+- copy to final packages without rebuild and digest-identity assertion;
+- exact final-package smoke;
+- API/Web provenance attestations;
+- prerelease OCI promotion;
+- final manifest architecture verification;
+- release metadata/checksum/evidence generation and upload.
+
+The rc.6 platform-materialization failure did not recur. OCI `latest` was correctly skipped for the prerelease. The GitHub Release exposes the expected 14 evidence assets.
+
+**Automated rc.7 verdict: ACCEPTED.** Issue #152 records the immutable evidence. Later `main` commits, including #177, do not alter or retag rc.7.
+
+### Current stable-release gate — manual product canary
+
+Stable `v0.1.0` is **not accepted or released**.
+
+The remaining release gate is a manual product canary using immutable rc.7 release artifacts, not a rebuilt image or later `main` checkout. Required scenarios include:
+
+- WeeklyPlan → Pantry → comparison → optimization;
+- local draft save → reload → restore → clear;
+- Recipe comparison;
+- manual-list comparison;
+- desktop/narrow layout sanity;
+- restart/reload and safe unavailable/error states.
+
+Record the exact rc.7 artifacts/digests and pass/fail per scenario in #152. Only satisfactory manual acceptance can unblock a stable `v0.1.0` decision.
 
 ## Known constraints / technical debt
 
-- Chizhik offer mapping is blocked on real ordinary-browser schema/price-unit evidence (#169).
+- Chizhik offer mapping is blocked on ordinary-user-browser structural evidence plus independent price monetary-unit/scale evidence (#169).
+- Chizhik availability remains `UNKNOWN` until explicit semantics are separately evidenced.
 - Full production retailer coverage remains incomplete.
 - Magnit production acquisition remains policy-blocked despite technical public-web feasibility.
 - Kuper remains blocked on provider confirmation/access/reuse terms (#36).
+- Ozon Fresh, Samokat, Lenta, VkusVill and additional canonical banners remain mandatory connectivity work.
 - Real retailer checkout-economics evidence is not yet broadly available; unknown stays unknown.
 - Explicit omit-all/never-buy semantics are deferred.
 - Server-side saved-plan history/accounts/auth are not implemented.
@@ -202,6 +241,7 @@ Stable `v0.1.0` remains blocked until a prerelease completes the full release wo
 - Richer substitute/package optimization and multi-store split optimization are deferred.
 - Native mobile remains future M6 work.
 - rc.4 GitHub presentation metadata remains stale (`prerelease=false`).
+- GitHub-hosted Ubuntu package mirrors can transiently stall Playwright `--with-deps`; CI contains bounded fail-closed handling, but persistent recurrence would justify a separate evidence-backed CI-environment reliability change rather than unbounded retries or silently dropping dependency installation.
 
 ## Permanent invariants
 
@@ -231,6 +271,7 @@ Stable `v0.1.0` remains blocked until a prerelease completes the full release wo
 24. Release metadata must match SemVer prerelease state before any write-capable publication work.
 25. Security exceptions must be machine-readable, narrowly scoped, evidence-backed and fail closed when their runtime assumptions change.
 26. Multi-architecture registry evidence must resolve and verify the exact requested child manifest rather than relying on mutable or locally ambiguous parent-index materialization.
+27. A CI rerun may confirm an infrastructure-only failure only when source identity is unchanged and no verification/security threshold is weakened.
 
 ## Platform baseline
 

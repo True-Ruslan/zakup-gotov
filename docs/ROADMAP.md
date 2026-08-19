@@ -1,6 +1,6 @@
 # Roadmap
 
-Updated: 2026-08-19
+Updated: 2026-08-20
 
 The roadmap is evidence-driven. Technical connectivity, production-access readiness and deterministic product/core maturity are separate dimensions.
 
@@ -40,6 +40,8 @@ One versioned same-origin semantic WeeklyPlan/Pantry draft is accepted. Generate
 
 Do not preselect accounts, analytics, feature flags, provider health or saved history before real release/manual-use evidence identifies the highest-value productization constraint.
 
+The immediate productization evidence source is the immutable `v0.1.0-rc.7` manual product canary. A satisfactory manual canary is required before deciding whether stable `v0.1.0` is ready and before selecting M5.2 from actual usage constraints.
+
 ## Release validation history
 
 ### `v0.1.0-rc.3` — historical prerelease
@@ -58,62 +60,52 @@ Failure record: [`v0.1.0-rc.4-release-failure-2026-08-18.md`](v0.1.0-rc.4-releas
 
 Immutable source: `a485c80dc1eb36122791c629f92b247354b0ee09`.
 
-Release run `32224834303` eventually completed `Release / Verify` after one infrastructure-only Playwright/Ubuntu mirror timeout. `Release / Publish` built API/web multi-arch staging images and passed both API HIGH/CRITICAL scans, then failed closed at web amd64 Trivy.
+Release run `32224834303` eventually completed `Release / Verify`, then failed closed in `Release / Publish` at the Web amd64 HIGH/CRITICAL Trivy gate on inherited `libssl3t64 3.5.6-1~deb13u2 / CVE-2026-14456 / HIGH / fix_deferred`.
 
-The unchanged production image reproduced the exact root cause in normal Container Security CI:
+The accepted recovery keeps the minimal Distroless Debian 13 runtime, proves the vulnerable OpenSSL path is not reachable from the production Web runtime, and applies one exact-version OpenVEX statement only after final-image reachability guards pass. Trivy severity and `exit-code=1` remain unchanged for every unsuppressed finding.
 
-```text
-libssl3t64 3.5.6-1~deb13u2
-CVE-2026-14456
-HIGH
-fix_deferred
-```
+Failure record: [`v0.1.0-rc.5-release-failure-2026-08-19.md`](v0.1.0-rc.5-release-failure-2026-08-19.md). Security assessment: [`security/CVE-2026-14456-vex-assessment.md`](security/CVE-2026-14456-vex-assessment.md).
 
-No final rc.5 OCI promotion, `latest`, provenance, final smoke or release evidence assets occurred.
+### `v0.1.0-rc.6` — FAILED AT ARM64 RUNTIME-GUARD MATERIALIZATION
 
-Failure record: [`v0.1.0-rc.5-release-failure-2026-08-19.md`](v0.1.0-rc.5-release-failure-2026-08-19.md).
+Immutable source: `946bc19d6ca4a544c13d74f420fce12b1e5fe815`.
 
-## Immediate mainline target — `v0.1.0-rc.6`
+`Release / Verify` passed. Publish built the multi-architecture candidates and passed the amd64 Web runtime guard, then failed before Trivy when Docker attempted to materialize the same parent OCI-index digest as a second platform child and reported `cannot overwrite digest ...`.
 
-Issue: #152. Recovery implementation: draft PR #179.
+Recovery PR #180 reproduced the defect against the immutable rc.6 index, then changed registry-mode inspection to resolve and verify an exact platform child manifest before local pull/create. Missing, ambiguous or malformed platform descriptors fail closed.
 
-CVE-2026-14456 affects an OpenSSL QUIC server-listener code path. The production web process does not enable experimental QUIC, and final-image inspection proves that neither runtime Node nor the current native addon set dynamically links system `libssl`/`libcrypto`.
+Failure record: [`v0.1.0-rc.6-release-failure-2026-08-19.md`](v0.1.0-rc.6-release-failure-2026-08-19.md).
 
-Two attempted base-image replacements were rejected by fresh Trivy evidence because they increased the actionable HIGH/CRITICAL surface. Recovery therefore keeps the minimal Distroless Debian 13 runtime and uses a narrow OpenVEX statement scoped to the exact inherited package/version and CVE, with `not_affected / vulnerable_code_not_in_execute_path`.
+### `v0.1.0-rc.7` — AUTOMATED ACCEPTED; MANUAL CANARY PENDING
 
-This is **not** a weakened security threshold. Controls are:
+Immutable source: `b754f5193f852db0312011f3f6c3ec6c7dd22eb2`.
 
-- VEX contains exactly one reviewed CVE/package-version statement;
-- CI fails if the statement is widened;
-- final-image Entrypoint/Cmd must not enable `--experimental-quic`;
-- final Node and every `*.node` addon must not link system `libssl`/`libcrypto`;
-- VEX applies only to web scans; API scans are unchanged;
-- all unsuppressed `HIGH,CRITICAL` findings retain `exit-code=1`;
-- suppressed evidence is visible in ordinary CI logs;
-- release CI repeats the runtime guard on both amd64 and arm64;
-- the exact OpenVEX file becomes checksummed release evidence;
-- future failed JSON scans are summarized into durable workflow logs.
+Release run `32293764820` completed **SUCCESS on attempt 1**. The automated release contract passed end to end:
 
-Security assessment: [`security/CVE-2026-14456-vex-assessment.md`](security/CVE-2026-14456-vex-assessment.md).
+- release metadata/source identity and ancestry;
+- repository verification, production Web build and responsive browser E2E;
+- multi-architecture API/Web staging builds;
+- exact Web VEX contract plus amd64 and arm64 runtime reachability guards;
+- all four API/Web amd64/arm64 Trivy HIGH/CRITICAL gates;
+- four SPDX SBOMs;
+- exact-digest staging and final bundle smoke;
+- staging-to-final copy without rebuild and digest-identity assertion;
+- API/Web provenance attestations;
+- prerelease OCI promotion;
+- manifests, verification metadata, checksums, vulnerability reports, SBOMs, Compose and exact VEX release evidence.
 
-### Required rc.6 sequence
+The rc.6 platform-materialization failure did not recur. As required for a prerelease, OCI `latest` was not mutated.
 
-1. finish #179 documentation and recovery code;
-2. require a final exact-head **9/9 PR workflow** pass;
-3. explicitly inspect Container Security/Web: VEX contract PASS, runtime guard PASS, exact suppression visible, zero unsuppressed HIGH/CRITICAL findings;
-4. require Release Contract CI and Release Bundle CI PASS on that same head;
-5. merge #179 only after final review has no blocking findings/threads;
-6. verify all normal exact-main push workflows on the resulting merge SHA;
-7. confirm `v0.1.0-rc.6` tag/release are absent;
-8. freeze that exact SHA in #152;
-9. publish exactly one prerelease `v0.1.0-rc.6` with **Set as a pre-release enabled**;
-10. require `Release / Verify` + `Release / Publish` end to end;
-11. inspect both architecture runtime/VEX guards, all four vulnerability gates, SPDX SBOMs, staging/final exact-digest smoke, digest-preserving promotion, provenance, manifests, VEX/checksums and package visibility;
-12. verify prerelease OCI promotion does not mutate `latest`;
-13. run manual product canary from immutable rc.6 artifacts;
-14. only then release #177 back to mainline, refresh it against current `main`, and run fresh exact-head CI/review.
+**Automated rc.7 verdict: ACCEPTED.** Stable `v0.1.0` is still blocked on a separate manual product canary using the immutable rc.7 artifacts. Track this in #152.
 
-Stable `v0.1.0` remains blocked until prerelease evidence and manual acceptance are satisfactory.
+## Immediate mainline targets
+
+Two evidence tracks may proceed in parallel without conflating their acceptance criteria:
+
+1. **Release/product:** run and record the manual product canary from immutable `v0.1.0-rc.7` artifacts; only satisfactory manual acceptance can unblock a stable `v0.1.0` decision and inform M5.2.
+2. **Retailer connectivity:** obtain ordinary-user-browser Chizhik D2 structural evidence with the merged sanitized canary, then independently establish monetary unit/scale and any availability semantics before implementing offer mapping in #169.
+
+Do not retag rc.7 after the post-release `main` changes. The rc.7 source remains immutable historical/release evidence even while normal mainline development continues.
 
 ## Parallel retailer connectivity
 
@@ -133,11 +125,13 @@ Ordinary user-browser store-directory evidence succeeds; stock GitHub-hosted Chr
 
 #173/#174 accepts store context only from exact first-party delivery resource evidence already seen by the official browser session and intersected with the validated store directory. Missing/foreign/unknown/conflicting contexts fail closed.
 
-### Chizhik D2 schema canary — IMPLEMENTED / DRAFT
+### Chizhik D2 schema canary — IMPLEMENTED / MERGED; LIVE EVIDENCE PENDING
 
-Draft PR #177 adds an explicit user-invoked sanitized schema canary with no permission widening, a fixed candidate-field allowlist and real persistent-Chromium E2E. It remains frozen until rc.6 release recovery is accepted; after that it must be refreshed against current `main` and reverified.
+PR #177 was refreshed after rc.7 automated acceptance, passed fresh exact-head **9/9 PR workflow groups** plus final security/privacy review, and was squash-merged as `9822659c1b43df978e191e6f7826775fc615926d`.
 
-Do **not** implement production `BrowserObservation` / `ObservedOffer` mapping until #169 receives ordinary-user-browser evidence proving product container/identifier/name, price field **and monetary unit/scale**, plus explicit availability semantics if any. Unknown availability remains `UNKNOWN`.
+The merged canary is explicit user invocation only, performs exactly one fixed bounded search, requires exactly one browser-evidenced validated store context, adds no host permissions, and emits only bounded allowlisted field/type structure plus sanitized HTTP metadata.
+
+Do **not** implement production `BrowserObservation` / `ObservedOffer` mapping until #169 receives ordinary-user-browser evidence proving product container/identifier/name and price candidate structure, plus independent evidence of the price **monetary unit/scale**. Availability maps only from separately accepted semantics; otherwise it remains `UNKNOWN`. Promotion/package/loyalty/discount semantics are not inferred.
 
 ### Other mandatory retailer work
 

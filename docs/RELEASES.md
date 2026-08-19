@@ -82,6 +82,8 @@ Immutable source: `8a269288addcb4aa8ea3d0ce46608b650cbdb6dc`.
 
 Run `32136955056` failed before write-capable publication because GitHub supplied `prerelease=false` for a SemVer prerelease. No final package/evidence/latest side effects occurred.
 
+The historical GitHub Release presentation still reports `prerelease=false`; correcting that presentation must not move, delete or reuse the tag and does not retroactively accept rc.4.
+
 Detailed record: [`v0.1.0-rc.4-release-failure-2026-08-18.md`](v0.1.0-rc.4-release-failure-2026-08-18.md).
 
 ### `v0.1.0-rc.5` — 2026-08-19 — FAILED WEB SECURITY GATE
@@ -127,45 +129,39 @@ No rc.6 Trivy-release completion, SBOM completion, staging/final smoke, final OC
 
 Detailed record: [`v0.1.0-rc.6-release-failure-2026-08-19.md`](v0.1.0-rc.6-release-failure-2026-08-19.md).
 
-## Next validation — `v0.1.0-rc.7`
+### `v0.1.0-rc.7` — 2026-08-19 — AUTOMATED RELEASE CONTRACT ACCEPTED
 
-Issue #152 and recovery PR #180 are the operational gate.
+Immutable source: `b754f5193f852db0312011f3f6c3ec6c7dd22eb2`.
 
-The recovery changes only registry materialization for multi-architecture runtime inspection. It keeps the exact reviewed OpenVEX assessment and unchanged Trivy `CRITICAL,HIGH` + `exit-code=1` policy.
+Release workflow `32293764820`, attempt 1, completed **SUCCESS**.
 
-Before publication:
+Automated acceptance proved:
 
-1. #180 must finish on one exact head with all normal PR workflow groups SUCCESS;
-2. Release Contract CI must pass the permanent multi-platform collision regression and fail-closed OCI resolver tests;
-3. Container Security CI must prove the local final-image VEX/runtime guard still passes before the web scan;
-4. merge #180 only after fresh review/CI;
-5. verify all normal exact-main push workflow groups;
-6. record the exact verified `main` SHA in #152;
-7. confirm `v0.1.0-rc.7` is absent;
-8. create one GitHub prerelease targeting that exact SHA with **Set as a pre-release enabled**.
-
-A successful rc.7 must prove:
-
-- exact metadata/main ancestry;
-- repository verification and production browser E2E;
-- API/web `linux/amd64` + `linux/arm64` staging indexes;
-- parent-index → exact child-manifest resolution and VEX/runtime guards on both web architectures;
-- API scans without VEX and web scans with only the reviewed suppression;
-- unchanged fail-closed `HIGH,CRITICAL` behavior for every other finding;
-- SPDX SBOMs;
-- staging exact-digest Compose smoke;
-- digest-preserving copy-without-rebuild final promotion;
-- final exact-digest smoke;
-- provenance attestations;
-- prerelease OCI `0.1.0-rc.7` tags without OCI `latest` mutation;
+- exact tag/source identity, correct GitHub prerelease metadata and source ancestry on `main`;
+- repository verification, production web build, responsive browser E2E and production release-bundle smoke;
+- API/web staging OCI indexes for `linux/amd64` + `linux/arm64`;
+- exact web OpenVEX contract and runtime reachability guards on both architectures;
+- all four API/web architecture-specific Trivy HIGH/CRITICAL gates;
+- four SPDX JSON SBOMs;
+- exact-digest staging Compose smoke;
+- copy of verified indexes into final packages without rebuild and asserted digest identity;
+- exact final-package Compose smoke;
+- API/web provenance attestations;
+- prerelease OCI `0.1.0-rc.7` promotion without `latest` mutation;
 - final manifest architecture checks;
-- attached manifests, vulnerability reports, SBOMs, OpenVEX and checksums.
+- published manifests, vulnerability reports, four SBOMs, Compose, `release-verification.json`, `SHA256SUMS` and the exact OpenVEX document.
 
-Do not create stable `v0.1.0` until at least one prerelease completes the entire workflow and its manual product canary is accepted.
+The rc.6 `cannot overwrite digest ...` failure did not recur in the real release path: both exact platform runtime guards passed before Trivy.
 
-## Manual product canary after successful prerelease
+**Automated rc.7 verdict: ACCEPTED.** The release/tag remain immutable historical evidence. Normal mainline development may continue without retagging rc.7.
 
-Run from immutable release artifacts, not a source checkout:
+Issue #152 tracks the remaining manual product acceptance.
+
+## Current release gate — manual product canary
+
+Stable `v0.1.0` is **not** accepted or released yet.
+
+Run the manual product canary from immutable rc.7 release artifacts, not a later source checkout or rebuilt image:
 
 - WeeklyPlan → Pantry → comparison → optimization;
 - local draft save → reload → restore → clear;
@@ -174,11 +170,13 @@ Run from immutable release artifacts, not a source checkout:
 - desktop/narrow layout sanity;
 - restart/reload and safe unavailable/error states.
 
-M5.2 remains intentionally unselected until this evidence is reviewed.
+Record the exact rc.7 artifact/image digests used, pass/fail per scenario, and any defects in #152. Only satisfactory manual acceptance can unblock a stable `v0.1.0` decision.
+
+M5.2 remains intentionally unselected until this product-use evidence is reviewed.
 
 ## Manual local start
 
-Build images:
+For development-only local images, build:
 
 ```bash
 docker build -t zakup-gotov-api:local -f apps/api/Dockerfile .
@@ -200,3 +198,5 @@ Stop while retaining database data:
 ```bash
 docker compose -f compose.release.yaml down
 ```
+
+Development-only local builds do not satisfy the stable-release manual canary requirement; that canary must use immutable rc.7 release artifacts.

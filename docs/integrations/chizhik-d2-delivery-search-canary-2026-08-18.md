@@ -2,7 +2,9 @@
 
 ## Status
 
-**Implementation in draft PR #177; ordinary-user-browser evidence still required.**
+**IMPLEMENTED / MERGED; ordinary-user-browser evidence still required.**
+
+PR #177 was accepted and squash-merged into `main` as `9822659c1b43df978e191e6f7826775fc615926d` after fresh exact-head 9/9 PR CI and final security/privacy review.
 
 This canary exists only to obtain privacy-safe structural evidence for issue #169. It does not accept the delivery payload schema, monetary unit, availability semantics, offer mapping or production/right-to-operate status by itself.
 
@@ -27,7 +29,7 @@ The canary keeps the response payload opaque to ordinary bridge behavior. It is 
 
 ## Safety boundary
 
-The implementation in #177:
+The merged implementation from #177:
 
 - runs only after an explicit toolbar-popup button click;
 - adds no new extension permissions and no `host_permissions`;
@@ -47,7 +49,7 @@ This fixed allowlist means the canary may report that an expected candidate is a
 
 ## Running the canary
 
-Use an extension build containing #177. Until the PR is accepted and merged, use only an exact reviewed branch commit; do not treat a local or PR build as production evidence.
+Use a verified Retailer Bridge build from `main` containing merge commit `9822659c1b43df978e191e6f7826775fc615926d` or a later commit whose bridge behavior has been separately verified. Do not treat an unreviewed local modification as production evidence.
 
 1. Open an official Chizhik catalog/delivery page under `https://chizhik.club/` in the ordinary user browser.
 2. Interact with the official page normally until the current session has loaded a first-party delivery catalog resource for the selected store.
@@ -108,9 +110,9 @@ After the candidate price field is identified, #169 still requires independent s
 
 If explicit availability semantics are not proven, availability must remain `UNKNOWN`. Promotion, loyalty, package and discount semantics remain unavailable until separately evidenced.
 
-## Test evidence in #177
+## Test evidence in merged #177
 
-The draft implementation is regression-protected so that:
+The merged implementation is regression-protected so that:
 
 - no D2 search occurs before the explicit user click;
 - exactly one search occurs after invocation;
