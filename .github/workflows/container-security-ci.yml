@@ -47,7 +47,7 @@ jobs:
 
       - name: Verify web VEX runtime assumptions
         if: matrix.name == 'Web'
-        run: bash scripts/security/verify_web_vex_runtime.sh "${{ matrix.image }}" linux/amd64
+        run: bash scripts/security/verify_web_vex_runtime.sh "${{ matrix.image }}" linux/amd64 local
 
       - name: Scan API HIGH/CRITICAL vulnerabilities
         if: matrix.name == 'API'
