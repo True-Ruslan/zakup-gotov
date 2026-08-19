@@ -32,12 +32,16 @@ class ManualProductCanaryContractTest(unittest.TestCase):
     def test_canary_cannot_publish_or_mutate_release_state(self):
         workflow = WORKFLOW.read_text(encoding="utf-8")
 
+        self.assertIn("permissions: {}", workflow)
         self.assertIn("contents: read", workflow)
         self.assertIn("packages: read", workflow)
+        self.assertIn("notify:\n    needs: canary", workflow)
         self.assertIn("issues: write", workflow)
+        self.assertNotIn("contents: write", workflow)
         self.assertNotIn("packages: write", workflow)
         self.assertNotIn("attestations: write", workflow)
         self.assertNotIn("id-token: write", workflow)
+        self.assertNotIn("pull-requests: write", workflow)
         self.assertNotIn("gh release create", workflow)
         self.assertNotIn("gh release edit", workflow)
         self.assertNotIn("docker build", workflow)
