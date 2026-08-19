@@ -19,7 +19,7 @@ After the evidence harness is merged to the default branch, the repository owner
 /release-canary rc.7
 ```
 
-`.github/workflows/release-product-canary.yml` accepts only that owner-authored command on issue #152. The workflow has read-only repository/package access plus issue-comment write access; it has no package-write, attestation, OIDC or release-mutation permission.
+`.github/workflows/release-product-canary.yml` accepts only that owner-authored command on issue #152. The evidence job has only `contents: read` + `packages: read`; the separate notification job has only `issues: write`. Neither job has package-write, attestation, OIDC or release-mutation permission.
 
 ## Immutable input verification
 
