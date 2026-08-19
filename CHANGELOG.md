@@ -115,7 +115,7 @@ Release workflow: `32293764820`, attempt 1 — **SUCCESS**.
 Source:
 
 ```text
-946bc19d6ca4aa544c13d74f420fce12b1e5fe815
+946bc19d6ca4a544c13d74f420fce12b1e5fe815
 ```
 
 - GitHub prerelease metadata and immutable tag/source were correct.
