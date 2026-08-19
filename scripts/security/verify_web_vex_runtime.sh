@@ -3,7 +3,7 @@ set -euo pipefail
 
 image_ref="${1:?usage: verify_web_vex_runtime.sh IMAGE_REF [PLATFORM] [SOURCE]}"
 platform="${2:-linux/amd64}"
-source_mode="${3:-local}"
+source_mode="${3:-registry}"
 
 python3 scripts/security/validate_web_vex.py
 command -v readelf >/dev/null
