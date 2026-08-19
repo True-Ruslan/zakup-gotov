@@ -18,7 +18,7 @@ class ManualProductCanaryContractTest(unittest.TestCase):
             "github.event.comment.user.login == github.repository_owner",
             "github.event.comment.body == '/release-canary rc.7'",
             "RC7_TAG: v0.1.0-rc.7",
-            "RC7_SOURCE_SHA: b754f5193f852db0312011f3f6c3dd22eb2",
+            "RC7_SOURCE_SHA: b754f5193f852db0312011f3f6c3ec6c7dd22eb2",
             "gh release download \"$RC7_TAG\"",
             "SHA256SUMS",
             "compose.release.yaml",
