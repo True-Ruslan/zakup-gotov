@@ -57,6 +57,7 @@ async function capture(page, name) {
   await page.screenshot({ path: path.join(evidenceDir, fileName), fullPage: true });
   if (!report.screenshots.includes(fileName)) report.screenshots.push(fileName);
   await persistReport();
+  return fileName;
 }
 
 async function scenario(browser, name, viewport, run) {
@@ -73,6 +74,11 @@ async function scenario(browser, name, viewport, run) {
   } catch (error) {
     entry.status = "fail";
     entry.error = compactError(error);
+    try {
+      entry.failureScreenshot = await capture(page, `${name}-failure`);
+    } catch (screenshotError) {
+      entry.failureScreenshotError = compactError(screenshotError);
+    }
   } finally {
     entry.finishedAt = new Date().toISOString();
     await persistReport();
@@ -159,7 +165,11 @@ async function normalScenarios(browser) {
     await addPantry(page);
     await weeklyForm(page).getByRole("button", { name: "Сравнить план" }).click();
     await expect(page.getByRole("heading", { level: 2, name: "Учтено из запасов дома" })).toBeVisible();
-    await expect(page.getByRole("heading", { level: 2, name: "Стоимость оформления" })).toBeVisible();
+    const optimization = page.getByRole("region", { name: "Стоимость оформления" });
+    await expect(optimization).toBeVisible();
+    await expect(optimization.getByRole("heading", { name: "Пока нельзя честно выбрать минимальную стоимость" })).toBeVisible();
+    await expect(optimization.getByText("Доставка: Неизвестно").first()).toBeVisible();
+    await expect(optimization.getByText("Нельзя включать в минимум").first()).toBeVisible();
     await capture(page, "desktop-weekly-pantry-optimization");
   });
 
