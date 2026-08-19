@@ -86,12 +86,18 @@ class WebVexPlatformContractTest(unittest.TestCase):
 
         self.assertIn('source_mode="${3:-registry}"', guard)
         self.assertIn('docker image inspect "${image_ref}"', guard)
+        self.assertIn("docker buildx imagetools inspect --raw", guard)
+        self.assertIn("scripts/security/resolve_oci_platform.py", guard)
         self.assertIn(
-            'docker pull --platform "${platform}" "${image_ref}"',
+            'docker pull --platform "${platform}" "${resolved_image_ref}"',
             guard,
         )
         self.assertIn(
-            'docker create --platform "${platform}" "${image_ref}"',
+            'docker create --platform "${platform}" "${resolved_image_ref}"',
+            guard,
+        )
+        self.assertIn(
+            'docker image inspect --format \'{{.Os}}/{{.Architecture}}\' "${resolved_image_ref}"',
             guard,
         )
         self.assertIn(
@@ -101,6 +107,24 @@ class WebVexPlatformContractTest(unittest.TestCase):
         self.assertEqual(
             release_workflow.count("bash scripts/security/verify_web_vex_runtime.sh"),
             2,
+        )
+
+    def test_registry_guard_requires_digest_pinning(self):
+        guard = (ROOT / "scripts/security/verify_web_vex_runtime.sh").read_text(
+            encoding="utf-8"
+        )
+
+        self.assertIn(
+            "registry image must be pinned by a sha256 index digest",
+            guard,
+        )
+        self.assertNotIn(
+            'docker pull --platform "${platform}" "${image_ref}"',
+            guard,
+        )
+        self.assertNotIn(
+            'docker create --platform "${platform}" "${image_ref}"',
+            guard,
         )
 
 

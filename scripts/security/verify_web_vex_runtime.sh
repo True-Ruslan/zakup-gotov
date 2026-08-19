@@ -4,9 +4,18 @@ set -euo pipefail
 image_ref="${1:?usage: verify_web_vex_runtime.sh IMAGE_REF [PLATFORM] [SOURCE]}"
 platform="${2:-linux/amd64}"
 source_mode="${3:-registry}"
+resolved_image_ref="${image_ref}"
 
 python3 scripts/security/validate_web_vex.py
 command -v readelf >/dev/null
+
+platform_os="${platform%%/*}"
+platform_rest="${platform#*/}"
+platform_arch="${platform_rest%%/*}"
+if [[ -z "${platform_os}" || -z "${platform_arch}" || "${platform_os}" == "${platform}" ]]; then
+  echo "web VEX runtime guard failed: PLATFORM must be OS/ARCH[/VARIANT]" >&2
+  exit 64
+fi
 
 case "${source_mode}" in
   local)
@@ -16,13 +25,40 @@ case "${source_mode}" in
     fi
     ;;
   registry)
-    docker pull --platform "${platform}" "${image_ref}" >/dev/null
+    if [[ ! "${image_ref}" =~ ^.+@sha256:[0-9a-f]{64}$ ]]; then
+      echo "web VEX runtime guard failed: registry image must be pinned by a sha256 index digest" >&2
+      exit 1
+    fi
+
+    index_json="$(docker buildx imagetools inspect --raw "${image_ref}")"
+    child_digest="$(
+      printf '%s' "${index_json}" \
+        | python3 scripts/security/resolve_oci_platform.py "${platform}"
+    )"
+    image_repository="${image_ref%@sha256:*}"
+    if [[ -z "${image_repository}" ]]; then
+      echo "web VEX runtime guard failed: cannot derive repository from ${image_ref}" >&2
+      exit 1
+    fi
+
+    resolved_image_ref="${image_repository}@${child_digest}"
+    echo "web VEX runtime platform (${platform}): ${image_ref} -> ${resolved_image_ref}"
+    docker pull --platform "${platform}" "${resolved_image_ref}" >/dev/null
     ;;
   *)
     echo "web VEX runtime guard failed: SOURCE must be local or registry" >&2
     exit 64
     ;;
 esac
+
+actual_platform="$(
+  docker image inspect --format '{{.Os}}/{{.Architecture}}' "${resolved_image_ref}"
+)"
+expected_platform="${platform_os}/${platform_arch}"
+if [[ "${actual_platform}" != "${expected_platform}" ]]; then
+  echo "web VEX runtime guard failed: expected ${expected_platform}, resolved ${actual_platform}" >&2
+  exit 1
+fi
 
 workdir="$(mktemp -d)"
 container_id=""
@@ -34,7 +70,7 @@ cleanup() {
 }
 trap cleanup EXIT
 
-container_id="$(docker create --platform "${platform}" "${image_ref}")"
+container_id="$(docker create --platform "${platform}" "${resolved_image_ref}")"
 container_config="$(docker inspect --format '{{json .Config.Entrypoint}} {{json .Config.Cmd}}' "${container_id}")"
 
 echo "web VEX runtime config (${platform}, ${source_mode}): ${container_config}"

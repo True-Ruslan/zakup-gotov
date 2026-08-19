@@ -46,25 +46,28 @@ All notable project changes are recorded here. Zakup Gotov is pre-release; this 
 - Added a machine-readable OpenVEX assessment for exactly `CVE-2026-14456` on `pkg:deb/debian/libssl3t64@3.5.6-1~deb13u2` with `not_affected / vulnerable_code_not_in_execute_path`.
 - Added a VEX contract validator that fails if the reviewed statement is widened to another CVE, package or version.
 - Added a final-image runtime guard that fails if web enables `--experimental-quic` or if runtime Node/native addons dynamically link system `libssl`/`libcrypto`.
+- Added strict OCI platform-child resolution for registry-mode multi-architecture runtime inspection; missing, ambiguous and malformed platform descriptors fail closed.
+- Added a permanent regression test reproducing the rc.6 parent-index Docker collision and requiring distinct immutable child-manifest refs for sequential amd64/arm64 guards.
 - Added durable release failure diagnostics that summarize already-created Trivy JSON findings into the Actions log when a fail-closed scan stops publication before release assets can be attached.
-- Successful releases now include the exact OpenVEX document in release assets and `SHA256SUMS`.
+- Successful releases include the exact OpenVEX document in release assets and `SHA256SUMS`.
 
 ### Changed
 
 - Current deterministic product phase remains **M5 Productization**; M5.2 remains intentionally unselected until release/manual-use evidence identifies the next constraint.
-- `v0.1.0-rc.5` is historical **failed release-contract evidence**, not an accepted prerelease.
-- The next operational release gate is **`v0.1.0-rc.6`**, tracked by #152 with recovery PR #179.
+- `v0.1.0-rc.5` and `v0.1.0-rc.6` are historical **failed release-contract evidence**, not accepted prereleases.
+- The next operational release gate is **`v0.1.0-rc.7`**, tracked by #152 with recovery PR #180.
 - Web Container Security CI applies VEX only after its exact contract and final-image reachability assumptions pass; API scans remain completely unfiltered.
-- Release CI applies the same web VEX only after independent amd64 and arm64 runtime guards.
+- Release CI applies the same web VEX only after independent amd64 and arm64 runtime guards; registry-mode guards inspect exact platform child manifests derived from the immutable parent OCI index.
 - Stable `v0.1.0` remains blocked until a prerelease completes the immutable release workflow and manual product canary satisfactorily.
 
 ### Fixed
 
 - Release planning does not reuse published prerelease tags for newer source.
 - `v0.1.0-rc.4` metadata mismatch remains recorded as a failed historical candidate rather than being retroactively accepted.
-- `v0.1.0-rc.5` exposed a real web image security-gate blocker; recovery now distinguishes package inventory from reachable vulnerable code through evidence-backed VEX rather than weakening Trivy severity.
+- `v0.1.0-rc.5` exposed a real web image security-gate blocker; recovery distinguishes package inventory from reachable vulnerable code through evidence-backed VEX rather than weakening Trivy severity.
+- `v0.1.0-rc.6` exposed a Docker local image-store collision when one parent OCI-index digest was pulled sequentially for amd64 then arm64; runtime inspection now resolves content-addressed per-platform child manifests before local pull/create.
 - Failed release Trivy JSON evidence is no longer silently lost with the ephemeral runner.
-- Playwright Chromium installation in Web CI, Retailer Bridge CI and Release Verify now uses bounded APT retries/timeouts plus a descendant-safe Linux process supervisor, preventing timed-out privileged package-manager children from leaking into a same-run retry and holding `dpkg` locks.
+- Playwright Chromium installation in Web CI, Retailer Bridge CI and Release Verify uses bounded APT retries/timeouts plus a descendant-safe Linux process supervisor, preventing timed-out privileged package-manager children from leaking into a same-run retry and holding `dpkg` locks.
 - Chizhik store context can no longer be guessed from the first active store; exactly one browser-evidenced validated context is required.
 
 ### Security
@@ -72,10 +75,27 @@ All notable project changes are recorded here. Zakup Gotov is pre-release; this 
 - Trivy `CRITICAL,HIGH` and `exit-code=1` remain unchanged for all unsuppressed findings.
 - The rc.5 web finding was reproduced outside the release workflow as `libssl3t64 3.5.6-1~deb13u2 / CVE-2026-14456 / HIGH / fix_deferred` with zero Node-package findings.
 - The production Node process does not enable experimental QUIC, and the final image guard proves Node plus native addons do not dynamically link system `libssl`/`libcrypto` before VEX is accepted.
+- The rc.6 failure was reproduced as a parent-index materialization defect rather than a security violation; after child-manifest resolution the same immutable rc.6 amd64 and arm64 images both passed the unchanged runtime reachability guard.
 - Full Node Debian 12 runtime was rejected after fresh Trivy found 29 HIGH/CRITICAL findings; Distroless Debian 12 was rejected after seven HIGH/CRITICAL OpenSSL findings. The project does not trade one non-reachable inherited finding for a broader actionable surface.
 - Normal web CI shows suppressed findings for auditability; a future package-version change is not silently covered because the VEX PURL is exact-version scoped.
 - Precise addresses, credentials, provider tokens, private headers and raw sensitive provider payloads remain excluded from ordinary evidence/logging.
 - Published release tags, including failed candidates, are immutable historical evidence and are never repointed.
+
+## [0.1.0-rc.6] — 2026-08-19 — FAILED ARM64 RUNTIME-GUARD MATERIALIZATION
+
+Source:
+
+```text
+946bc19d6ca4a544c13d74f420fce12b1e5fe815
+```
+
+- GitHub prerelease metadata and immutable tag/source were correct.
+- `Release / Verify` passed metadata, ancestry, repository verification, bounded Chromium installation, browser E2E and production release-bundle verification.
+- Publish built API and web staging indexes for `linux/amd64` + `linux/arm64`, validated the exact web VEX contract and passed the amd64 runtime guard.
+- Arm64 failed before Trivy because Docker could not materialize the same parent OCI-index digest as a second platform: `cannot overwrite digest sha256:715c4484...`.
+- Recovery PR #180 reproduced the failure on a fresh GitHub runner, then proved the same immutable rc.6 index succeeds when amd64/arm64 are resolved to distinct child-manifest digests before pull/create.
+- No release Trivy completion, SBOM completion, staging/final smoke, final OCI promotion, OCI `latest` mutation, provenance or verified release assets occurred.
+- Full record: `docs/v0.1.0-rc.6-release-failure-2026-08-19.md`.
 
 ## [0.1.0-rc.5] — 2026-08-19 — FAILED WEB SECURITY GATE
 
