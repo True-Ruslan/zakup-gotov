@@ -7,9 +7,7 @@ platform="${2:-linux/amd64}"
 python3 scripts/security/validate_web_vex.py
 command -v readelf >/dev/null
 
-if ! docker image inspect "${image_ref}" >/dev/null 2>&1; then
-  docker pull --platform "${platform}" "${image_ref}" >/dev/null
-fi
+docker pull --platform "${platform}" "${image_ref}" >/dev/null
 
 workdir="$(mktemp -d)"
 container_id=""
