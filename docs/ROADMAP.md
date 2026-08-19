@@ -1,6 +1,6 @@
 # Roadmap
 
-Updated: 2026-08-18
+Updated: 2026-08-19
 
 The roadmap is evidence-driven. Technical connectivity, production-access readiness and deterministic product/core maturity are separate dimensions.
 
@@ -44,60 +44,74 @@ Do not preselect accounts, analytics, feature flags, provider health or saved hi
 
 ### `v0.1.0-rc.3` — historical prerelease
 
-Immutable source:
-
-```text
-d988b8c596a737326aeac67f74b6f65a6aaed3bf
-```
-
-Do not move, delete or reuse the tag.
+Immutable source: `d988b8c596a737326aeac67f74b6f65a6aaed3bf`. Do not move, delete or reuse the tag.
 
 ### `v0.1.0-rc.4` — FAILED AT METADATA CONTRACT
 
-Immutable source:
+Immutable source: `8a269288addcb4aa8ea3d0ce46608b650cbdb6dc`.
 
-```text
-8a269288addcb4aa8ea3d0ce46608b650cbdb6dc
-```
-
-Release run `32136955056` failed closed at `Release / Verify → Validate release metadata` because GitHub published a SemVer prerelease tag with `prerelease=false`.
-
-The write-capable `Release / Publish` job was skipped, so rc.4 established no new GHCR/SBOM/attestation/staging/final-smoke evidence and did not mutate OCI `latest`.
+Release run `32136955056` failed closed at `Release / Verify → Validate release metadata` because GitHub supplied `prerelease=false` for a SemVer prerelease tag. `Release / Publish` never started, so rc.4 established no new GHCR/SBOM/attestation/staging/final-smoke evidence and did not mutate OCI `latest`.
 
 Failure record: [`v0.1.0-rc.4-release-failure-2026-08-18.md`](v0.1.0-rc.4-release-failure-2026-08-18.md).
 
-The rc.4 tag remains historical evidence. Its GitHub release presentation should be corrected to pre-release status, but rc.4 remains a failed release-contract attempt.
+### `v0.1.0-rc.5` — FAILED AT WEB SECURITY GATE
 
-## Immediate mainline target — `v0.1.0-rc.5`
+Immutable source: `a485c80dc1eb36122791c629f92b247354b0ee09`.
 
-Issue: #152.
+Release run `32224834303` eventually completed `Release / Verify` after one infrastructure-only Playwright/Ubuntu mirror timeout. `Release / Publish` built API/web multi-arch staging images and passed both API HIGH/CRITICAL scans, then failed closed at web amd64 Trivy.
 
-Required sequence:
+The unchanged production image reproduced the exact root cause in normal Container Security CI:
 
-1. merge the rc.4-failure/rc.5 canonical-documentation correction through fresh exact-head CI/review;
-2. record the exact resulting `main` SHA in #152;
-3. verify all normal push workflow groups against that exact SHA;
-4. confirm `v0.1.0-rc.5` tag/release are absent immediately before publication;
-5. publish one GitHub release targeting only that exact SHA with **Set as a pre-release enabled**;
-6. require `Release / Verify` and `Release / Publish` to complete the existing release contract;
-7. inspect all release evidence and verify OCI `latest` remains untouched;
-8. run the manual product canary from immutable rc.5 artifacts;
-9. fix release-canary defects before choosing M5.2.
+```text
+libssl3t64 3.5.6-1~deb13u2
+CVE-2026-14456
+HIGH
+fix_deferred
+```
 
-A successful rc.5 must prove:
+No final rc.5 OCI promotion, `latest`, provenance, final smoke or release evidence assets occurred.
 
-- source/main ancestry and release metadata;
-- repository verification and production browser E2E;
-- `linux/amd64` + `linux/arm64` staging images;
-- unchanged fail-closed Trivy `HIGH,CRITICAL` policy;
-- SPDX SBOM per candidate image manifest;
-- staging exact-digest Compose smoke;
-- copy-without-rebuild promotion with digest identity preserved;
-- final exact-digest smoke;
-- GitHub provenance attestations;
-- prerelease SemVer OCI promotion without mutating `latest`;
-- final manifest architecture checks;
-- attached release evidence/checksums.
+Failure record: [`v0.1.0-rc.5-release-failure-2026-08-19.md`](v0.1.0-rc.5-release-failure-2026-08-19.md).
+
+## Immediate mainline target — `v0.1.0-rc.6`
+
+Issue: #152. Recovery implementation: draft PR #179.
+
+CVE-2026-14456 affects an OpenSSL QUIC server-listener code path. The production web process does not enable experimental QUIC, and final-image inspection proves that neither runtime Node nor the current native addon set dynamically links system `libssl`/`libcrypto`.
+
+Two attempted base-image replacements were rejected by fresh Trivy evidence because they increased the actionable HIGH/CRITICAL surface. Recovery therefore keeps the minimal Distroless Debian 13 runtime and uses a narrow OpenVEX statement scoped to the exact inherited package/version and CVE, with `not_affected / vulnerable_code_not_in_execute_path`.
+
+This is **not** a weakened security threshold. Controls are:
+
+- VEX contains exactly one reviewed CVE/package-version statement;
+- CI fails if the statement is widened;
+- final-image Entrypoint/Cmd must not enable `--experimental-quic`;
+- final Node and every `*.node` addon must not link system `libssl`/`libcrypto`;
+- VEX applies only to web scans; API scans are unchanged;
+- all unsuppressed `HIGH,CRITICAL` findings retain `exit-code=1`;
+- suppressed evidence is visible in ordinary CI logs;
+- release CI repeats the runtime guard on both amd64 and arm64;
+- the exact OpenVEX file becomes checksummed release evidence;
+- future failed JSON scans are summarized into durable workflow logs.
+
+Security assessment: [`security/CVE-2026-14456-vex-assessment.md`](security/CVE-2026-14456-vex-assessment.md).
+
+### Required rc.6 sequence
+
+1. finish #179 documentation and recovery code;
+2. require a final exact-head **9/9 PR workflow** pass;
+3. explicitly inspect Container Security/Web: VEX contract PASS, runtime guard PASS, exact suppression visible, zero unsuppressed HIGH/CRITICAL findings;
+4. require Release Contract CI and Release Bundle CI PASS on that same head;
+5. merge #179 only after final review has no blocking findings/threads;
+6. verify all normal exact-main push workflows on the resulting merge SHA;
+7. confirm `v0.1.0-rc.6` tag/release are absent;
+8. freeze that exact SHA in #152;
+9. publish exactly one prerelease `v0.1.0-rc.6` with **Set as a pre-release enabled**;
+10. require `Release / Verify` + `Release / Publish` end to end;
+11. inspect both architecture runtime/VEX guards, all four vulnerability gates, SPDX SBOMs, staging/final exact-digest smoke, digest-preserving promotion, provenance, manifests, VEX/checksums and package visibility;
+12. verify prerelease OCI promotion does not mutate `latest`;
+13. run manual product canary from immutable rc.6 artifacts;
+14. only then release #177 back to mainline, refresh it against current `main`, and run fresh exact-head CI/review.
 
 Stable `v0.1.0` remains blocked until prerelease evidence and manual acceptance are satisfactory.
 
@@ -121,7 +135,7 @@ Ordinary user-browser store-directory evidence succeeds; stock GitHub-hosted Chr
 
 ### Chizhik D2 schema canary — IMPLEMENTED / DRAFT
 
-Draft PR #177 adds an explicit user-invoked sanitized schema canary with no permission widening, a fixed candidate-field allowlist and real persistent-Chromium E2E. Its exact head `c38173f3b15b66fa892534989e1aa2f51d98468d` passed 9/9 PR workflow groups.
+Draft PR #177 adds an explicit user-invoked sanitized schema canary with no permission widening, a fixed candidate-field allowlist and real persistent-Chromium E2E. It remains frozen until rc.6 release recovery is accepted; after that it must be refreshed against current `main` and reverified.
 
 Do **not** implement production `BrowserObservation` / `ObservedOffer` mapping until #169 receives ordinary-user-browser evidence proving product container/identifier/name, price field **and monetary unit/scale**, plus explicit availability semantics if any. Unknown availability remains `UNKNOWN`.
 
