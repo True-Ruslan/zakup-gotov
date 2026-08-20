@@ -1,0 +1,413 @@
+name: Stable Promotion
+
+on:
+  issue_comment:
+    types: [created]
+
+permissions: {}
+
+concurrency:
+  group: stable-v0.1.0-promotion
+  cancel-in-progress: false
+
+env:
+  SOURCE_RC_TAG: v0.1.0-rc.7
+  SOURCE_RC_VERSION: 0.1.0-rc.7
+  STABLE_TAG: v0.1.0
+  STABLE_VERSION: 0.1.0
+  SOURCE_SHA: b754f5193f852db0312011f3f6c3ec6c7dd22eb2
+  SOURCE_API_DIGEST: sha256:1c5c4a104fee295cd579b0e69a23b508a297b1eb931a45c0ce71d8b1791e54e1
+  SOURCE_WEB_DIGEST: sha256:5bc236f3f304dffe29f54921f5a2bbf27d3df67c18714d4cc268d6d25bafce68
+  MANUAL_CANARY_RUN: '32359437905'
+  MANUAL_CANARY_HARNESS_SHA: da35a5cb7ef46c64d266cd29731167eaa4cbefb4
+  MANUAL_ACCEPTANCE_COMMENT: '5354743275'
+  API_IMAGE: ghcr.io/true-ruslan/zakup-gotov-api
+  WEB_IMAGE: ghcr.io/true-ruslan/zakup-gotov-web
+
+jobs:
+  promote:
+    name: Stable Promotion / v0.1.0
+    if: >-
+      github.event.issue.number == 152 &&
+      github.event.comment.user.login == github.repository_owner &&
+      github.event.comment.body == '/release-stable v0.1.0 from v0.1.0-rc.7'
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    permissions:
+      actions: read
+      contents: write
+      issues: read
+      packages: write
+    steps:
+      - name: Check out promotion harness
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+          fetch-depth: 0
+
+      - name: Prepare promotion workspace
+        run: |
+          set -euo pipefail
+          WORK_ROOT="$RUNNER_TEMP/stable-v0.1.0-promotion"
+          SOURCE_DIR="$WORK_ROOT/source"
+          STABLE_DIR="$WORK_ROOT/stable"
+          NOTES_FILE="$WORK_ROOT/release-notes.md"
+          mkdir -p "$SOURCE_DIR" "$STABLE_DIR"
+          {
+            echo "WORK_ROOT=$WORK_ROOT"
+            echo "SOURCE_DIR=$SOURCE_DIR"
+            echo "STABLE_DIR=$STABLE_DIR"
+            echo "NOTES_FILE=$NOTES_FILE"
+          } >> "$GITHUB_ENV"
+
+      - name: Verify accepted manual canary evidence
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          gh api "repos/$GITHUB_REPOSITORY/actions/runs/$MANUAL_CANARY_RUN" > "$WORK_ROOT/manual-canary-run.json"
+          jq -e \
+            --arg expected_sha "$MANUAL_CANARY_HARNESS_SHA" \
+            '.conclusion == "success" and .event == "issue_comment" and .head_sha == $expected_sha' \
+            "$WORK_ROOT/manual-canary-run.json" >/dev/null
+
+          gh api "repos/$GITHUB_REPOSITORY/issues/comments/$MANUAL_ACCEPTANCE_COMMENT" > "$WORK_ROOT/manual-acceptance.json"
+          jq -e \
+            --arg owner "$GITHUB_REPOSITORY_OWNER" \
+            --arg run "$MANUAL_CANARY_RUN" \
+            --arg tag "$SOURCE_RC_TAG" \
+            --arg source "$SOURCE_SHA" \
+            '.user.login == $owner and
+             (.body | contains("manual product canary — ACCEPTED")) and
+             (.body | contains($run)) and
+             (.body | contains($tag)) and
+             (.body | contains($source))' \
+            "$WORK_ROOT/manual-acceptance.json" >/dev/null
+
+      - name: Verify immutable source release identity
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          gh release view "$SOURCE_RC_TAG" --json tagName,isDraft,isPrerelease,targetCommitish > "$WORK_ROOT/source-release.json"
+          jq -e \
+            --arg tag "$SOURCE_RC_TAG" \
+            '.tagName == $tag and .isDraft == false and .isPrerelease == true' \
+            "$WORK_ROOT/source-release.json" >/dev/null
+
+          git fetch --force --no-tags origin "refs/tags/$SOURCE_RC_TAG:refs/tags/$SOURCE_RC_TAG"
+          test "$(git rev-parse "$SOURCE_RC_TAG^{commit}")" = "$SOURCE_SHA"
+          git merge-base --is-ancestor "$SOURCE_SHA" origin/main
+
+      - name: Download and verify rc.7 release evidence
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          gh release download "$SOURCE_RC_TAG" --dir "$SOURCE_DIR"
+
+          python3 - <<'PY'
+          import os
+          import pathlib
+
+          expected = {
+              "SHA256SUMS",
+              "api-amd64-sbom.spdx.json",
+              "api-amd64-vulnerabilities.json",
+              "api-arm64-sbom.spdx.json",
+              "api-arm64-vulnerabilities.json",
+              "api-manifest.json",
+              "compose.release.yaml",
+              "release-verification.json",
+              "web-CVE-2026-14456.openvex.json",
+              "web-amd64-sbom.spdx.json",
+              "web-amd64-vulnerabilities.json",
+              "web-arm64-sbom.spdx.json",
+              "web-arm64-vulnerabilities.json",
+              "web-manifest.json",
+          }
+          source = pathlib.Path(os.environ["SOURCE_DIR"])
+          actual = {path.name for path in source.iterdir() if path.is_file()}
+          if actual != expected:
+              raise SystemExit(f"unexpected rc.7 release asset set: expected={sorted(expected)} actual={sorted(actual)}")
+          PY
+
+          assets=(
+            api-amd64-sbom.spdx.json
+            api-amd64-vulnerabilities.json
+            api-arm64-sbom.spdx.json
+            api-arm64-vulnerabilities.json
+            api-manifest.json
+            compose.release.yaml
+            release-verification.json
+            web-CVE-2026-14456.openvex.json
+            web-amd64-sbom.spdx.json
+            web-amd64-vulnerabilities.json
+            web-arm64-sbom.spdx.json
+            web-arm64-vulnerabilities.json
+            web-manifest.json
+          )
+          python3 scripts/release/verify_release_asset_checksums.py \
+            "$SOURCE_DIR/SHA256SUMS" \
+            "$SOURCE_DIR" \
+            "${assets[@]}"
+
+      - name: Verify rc.7 release metadata and accepted digests
+        run: |
+          set -euo pipefail
+          jq -e \
+            --arg expected_source "$SOURCE_SHA" \
+            --arg expected_api_image "$API_IMAGE" \
+            --arg expected_api_digest "$SOURCE_API_DIGEST" \
+            --arg expected_web_image "$WEB_IMAGE" \
+            --arg expected_web_digest "$SOURCE_WEB_DIGEST" \
+            '.source_sha == $expected_source and
+             .stable == false and
+             .version == "0.1.0-rc.7" and
+             .api.image == $expected_api_image and
+             .api.digest == $expected_api_digest and
+             .web.image == $expected_web_image and
+             .web.digest == $expected_web_digest and
+             .platforms == ["linux/amd64", "linux/arm64"] and
+             .vulnerability_gate == "CRITICAL,HIGH"' \
+            "$SOURCE_DIR/release-verification.json" >/dev/null
+
+          test "$(grep -Fxc "    image: $API_IMAGE@$SOURCE_API_DIGEST" "$SOURCE_DIR/compose.release.yaml")" -eq 1
+          test "$(grep -Fxc "    image: $WEB_IMAGE@$SOURCE_WEB_DIGEST" "$SOURCE_DIR/compose.release.yaml")" -eq 1
+
+      - name: Prepare stable release evidence and notes
+        run: |
+          set -euo pipefail
+          cp "$SOURCE_DIR"/api-amd64-sbom.spdx.json "$STABLE_DIR"/
+          cp "$SOURCE_DIR"/api-amd64-vulnerabilities.json "$STABLE_DIR"/
+          cp "$SOURCE_DIR"/api-arm64-sbom.spdx.json "$STABLE_DIR"/
+          cp "$SOURCE_DIR"/api-arm64-vulnerabilities.json "$STABLE_DIR"/
+          cp "$SOURCE_DIR"/api-manifest.json "$STABLE_DIR"/
+          cp "$SOURCE_DIR"/compose.release.yaml "$STABLE_DIR"/
+          cp "$SOURCE_DIR"/web-CVE-2026-14456.openvex.json "$STABLE_DIR"/
+          cp "$SOURCE_DIR"/web-amd64-sbom.spdx.json "$STABLE_DIR"/
+          cp "$SOURCE_DIR"/web-amd64-vulnerabilities.json "$STABLE_DIR"/
+          cp "$SOURCE_DIR"/web-arm64-sbom.spdx.json "$STABLE_DIR"/
+          cp "$SOURCE_DIR"/web-arm64-vulnerabilities.json "$STABLE_DIR"/
+          cp "$SOURCE_DIR"/web-manifest.json "$STABLE_DIR"/
+
+          cat > "$STABLE_DIR/release-verification.json" <<JSON
+          {
+            "version": "$STABLE_VERSION",
+            "source_sha": "$SOURCE_SHA",
+            "stable": true,
+            "platforms": ["linux/amd64", "linux/arm64"],
+            "vulnerability_gate": "CRITICAL,HIGH",
+            "api": {"image": "$API_IMAGE", "digest": "$SOURCE_API_DIGEST"},
+            "web": {"image": "$WEB_IMAGE", "digest": "$SOURCE_WEB_DIGEST"},
+            "promoted_from": "$SOURCE_RC_TAG",
+            "manual_canary_run": "$MANUAL_CANARY_RUN",
+            "promotion_workflow_run": "$GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID"
+          }
+          JSON
+
+          stable_assets=(
+            api-amd64-sbom.spdx.json
+            api-amd64-vulnerabilities.json
+            api-arm64-sbom.spdx.json
+            api-arm64-vulnerabilities.json
+            api-manifest.json
+            compose.release.yaml
+            release-verification.json
+            web-CVE-2026-14456.openvex.json
+            web-amd64-sbom.spdx.json
+            web-amd64-vulnerabilities.json
+            web-arm64-sbom.spdx.json
+            web-arm64-vulnerabilities.json
+            web-manifest.json
+          )
+          : > "$STABLE_DIR/SHA256SUMS"
+          for asset in "${stable_assets[@]}"; do
+            digest="$(sha256sum "$STABLE_DIR/$asset" | awk '{print $1}')"
+            printf '%s  dist/%s\n' "$digest" "$asset" >> "$STABLE_DIR/SHA256SUMS"
+          done
+
+          cat > "$NOTES_FILE" <<EOF
+          # Zakup Gotov v0.1.0
+
+          First stable release of Zakup Gotov.
+
+          This release promotes the exact immutable artifacts accepted as \`$SOURCE_RC_TAG\`; API and Web are **not rebuilt** for stable publication.
+
+          Accepted evidence:
+          - source: \`$SOURCE_SHA\`;
+          - manual product canary: run \`$MANUAL_CANARY_RUN\` — ACCEPTED;
+          - API: \`$API_IMAGE@$SOURCE_API_DIGEST\`;
+          - Web: \`$WEB_IMAGE@$SOURCE_WEB_DIGEST\`;
+          - linux/amd64 + linux/arm64;
+          - HIGH/CRITICAL vulnerability gates, SPDX SBOMs, exact-digest bundle smoke and provenance were accepted on rc.7.
+
+          Stable OCI tags \`0.1.0\` and \`latest\` point to those same accepted digests.
+          EOF
+
+      - name: Prepare or resume exact stable draft release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          if gh release view "$STABLE_TAG" --json tagName,isDraft,isPrerelease,targetCommitish > "$WORK_ROOT/stable-existing.json" 2>/dev/null; then
+            jq -e \
+              --arg tag "$STABLE_TAG" \
+              --arg source "$SOURCE_SHA" \
+              '.tagName == $tag and .isDraft == true and .isPrerelease == false and .targetCommitish == $source' \
+              "$WORK_ROOT/stable-existing.json" >/dev/null
+          else
+            if git ls-remote --exit-code --tags origin "refs/tags/$STABLE_TAG" >/dev/null 2>&1; then
+              echo "stable tag already exists without a resumable exact draft release" >&2
+              exit 1
+            fi
+            gh release create "$STABLE_TAG" \
+              --draft \
+              --target "$SOURCE_SHA" \
+              --title "$STABLE_TAG" \
+              --notes-file "$NOTES_FILE"
+          fi
+
+      - name: Upload stable draft evidence
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          gh release upload "$STABLE_TAG" "$STABLE_DIR"/* --clobber
+
+      - name: Log in to GHCR
+        uses: docker/login-action@dbcb813823bdd20940b903addbd779551569679f # v4.6.0
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ github.token }}
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@bb05f3f5519dd87d3ba754cc423b652a5edd6d2c # v4.2.0
+        with:
+          driver-opts: |
+            image=moby/buildkit@sha256:2f5adac4ecd194d9f8c10b7b5d7bceb5186853db1b26e5abd3a657af0b7e26ec
+
+      - name: Verify rc.7 registry tags and exact bundle
+        run: |
+          set -euo pipefail
+          docker buildx imagetools inspect "$API_IMAGE:$SOURCE_RC_VERSION" | grep -F "Digest: $SOURCE_API_DIGEST"
+          docker buildx imagetools inspect "$WEB_IMAGE:$SOURCE_RC_VERSION" | grep -F "Digest: $SOURCE_WEB_DIGEST"
+          docker buildx imagetools inspect "$API_IMAGE@$SOURCE_API_DIGEST" >/dev/null
+          docker buildx imagetools inspect "$WEB_IMAGE@$SOURCE_WEB_DIGEST" >/dev/null
+          bash scripts/release/verify-published-release.sh "$SOURCE_DIR/compose.release.yaml"
+
+      - name: Promote exact accepted digests to stable version
+        run: |
+          set -euo pipefail
+          docker buildx imagetools create \
+            --tag "$API_IMAGE:0.1.0" \
+            --metadata-file "$WORK_ROOT/api-stable-promotion.json" \
+            "$API_IMAGE@$SOURCE_API_DIGEST"
+          docker buildx imagetools create \
+            --tag "$WEB_IMAGE:0.1.0" \
+            --metadata-file "$WORK_ROOT/web-stable-promotion.json" \
+            "$WEB_IMAGE@$SOURCE_WEB_DIGEST"
+
+          test "$(jq -r '."containerimage.descriptor".digest' "$WORK_ROOT/api-stable-promotion.json")" = "$SOURCE_API_DIGEST"
+          test "$(jq -r '."containerimage.descriptor".digest' "$WORK_ROOT/web-stable-promotion.json")" = "$SOURCE_WEB_DIGEST"
+
+      - name: Promote exact accepted digests to latest
+        run: |
+          set -euo pipefail
+          docker buildx imagetools create \
+            --tag "$API_IMAGE:latest" \
+            --metadata-file "$WORK_ROOT/api-latest-promotion.json" \
+            "$API_IMAGE@$SOURCE_API_DIGEST"
+          docker buildx imagetools create \
+            --tag "$WEB_IMAGE:latest" \
+            --metadata-file "$WORK_ROOT/web-latest-promotion.json" \
+            "$WEB_IMAGE@$SOURCE_WEB_DIGEST"
+
+          test "$(jq -r '."containerimage.descriptor".digest' "$WORK_ROOT/api-latest-promotion.json")" = "$SOURCE_API_DIGEST"
+          test "$(jq -r '."containerimage.descriptor".digest' "$WORK_ROOT/web-latest-promotion.json")" = "$SOURCE_WEB_DIGEST"
+
+      - name: Verify stable and latest registry identities
+        run: |
+          set -euo pipefail
+          docker buildx imagetools inspect "$API_IMAGE:0.1.0" | grep -F "Digest: $SOURCE_API_DIGEST"
+          docker buildx imagetools inspect "$WEB_IMAGE:0.1.0" | grep -F "Digest: $SOURCE_WEB_DIGEST"
+          docker buildx imagetools inspect "$API_IMAGE:latest" | grep -F "Digest: $SOURCE_API_DIGEST"
+          docker buildx imagetools inspect "$WEB_IMAGE:latest" | grep -F "Digest: $SOURCE_WEB_DIGEST"
+          bash scripts/release/verify-published-release.sh "$STABLE_DIR/compose.release.yaml"
+
+      - name: Publish stable GitHub Release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          gh release edit "$STABLE_TAG" --draft=false --latest
+
+          gh release view "$STABLE_TAG" --json tagName,isDraft,isPrerelease,targetCommitish > "$WORK_ROOT/stable-published.json"
+          jq -e \
+            --arg tag "$STABLE_TAG" \
+            --arg source "$SOURCE_SHA" \
+            '.tagName == $tag and .isDraft == false and .isPrerelease == false and .targetCommitish == $source' \
+            "$WORK_ROOT/stable-published.json" >/dev/null
+
+          git fetch --force --no-tags origin "refs/tags/$STABLE_TAG:refs/tags/$STABLE_TAG"
+          test "$(git rev-parse "$STABLE_TAG^{commit}")" = "$SOURCE_SHA"
+
+      - name: Verify published stable release asset digests
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          gh api "repos/$GITHUB_REPOSITORY/releases/tags/$STABLE_TAG" > "$WORK_ROOT/stable-release-api.json"
+          python3 - <<'PY'
+          import hashlib
+          import json
+          import os
+          import pathlib
+
+          stable_dir = pathlib.Path(os.environ["STABLE_DIR"])
+          release = json.loads(pathlib.Path(os.environ["WORK_ROOT"]).joinpath("stable-release-api.json").read_text())
+          remote = {asset["name"]: asset.get("digest") for asset in release["assets"]}
+          local = {}
+          for path in stable_dir.iterdir():
+              if path.is_file():
+                  local[path.name] = "sha256:" + hashlib.sha256(path.read_bytes()).hexdigest()
+          if remote != local:
+              raise SystemExit(f"stable release asset digest mismatch: remote={remote} local={local}")
+          PY
+
+  notify:
+    name: Stable Promotion / review pointer
+    needs: promote
+    if: >-
+      always() &&
+      github.event.issue.number == 152 &&
+      github.event.comment.user.login == github.repository_owner &&
+      github.event.comment.body == '/release-stable v0.1.0 from v0.1.0-rc.7'
+    runs-on: ubuntu-latest
+    permissions:
+      issues: write
+    steps:
+      - name: Publish stable promotion result
+        uses: actions/github-script@ed597411d8f924073f98dfc5c65a23a2325f34cd # v8.0.0
+        with:
+          script: |
+            const result = '${{ needs.promote.result }}';
+            const runUrl = `${context.serverUrl}/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}`;
+            const body = [
+              '## stable v0.1.0 promotion',
+              '',
+              `Run: ${runUrl}`,
+              `Promotion job: \`${result}\``,
+              `Source: \`${process.env.SOURCE_RC_TAG}\` / \`${process.env.SOURCE_SHA}\``,
+              '',
+              result === 'success'
+                ? 'Exact accepted rc.7 API/Web digests were promoted without rebuild to `0.1.0` and `latest`, and the stable GitHub Release was published.'
+                : 'Stable publication did not complete successfully. Do not mutate or repoint any published stable tag; inspect the run before recovery.',
+            ].join('\n');
+            await github.rest.issues.createComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.issue.number,
+              body,
+            });
