@@ -101,17 +101,22 @@ class StablePromotionContractTest(unittest.TestCase):
             '--arg manual_canary_run "$MANUAL_CANARY_RUN"',
             '--arg manual_acceptance_comment "$MANUAL_ACCEPTANCE_COMMENT"',
             '--arg promotion_workflow_run "$GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID"',
-            'method: "digest-preserving-promotion"',
+            'method: "manifest-equivalent-promotion"',
             'promoted_from: $promoted_from',
             'manual_canary_run: $manual_canary_run',
             'manual_acceptance_comment: $manual_acceptance_comment',
             'promotion_workflow_run: $promotion_workflow_run',
+            "same accepted content-addressed platform manifests",
+            "verified equivalent to the immutable accepted digest references",
             "Verify stable draft asset digests before registry mutation",
             "Verify published stable release",
         )
         for fragment in required:
             with self.subTest(fragment=fragment):
                 self.assertIn(fragment, workflow)
+
+        self.assertNotIn('method: "digest-preserving-promotion"', workflow)
+        self.assertNotIn("point to those same accepted digests", workflow)
 
     def test_stable_tag_is_exact_idempotent_and_release_uses_existing_tag(self):
         workflow = WORKFLOW.read_text(encoding="utf-8")
