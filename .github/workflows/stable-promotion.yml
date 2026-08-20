@@ -394,12 +394,47 @@ jobs:
           [[ "$release_id" =~ ^[0-9]+$ ]]
           echo "STABLE_RELEASE_ID=$release_id" >> "$GITHUB_ENV"
 
-      - name: Upload stable draft evidence
+      - name: Upload stable draft evidence through release asset API
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
           set -euo pipefail
-          gh release upload "$STABLE_TAG" "$STABLE_DIR"/* --clobber
+          gh api "repos/$GITHUB_REPOSITORY/releases/$STABLE_RELEASE_ID/assets?per_page=100" > "$WORK_ROOT/stable-existing-assets.json"
+
+          for asset_path in "$STABLE_DIR"/*; do
+            asset_name="$(basename "$asset_path")"
+            local_digest="sha256:$(sha256sum "$asset_path" | awk '{print $1}')"
+            existing_count="$(jq --arg name "$asset_name" '[.[] | select(.name == $name)] | length' "$WORK_ROOT/stable-existing-assets.json")"
+            if [[ "$existing_count" -gt 1 ]]; then
+              echo "multiple draft assets exist with name $asset_name" >&2
+              exit 1
+            fi
+            if [[ "$existing_count" -eq 1 ]]; then
+              existing_digest="$(jq -r --arg name "$asset_name" '[.[] | select(.name == $name)] | .[0].digest // ""' "$WORK_ROOT/stable-existing-assets.json")"
+              if [[ "$existing_digest" != "$local_digest" ]]; then
+                echo "asset already exists with unexpected digest: $asset_name" >&2
+                exit 1
+              fi
+              echo "stable draft asset already exact: $asset_name"
+              continue
+            fi
+
+            response="$WORK_ROOT/upload-$asset_name.json"
+            curl --fail-with-body --silent --show-error --location \
+              --request POST \
+              -H "Accept: application/vnd.github+json" \
+              -H "Authorization: Bearer $GH_TOKEN" \
+              -H "X-GitHub-Api-Version: 2026-03-10" \
+              -H "Content-Type: application/octet-stream" \
+              --data-binary "@$asset_path" \
+              "https://uploads.github.com/repos/$GITHUB_REPOSITORY/releases/$STABLE_RELEASE_ID/assets?name=$asset_name" \
+              > "$response"
+            jq -e \
+              --arg name "$asset_name" \
+              --arg digest "$local_digest" \
+              '.state == "uploaded" and .name == $name and .digest == $digest' \
+              "$response" >/dev/null
+          done
 
       - name: Verify stable draft asset digests before registry mutation
         env:
