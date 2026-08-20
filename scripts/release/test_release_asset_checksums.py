@@ -1,5 +1,6 @@
 import hashlib
 import pathlib
+import re
 import tempfile
 import unittest
 
@@ -69,6 +70,24 @@ class ReleaseAssetChecksumTest(unittest.TestCase):
 
         with self.assertRaisesRegex(ValueError, "malformed checksum"):
             verify_assets(checksums, self.root, ["compose.release.yaml"])
+
+
+class ReleaseAssetChecksumWorkflowWiringTest(unittest.TestCase):
+    def test_canary_invokes_exact_release_asset_verifier(self):
+        repository_root = pathlib.Path(__file__).resolve().parents[2]
+        workflow = (repository_root / ".github/workflows/release-product-canary.yml").read_text(
+            encoding="utf-8"
+        )
+
+        invocation = re.compile(
+            r'python3 "\$GITHUB_WORKSPACE/scripts/release/verify_release_asset_checksums\.py" \\\n'
+            r'\s+"\$RELEASE_DIR/SHA256SUMS" \\\n'
+            r'\s+"\$RELEASE_DIR" \\\n'
+            r'\s+compose\.release\.yaml \\\n'
+            r'\s+release-verification\.json'
+        )
+        self.assertRegex(workflow, invocation)
+        self.assertNotIn("sha256sum --check --ignore-missing SHA256SUMS", workflow)
 
 
 if __name__ == "__main__":
