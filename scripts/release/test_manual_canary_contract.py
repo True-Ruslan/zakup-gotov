@@ -23,11 +23,13 @@ class ManualProductCanaryContractTest(unittest.TestCase):
             "SHA256SUMS",
             "compose.release.yaml",
             "release-verification.json",
-            "sha256sum --check --ignore-missing SHA256SUMS",
+            "scripts/release/verify_release_asset_checksums.py",
         )
         for fragment in required:
             with self.subTest(fragment=fragment):
                 self.assertIn(fragment, workflow)
+
+        self.assertNotIn("sha256sum --check --ignore-missing SHA256SUMS", workflow)
 
     def test_canary_cannot_publish_or_mutate_release_state(self):
         workflow = WORKFLOW.read_text(encoding="utf-8")
