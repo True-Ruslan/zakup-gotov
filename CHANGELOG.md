@@ -109,3 +109,94 @@ Release workflow: `32293764820`, attempt 1 — **SUCCESS**.
 - `0.1.0-rc.7` prerelease OCI promotion succeeded while `latest` remained untouched.
 - Final manifests, `release-verification.json`, `SHA256SUMS`, vulnerability reports, four SBOMs, Compose and the exact OpenVEX evidence were attached to the GitHub Release.
 - The rc.6 `cannot overwrite digest ...` failure did not recur.
+- Automated release verdict: **ACCEPTED**. A separate manual product canary remains required before stable `v0.1.0`.
+
+## [0.1.0-rc.6] — 2026-08-19 — FAILED ARM64 RUNTIME-GUARD MATERIALIZATION
+
+Source:
+
+```text
+946bc19d6ca4a544c13d74f420fce12b1e5fe815
+```
+
+- GitHub prerelease metadata and immutable tag/source were correct.
+- `Release / Verify` passed metadata, ancestry, repository verification, bounded Chromium installation, browser E2E and production-bundle verification.
+- Publish built API and Web staging indexes for `linux/amd64` + `linux/arm64`, validated the exact Web VEX contract and passed the amd64 runtime guard.
+- Arm64 failed before Trivy because Docker could not materialize the same parent OCI-index digest as a second platform: `cannot overwrite digest sha256:715c4484...`.
+- Recovery PR #180 reproduced the failure on a fresh GitHub runner, then proved the same immutable rc.6 index succeeds when amd64/arm64 are resolved to distinct child-manifest digests before pull/create.
+- No completed release Trivy/SBOM/final-smoke/provenance/final OCI promotion or verified release assets were accepted from rc.6.
+- Full record: `docs/v0.1.0-rc.6-release-failure-2026-08-19.md`.
+
+## [0.1.0-rc.5] — 2026-08-19 — FAILED WEB SECURITY GATE
+
+Source:
+
+```text
+a485c80dc1eb36122791c629f92b247354b0ee09
+```
+
+- GitHub prerelease metadata and immutable tag/source were correct.
+- Release run `32224834303` attempt 1 timed out during external Ubuntu package retrieval while installing Chromium dependencies after repository verification had passed.
+- Exact immutable Verify was rerun; attempt 2 passed metadata, ancestry, repository verification, browser E2E and production release-bundle verification.
+- Publish built API/Web multi-arch staging images and passed API amd64/arm64 Trivy gates.
+- Web amd64 then failed closed on `CVE-2026-14456` in inherited `libssl3t64 3.5.6-1~deb13u2`.
+- No final `0.1.0-rc.5` OCI promotion, OCI `latest` mutation, final smoke, provenance or completed verified release evidence occurred.
+- Full record: `docs/v0.1.0-rc.5-release-failure-2026-08-19.md`.
+
+## [0.1.0-rc.4] — 2026-08-18 — FAILED RELEASE METADATA CONTRACT
+
+Source:
+
+```text
+8a269288addcb4aa8ea3d0ce46608b650cbdb6dc
+```
+
+- GitHub Release was published with `prerelease=false` even though the tag is a SemVer prerelease.
+- `Release / Verify` failed closed at the metadata contract before repository verification, browser E2E or production-bundle verification.
+- `Release / Publish` never started, so rc.4 created no new GHCR promotion, Trivy/SBOM/provenance/final-smoke evidence and did not mutate OCI `latest`.
+- The immutable rc.4 tag remains historical failed release evidence; its GitHub presentation can be corrected without reusing or moving the tag.
+- Full record: `docs/v0.1.0-rc.4-release-failure-2026-08-18.md`.
+
+## [0.1.0-rc.3] — 2026-08-16 — AUTOMATED RELEASE CONTRACT ACCEPTED
+
+Source:
+
+```text
+d988b8c596a737326aeac67f74b6f65a6aaed3bf
+```
+
+- `Release / Verify` and `Release / Publish` completed successfully.
+- API/Web multi-platform images were published for `linux/amd64` + `linux/arm64`.
+- HIGH/CRITICAL Trivy gates passed.
+- Per-architecture SPDX SBOMs were produced.
+- Staging and final exact-digest Compose smoke tests passed.
+- Verified digests were copied/promoted without rebuild and digest identity was preserved.
+- API/Web provenance attestations were created.
+- `0.1.0-rc.3` was promoted while OCI `latest` remained untouched.
+- Release verification metadata, checksums, manifests, vulnerability reports and SBOMs were attached to the GitHub Release.
+- Automated release contract accepted; separate manual product canary remained the product-acceptance gate.
+
+## [0.1.0-rc.2] — 2026-08-09 — FAILED WEB SECURITY GATE
+
+Source:
+
+```text
+184751e164f199fdc5262cf77ea86c931daf59f7
+```
+
+- `Release / Verify` completed successfully.
+- `Release / Publish` failed closed on pgJDBC `42.7.11` / `CVE-2026-54291` (`HIGH`, fixed in `42.7.12`).
+- Mainline subsequently upgraded pgJDBC and retained the unchanged HIGH/CRITICAL fail-closed security gate.
+- No release publication/promotion was accepted from this candidate; the immutable tag remains historical evidence and is never reused or repointed.
+
+## [0.1.0-rc.1] — 2026-08-09 — FAILED RELEASE VERIFY
+
+Source:
+
+```text
+d3066258915542c2488d9a3277680b2cc478d611
+```
+
+- The first real `release: published` prerelease passed metadata/main-ancestry checks, repository verification, production Web build and responsive browser tests.
+- `Release / Verify` then failed on executable Git modes for the checked-in release helper scripts in a clean checkout; `Release / Publish` was skipped.
+- PR #28 fixed the executable modes and added a regression guard; the immutable rc.1 tag remains historical evidence and is never reused or repointed.
