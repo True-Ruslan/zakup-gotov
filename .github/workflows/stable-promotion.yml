@@ -332,6 +332,35 @@ jobs:
           Stable OCI tags \`0.1.0\` and \`latest\` point to those same accepted digests.
           EOF
 
+      - name: Prepare or verify exact stable tag
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          gh api "repos/$GITHUB_REPOSITORY/git/matching-refs/tags/$STABLE_TAG" > "$WORK_ROOT/stable-tag-matches.json"
+          exact_count="$(jq --arg ref "refs/tags/$STABLE_TAG" '[.[] | select(.ref == $ref)] | length' "$WORK_ROOT/stable-tag-matches.json")"
+          if [[ "$exact_count" -gt 1 ]]; then
+            echo "multiple exact stable tag references returned for $STABLE_TAG" >&2
+            exit 1
+          fi
+
+          if [[ "$exact_count" -eq 0 ]]; then
+            gh api --method POST "repos/$GITHUB_REPOSITORY/git/refs" \
+              --raw-field ref="refs/tags/$STABLE_TAG" \
+              --raw-field sha="$SOURCE_SHA" \
+              > "$WORK_ROOT/stable-tag-created.json"
+          fi
+
+          gh api "repos/$GITHUB_REPOSITORY/git/ref/tags/$STABLE_TAG" > "$WORK_ROOT/stable-tag.json"
+          if ! jq -e \
+            --arg ref "refs/tags/$STABLE_TAG" \
+            --arg source "$SOURCE_SHA" \
+            '.ref == $ref and .object.type == "commit" and .object.sha == $source' \
+            "$WORK_ROOT/stable-tag.json" >/dev/null; then
+            echo "stable tag exists but does not resolve to the accepted rc.7 source" >&2
+            exit 1
+          fi
+
       - name: Prepare or resume exact stable draft release
         env:
           GH_TOKEN: ${{ github.token }}
@@ -347,19 +376,13 @@ jobs:
           if [[ "$count" -eq 1 ]]; then
             jq -e \
               --arg tag "$STABLE_TAG" \
-              --arg source "$SOURCE_SHA" \
               '[.[] | select(.tag_name == $tag)] | .[0] |
-               .draft == true and .prerelease == false and .target_commitish == $source' \
+               .draft == true and .prerelease == false' \
               "$WORK_ROOT/releases.json" >/dev/null
             release_id="$(jq -r --arg tag "$STABLE_TAG" '[.[] | select(.tag_name == $tag)] | .[0].id' "$WORK_ROOT/releases.json")"
           else
-            if git ls-remote --exit-code --tags origin "refs/tags/$STABLE_TAG" >/dev/null 2>&1; then
-              echo "stable tag already exists without a resumable exact draft release" >&2
-              exit 1
-            fi
             gh api --method POST "repos/$GITHUB_REPOSITORY/releases" \
               --raw-field tag_name="$STABLE_TAG" \
-              --raw-field target_commitish="$SOURCE_SHA" \
               --raw-field name="$STABLE_TAG" \
               --raw-field body="$(cat "$NOTES_FILE")" \
               -F draft=true \
@@ -386,8 +409,7 @@ jobs:
           gh api "repos/$GITHUB_REPOSITORY/releases/$STABLE_RELEASE_ID" > "$WORK_ROOT/stable-draft-api.json"
           jq -e \
             --arg tag "$STABLE_TAG" \
-            --arg source "$SOURCE_SHA" \
-            '.tag_name == $tag and .draft == true and .prerelease == false and .target_commitish == $source' \
+            '.tag_name == $tag and .draft == true and .prerelease == false' \
             "$WORK_ROOT/stable-draft-api.json" >/dev/null
 
           python3 - <<'PY'
@@ -470,12 +492,15 @@ jobs:
           set -euo pipefail
           jq -e \
             --arg tag "$STABLE_TAG" \
-            --arg source "$SOURCE_SHA" \
-            '.tag_name == $tag and .draft == false and .prerelease == false and .target_commitish == $source' \
+            '.tag_name == $tag and .draft == false and .prerelease == false' \
             "$WORK_ROOT/stable-published.json" >/dev/null
 
-          git fetch --force --no-tags origin "refs/tags/$STABLE_TAG:refs/tags/$STABLE_TAG"
-          test "$(git rev-parse "$STABLE_TAG^{commit}")" = "$SOURCE_SHA"
+          gh api "repos/$GITHUB_REPOSITORY/git/ref/tags/$STABLE_TAG" > "$WORK_ROOT/stable-published-tag.json"
+          jq -e \
+            --arg ref "refs/tags/$STABLE_TAG" \
+            --arg source "$SOURCE_SHA" \
+            '.ref == $ref and .object.type == "commit" and .object.sha == $source' \
+            "$WORK_ROOT/stable-published-tag.json" >/dev/null
 
           gh api "repos/$GITHUB_REPOSITORY/releases/$STABLE_RELEASE_ID" > "$WORK_ROOT/stable-published-api.json"
           python3 - <<'PY'
