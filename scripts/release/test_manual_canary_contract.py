@@ -88,6 +88,23 @@ class ManualProductCanaryContractTest(unittest.TestCase):
             with self.subTest(fragment=fragment):
                 self.assertIn(fragment, capture)
 
+    def test_canary_accepts_rc7_truthful_no_assessment_checkout_state(self):
+        capture = CAPTURE_SCRIPT.read_text(encoding="utf-8")
+
+        self.assertIn(
+            'optimization.getByText("Расчёт оформления недоступен.", { exact: true })',
+            capture,
+        )
+        self.assertIn("toHaveCount(8)", capture)
+        self.assertNotIn(
+            'optimization.getByText("Доставка: Неизвестно").first()',
+            capture,
+        )
+        self.assertNotIn(
+            'optimization.getByText("Нельзя включать в минимум").first()',
+            capture,
+        )
+
     def test_canary_workflow_uses_immutable_action_pins(self):
         workflow = WORKFLOW.read_text(encoding="utf-8")
 
