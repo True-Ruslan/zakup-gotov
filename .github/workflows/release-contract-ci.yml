@@ -28,7 +28,8 @@ jobs:
         run: |
           ruby -e 'require "yaml"; ARGV.each { |path| YAML.load_file(path, aliases: true) }' \
             .github/workflows/release.yml \
-            .github/workflows/release-product-canary.yml
+            .github/workflows/release-product-canary.yml \
+            .github/workflows/stable-promotion.yml
 
       - name: Verify release semantics
         run: python3 -m unittest discover -s scripts/release -p 'test_*.py' -v
