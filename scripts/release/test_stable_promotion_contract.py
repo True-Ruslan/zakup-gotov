@@ -58,6 +58,34 @@ class StablePromotionContractTest(unittest.TestCase):
             with self.subTest(fragment=fragment):
                 self.assertNotIn(fragment, workflow)
 
+    def test_oci_aliases_use_raw_manifest_equivalence_not_top_level_descriptor_digest(self):
+        workflow = WORKFLOW.read_text(encoding="utf-8")
+
+        required = (
+            "scripts/release/verify_oci_manifest_equivalence.py",
+            "docker buildx imagetools inspect --raw",
+            '"$API_IMAGE@$SOURCE_API_DIGEST"',
+            '"$WEB_IMAGE@$SOURCE_WEB_DIGEST"',
+            '"$API_IMAGE:$SOURCE_RC_VERSION"',
+            '"$WEB_IMAGE:$SOURCE_RC_VERSION"',
+            '"$API_IMAGE:0.1.0"',
+            '"$WEB_IMAGE:0.1.0"',
+            '"$API_IMAGE:latest"',
+            '"$WEB_IMAGE:latest"',
+        )
+        for fragment in required:
+            with self.subTest(fragment=fragment):
+                self.assertIn(fragment, workflow)
+
+        forbidden = (
+            'grep -F "Digest: $SOURCE_API_DIGEST"',
+            'grep -F "Digest: $SOURCE_WEB_DIGEST"',
+            '."containerimage.descriptor".digest',
+        )
+        for fragment in forbidden:
+            with self.subTest(fragment=fragment):
+                self.assertNotIn(fragment, workflow)
+
     def test_promotion_verifies_source_release_identity_and_stable_evidence(self):
         workflow = WORKFLOW.read_text(encoding="utf-8")
 
