@@ -85,12 +85,32 @@ class StablePromotionContractTest(unittest.TestCase):
             with self.subTest(fragment=fragment):
                 self.assertIn(fragment, workflow)
 
+    def test_stable_tag_is_exact_idempotent_and_release_uses_existing_tag(self):
+        workflow = WORKFLOW.read_text(encoding="utf-8")
+
+        required = (
+            "Prepare or verify exact stable tag",
+            'gh api "repos/$GITHUB_REPOSITORY/git/ref/tags/$STABLE_TAG"',
+            'gh api --method POST "repos/$GITHUB_REPOSITORY/git/refs"',
+            '--raw-field ref="refs/tags/$STABLE_TAG"',
+            '--raw-field sha="$SOURCE_SHA"',
+            '.object.type == "commit" and .object.sha == $source',
+            "stable tag exists but does not resolve to the accepted rc.7 source",
+            'gh api --method POST "repos/$GITHUB_REPOSITORY/releases"',
+        )
+        for fragment in required:
+            with self.subTest(fragment=fragment):
+                self.assertIn(fragment, workflow)
+
+        self.assertNotIn('--raw-field target_commitish="$SOURCE_SHA"', workflow)
+
     def test_all_read_only_source_verification_precedes_first_release_write(self):
         workflow = WORKFLOW.read_text(encoding="utf-8")
 
         source_metadata = workflow.index("Verify rc.7 release metadata and accepted digests")
         source_registry = workflow.index("Verify rc.7 registry identities and exact bundle")
         evidence_prepare = workflow.index("Prepare stable release evidence and notes")
+        tag_prepare = workflow.index("Prepare or verify exact stable tag")
         draft_prepare = workflow.index("Prepare or resume exact stable draft release")
         evidence_upload = workflow.index("Upload stable draft evidence")
         draft_verify = workflow.index("Verify stable draft asset digests before registry mutation")
@@ -102,7 +122,8 @@ class StablePromotionContractTest(unittest.TestCase):
 
         self.assertLess(source_metadata, source_registry)
         self.assertLess(source_registry, evidence_prepare)
-        self.assertLess(evidence_prepare, draft_prepare)
+        self.assertLess(evidence_prepare, tag_prepare)
+        self.assertLess(tag_prepare, draft_prepare)
         self.assertLess(draft_prepare, evidence_upload)
         self.assertLess(evidence_upload, draft_verify)
         self.assertLess(draft_verify, stable_promote)
@@ -111,14 +132,13 @@ class StablePromotionContractTest(unittest.TestCase):
         self.assertLess(identity_verify, publish)
         self.assertLess(publish, published_verify)
 
-    def test_promotion_fails_closed_on_preexisting_nonresumable_stable_tag(self):
+    def test_draft_resume_is_fail_closed_and_bound_to_stable_tag(self):
         workflow = WORKFLOW.read_text(encoding="utf-8")
 
-        self.assertIn('git ls-remote --exit-code --tags origin "refs/tags/$STABLE_TAG"', workflow)
-        self.assertIn("stable tag already exists without a resumable exact draft release", workflow)
-        self.assertIn(".draft == true", workflow)
-        self.assertIn(".prerelease == false", workflow)
-        self.assertIn(".target_commitish == $source", workflow)
+        self.assertIn("multiple releases exist for stable tag $STABLE_TAG", workflow)
+        self.assertIn(".draft == true and .prerelease == false", workflow)
+        self.assertIn('tag_name="$STABLE_TAG"', workflow)
+        self.assertNotIn("stable tag already exists without a resumable exact draft release", workflow)
 
     def test_permissions_are_minimal_for_promotion(self):
         workflow = WORKFLOW.read_text(encoding="utf-8")
