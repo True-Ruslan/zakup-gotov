@@ -95,16 +95,17 @@ jobs:
             --pattern 'release-verification.json' \
             --pattern 'SHA256SUMS'
 
-          cd "$RELEASE_DIR"
-          for required in compose.release.yaml release-verification.json; do
-            if ! grep -Eq "[ *]${required}$" SHA256SUMS; then
-              echo "SHA256SUMS does not cover required canary asset: $required" >&2
-              exit 1
-            fi
-          done
-          sha256sum --check --ignore-missing SHA256SUMS
+          python3 "$GITHUB_WORKSPACE/scripts/release/verify_release_asset_checksums.py" \
+            "$RELEASE_DIR/SHA256SUMS" \
+            "$RELEASE_DIR" \
+            compose.release.yaml \
+            release-verification.json
 
-          cp compose.release.yaml release-verification.json SHA256SUMS "$CANARY_EVIDENCE_DIR/"
+          cp \
+            "$RELEASE_DIR/compose.release.yaml" \
+            "$RELEASE_DIR/release-verification.json" \
+            "$RELEASE_DIR/SHA256SUMS" \
+            "$CANARY_EVIDENCE_DIR/"
           printf '%s\n' "$RC7_TAG" > "$CANARY_EVIDENCE_DIR/release-tag.txt"
           printf '%s\n' "$RC7_SOURCE_SHA" > "$CANARY_EVIDENCE_DIR/release-source-sha.txt"
 
