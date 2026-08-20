@@ -23,6 +23,8 @@ class StablePromotionContractTest(unittest.TestCase):
             "MANUAL_CANARY_RUN: '32359437905'",
             "MANUAL_CANARY_HARNESS_SHA: da35a5cb7ef46c64d266cd29731167eaa4cbefb4",
             "MANUAL_ACCEPTANCE_COMMENT: '5354743275'",
+            "MANUAL_CANARY_ARTIFACT_ID: '9402970517'",
+            "MANUAL_CANARY_ARTIFACT_DIGEST: sha256:158afcff6c270526823ad372cf883cb5eeaf723eacfacab4d2a46fb68c625c25",
         )
         for fragment in required:
             with self.subTest(fragment=fragment):
@@ -60,56 +62,59 @@ class StablePromotionContractTest(unittest.TestCase):
         workflow = WORKFLOW.read_text(encoding="utf-8")
 
         required = (
-            'gh release view "$SOURCE_RC_TAG"',
+            'gh release download "$SOURCE_RC_TAG"',
             ".source_sha == $expected_source",
             ".api.digest == $expected_api_digest",
             ".web.digest == $expected_web_digest",
             ".stable == false",
             '.version == "0.1.0-rc.7"',
+            "stable-promotion-verification.json",
+            '"method": "digest-preserving-promotion"',
             '"promoted_from": "$SOURCE_RC_TAG"',
             '"manual_canary_run": "$MANUAL_CANARY_RUN"',
+            '"manual_acceptance_comment": "$MANUAL_ACCEPTANCE_COMMENT"',
             '"promotion_workflow_run": "$GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID"',
-            'gh release create "$STABLE_TAG"',
-            '--target "$SOURCE_SHA"',
-            'gh release edit "$STABLE_TAG" --draft=false --latest',
-            "Verify published stable release asset digests",
+            "Verify stable draft asset digests before registry mutation",
+            "Verify published stable release",
         )
         for fragment in required:
             with self.subTest(fragment=fragment):
                 self.assertIn(fragment, workflow)
 
-    def test_draft_and_evidence_precede_registry_and_public_release_mutation(self):
+    def test_all_read_only_source_verification_precedes_first_release_write(self):
         workflow = WORKFLOW.read_text(encoding="utf-8")
 
-        source_verify = workflow.index("Verify rc.7 release metadata and accepted digests")
+        source_metadata = workflow.index("Verify rc.7 release metadata and accepted digests")
+        source_registry = workflow.index("Verify rc.7 registry identities and exact bundle")
         evidence_prepare = workflow.index("Prepare stable release evidence and notes")
         draft_prepare = workflow.index("Prepare or resume exact stable draft release")
         evidence_upload = workflow.index("Upload stable draft evidence")
-        source_smoke = workflow.index("Verify rc.7 registry tags and exact bundle")
+        draft_verify = workflow.index("Verify stable draft asset digests before registry mutation")
         stable_promote = workflow.index("Promote exact accepted digests to stable version")
         latest_promote = workflow.index("Promote exact accepted digests to latest")
         identity_verify = workflow.index("Verify stable and latest registry identities")
-        publish = workflow.index("Publish stable GitHub Release")
-        asset_verify = workflow.index("Verify published stable release asset digests")
+        publish = workflow.index("Publish stable GitHub Release last")
+        published_verify = workflow.index("Verify published stable release")
 
-        self.assertLess(source_verify, evidence_prepare)
+        self.assertLess(source_metadata, source_registry)
+        self.assertLess(source_registry, evidence_prepare)
         self.assertLess(evidence_prepare, draft_prepare)
         self.assertLess(draft_prepare, evidence_upload)
-        self.assertLess(evidence_upload, source_smoke)
-        self.assertLess(source_smoke, stable_promote)
+        self.assertLess(evidence_upload, draft_verify)
+        self.assertLess(draft_verify, stable_promote)
         self.assertLess(stable_promote, latest_promote)
         self.assertLess(latest_promote, identity_verify)
         self.assertLess(identity_verify, publish)
-        self.assertLess(publish, asset_verify)
+        self.assertLess(publish, published_verify)
 
     def test_promotion_fails_closed_on_preexisting_nonresumable_stable_tag(self):
         workflow = WORKFLOW.read_text(encoding="utf-8")
 
         self.assertIn('git ls-remote --exit-code --tags origin "refs/tags/$STABLE_TAG"', workflow)
         self.assertIn("stable tag already exists without a resumable exact draft release", workflow)
-        self.assertIn(".isDraft == true", workflow)
-        self.assertIn(".isPrerelease == false", workflow)
-        self.assertIn(".targetCommitish == $source", workflow)
+        self.assertIn(".draft == true", workflow)
+        self.assertIn(".prerelease == false", workflow)
+        self.assertIn(".target_commitish == $source", workflow)
 
     def test_permissions_are_minimal_for_promotion(self):
         workflow = WORKFLOW.read_text(encoding="utf-8")
