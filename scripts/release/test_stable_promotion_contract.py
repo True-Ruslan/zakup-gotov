@@ -104,6 +104,26 @@ class StablePromotionContractTest(unittest.TestCase):
 
         self.assertNotIn('--raw-field target_commitish="$SOURCE_SHA"', workflow)
 
+    def test_draft_assets_use_release_id_rest_upload_with_digest_safe_resume(self):
+        workflow = WORKFLOW.read_text(encoding="utf-8")
+
+        required = (
+            "Upload stable draft evidence through release asset API",
+            'gh api "repos/$GITHUB_REPOSITORY/releases/$STABLE_RELEASE_ID/assets?per_page=100"',
+            'https://uploads.github.com/repos/$GITHUB_REPOSITORY/releases/$STABLE_RELEASE_ID/assets?name=$asset_name',
+            'Authorization: Bearer $GH_TOKEN',
+            'Content-Type: application/octet-stream',
+            '--data-binary "@$asset_path"',
+            'asset already exists with unexpected digest',
+            'state == "uploaded" and .name == $name and .digest == $digest',
+        )
+        for fragment in required:
+            with self.subTest(fragment=fragment):
+                self.assertIn(fragment, workflow)
+
+        self.assertNotIn('gh release upload "$STABLE_TAG"', workflow)
+        self.assertNotIn("--clobber", workflow)
+
     def test_all_read_only_source_verification_precedes_first_release_write(self):
         workflow = WORKFLOW.read_text(encoding="utf-8")
 
@@ -112,7 +132,7 @@ class StablePromotionContractTest(unittest.TestCase):
         evidence_prepare = workflow.index("Prepare stable release evidence and notes")
         tag_prepare = workflow.index("Prepare or verify exact stable tag")
         draft_prepare = workflow.index("Prepare or resume exact stable draft release")
-        evidence_upload = workflow.index("Upload stable draft evidence")
+        evidence_upload = workflow.index("Upload stable draft evidence through release asset API")
         draft_verify = workflow.index("Verify stable draft asset digests before registry mutation")
         stable_promote = workflow.index("Promote exact accepted digests to stable version")
         latest_promote = workflow.index("Promote exact accepted digests to latest")
