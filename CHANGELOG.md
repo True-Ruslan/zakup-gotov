@@ -74,6 +74,7 @@ All notable project changes are recorded here. Zakup Gotov is pre-release; this 
 - Failed release Trivy JSON evidence is no longer silently lost with the ephemeral runner.
 - Chizhik store context can no longer be guessed from the first active store; exactly one browser-evidenced validated context is required.
 - Chizhik schema evidence no longer generically enumerates arbitrary object keys; unrelated or dynamic-looking fields are excluded by the fixed reviewed allowlist.
+- The initial rc.7 product-canary workflow could be rejected before runner startup because `jobs.canary.env` referenced the unavailable `runner` context; temporary paths are now resolved inside the first runner step from `$RUNNER_TEMP`, exported through `$GITHUB_ENV`, and protected by a regression contract.
 
 ### Security
 

@@ -99,6 +99,14 @@ class ManualProductCanaryContractTest(unittest.TestCase):
         release_contract_ci = RELEASE_CONTRACT_WORKFLOW.read_text(encoding="utf-8")
         self.assertIn(".github/workflows/release-product-canary.yml", release_contract_ci)
 
+    def test_canary_defers_runner_temp_resolution_until_a_runner_step(self):
+        workflow = WORKFLOW.read_text(encoding="utf-8")
+
+        self.assertNotIn("${{ runner.temp }}", workflow)
+        self.assertIn('CANARY_ROOT="$RUNNER_TEMP/rc7-product-canary"', workflow)
+        self.assertIn('echo "CANARY_ROOT=$CANARY_ROOT" >> "$GITHUB_ENV"', workflow)
+        self.assertIn('echo "COMPOSE_FILE=$CANARY_ROOT/release/compose.release.yaml" >> "$GITHUB_ENV"', workflow)
+
 
 if __name__ == "__main__":
     unittest.main()

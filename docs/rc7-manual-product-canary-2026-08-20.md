@@ -23,6 +23,14 @@ After the evidence harness is merged to the default branch, the repository owner
 
 `.github/workflows/release-product-canary.yml` accepts only that owner-authored command on issue #152. The evidence job has only `contents: read` + `packages: read`; the separate notification job has only `issues: write`. Neither job has package-write, attestation, OIDC or release-mutation permission.
 
+### Initial trigger validation failure
+
+The first owner command posted after PR #183 did not start the evidence jobs. GitHub rejected the workflow before runner execution because `jobs.canary.env` attempted to resolve `${{ runner.temp }}`. GitHub's context-availability contract does not make the `runner` context available at that workflow key.
+
+Recovery PR #184 keeps the same trigger, permissions and immutable rc.7 binding, but resolves the temporary paths inside the first runner step from the standard `$RUNNER_TEMP` environment variable and exports them to later steps through `$GITHUB_ENV`. A regression contract now fails if `${{ runner.temp }}` is reintroduced into this workflow.
+
+The failed pre-run validation produced no product evidence and therefore does not count as a canary attempt or acceptance signal.
+
 ## Immutable input verification
 
 Before starting the product, the workflow:
