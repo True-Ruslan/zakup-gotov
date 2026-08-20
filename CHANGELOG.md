@@ -1,6 +1,6 @@
 # Changelog
 
-All notable project changes are recorded here. Zakup Gotov is pre-release; this file summarizes user-visible behavior, architecture, security, retailer evidence and release engineering. Detailed RED/GREEN/review evidence belongs in linked acceptance/spec/release documents.
+All notable project changes are recorded here. Zakup Gotov reached its first accepted stable release with `v0.1.0`; this file summarizes user-visible behavior, architecture, security, retailer evidence and release engineering. Detailed RED/GREEN/review evidence belongs in linked acceptance/spec/release documents.
 
 ## [Unreleased]
 
@@ -38,11 +38,11 @@ All notable project changes are recorded here. Zakup Gotov is pre-release; this 
 - D1 is **COMPLETE / ACCEPTED**: the normal user-browser MV3 Retailer Bridge is the selected acquisition architecture.
 - D2 transport foundation (#169/#171) adds exact bounded store-scoped delivery search while keeping successful JSON opaque and automatic search/offer production disabled.
 - D2 store-context binding (#173/#174) accepts only exactly one first-party browser-evidenced store intersecting the validated directory; missing/foreign/unknown/conflicting context fails closed.
-- PR #177 adds an explicit user-invoked privacy-hardened D2 schema canary with no permission widening, exactly one fixed bounded search, a fixed reviewed candidate-field allowlist and persistent-Chromium E2E. It was refreshed after rc.7 automated acceptance, passed fresh exact-head 9/9 PR CI plus final security/privacy review, and was squash-merged as `9822659c1b43df978e191e6f7826775fc615926d`.
+- PR #177 adds an explicit user-invoked privacy-hardened D2 schema canary with no permission widening, exactly one fixed bounded search, a fixed reviewed candidate-field allowlist and persistent-Chromium E2E. It passed fresh exact-head 9/9 PR CI plus final security/privacy review and was squash-merged as `9822659c1b43df978e191e6f7826775fc615926d`.
 - The canary output is limited to sanitized HTTP metadata plus bounded allowlisted field/type structure; raw store/product/SKU/name/price/promotion/request/header/cookie/credential values are not emitted.
 - Chizhik offer mapping remains blocked on ordinary-user-browser structural evidence plus independent monetary-unit/scale evidence. Availability remains `UNKNOWN` unless separately evidenced semantics are accepted.
 
-#### Release security and multi-architecture recovery
+#### Release security, product acceptance and stable promotion
 
 - Added a machine-readable OpenVEX assessment for exactly `CVE-2026-14456` on `pkg:deb/debian/libssl3t64@3.5.6-1~deb13u2` with `not_affected / vulnerable_code_not_in_execute_path`.
 - Added a VEX contract validator that fails if the reviewed statement is widened to another CVE, package or version.
@@ -52,15 +52,19 @@ All notable project changes are recorded here. Zakup Gotov is pre-release; this 
 - Added durable release failure diagnostics that summarize already-created Trivy JSON findings into the Actions log when a fail-closed scan stops publication before release assets can be attached.
 - Successful releases include the exact OpenVEX document in release assets and `SHA256SUMS`.
 - Playwright Chromium installation in Web CI, Retailer Bridge CI and Release Verify uses bounded APT retries/timeouts plus descendant-safe process supervision so a timed-out privileged package-manager subtree cannot leak into a same-run retry and keep `dpkg` locks.
-- Added an owner-gated review-assisted rc.7 product canary evidence workflow that verifies the immutable tag, release metadata, checksums and digest-pinned API/Web image refs; runs the published bundle without rebuilding application images; captures desktop/narrow, draft, Recipe, manual-list, unavailable and restart/recovery evidence; and deliberately leaves the stable-release verdict to manual review.
+- Added an owner-gated review-assisted rc.7 product canary evidence workflow (#183) that verifies immutable release identity, checksums and digest-pinned application refs; runs published application images without rebuild; captures normal, narrow, draft, Recipe, manual-list, unavailable and recovery evidence; and leaves acceptance to explicit review.
+- Added an exact release-asset checksum verifier (#185) that maps downloaded basenames only to unique `dist/<asset>` entries from the release `SHA256SUMS` and fails closed on missing, duplicate, malformed or mismatched entries.
+- Added regression evidence for the immutable rc.7 no-assessment product state (#187), requiring all canonical retailers and truthful `Расчёт оформления недоступен.` copy instead of inventing checkout assessments.
+- Added an owner-gated stable-promotion workflow (#188) that promotes only accepted immutable `image@sha256` references, never rebuilds application images, verifies stable draft assets before registry mutation and publishes the stable GitHub Release last.
+- Added strict raw OCI index alias verification (#189). Only optional top-level `annotations` may differ; ordered child descriptors and all other verified index fields must remain exact. Mutable tags remain diagnostic aliases/evidence and are never promotion sources.
 
 ### Changed
 
-- Current deterministic product phase remains **M5 Productization**; M5.2 remains intentionally unselected until release/manual-use evidence identifies the next constraint.
+- Current deterministic product phase remains **M5 Productization**; M5.2 remains intentionally unselected until real stable-use evidence identifies the next constraint.
 - `v0.1.0-rc.4`, `v0.1.0-rc.5` and `v0.1.0-rc.6` remain immutable historical **failed release-contract evidence**.
-- `v0.1.0-rc.7` is the first current candidate with the full automated release contract accepted after the rc.5 security and rc.6 multi-architecture recovery work.
-- Stable `v0.1.0` remains blocked on a separate manual product canary using immutable rc.7 artifacts.
-- Normal mainline development has resumed after the rc.7 release freeze; later `main` commits do not change or retag immutable rc.7 source evidence.
+- `v0.1.0-rc.7` has both its automated release contract and separate manual product canary **accepted**.
+- Stable `v0.1.0` is **released and accepted** from the exact accepted rc.7 application artifacts without rebuild.
+- Current `main` is intentionally ahead of the stable product source: later Chizhik and release-tooling commits do not mutate or repoint `v0.1.0`.
 - Web Container Security CI applies VEX only after its exact contract and final-image reachability assumptions pass; API scans remain unfiltered.
 - Release CI applies the same Web VEX only after independent amd64 and arm64 runtime guards; registry-mode guards inspect exact platform child manifests derived from the immutable parent OCI index.
 
@@ -74,7 +78,10 @@ All notable project changes are recorded here. Zakup Gotov is pre-release; this 
 - Failed release Trivy JSON evidence is no longer silently lost with the ephemeral runner.
 - Chizhik store context can no longer be guessed from the first active store; exactly one browser-evidenced validated context is required.
 - Chizhik schema evidence no longer generically enumerates arbitrary object keys; unrelated or dynamic-looking fields are excluded by the fixed reviewed allowlist.
-- The initial rc.7 product-canary workflow could be rejected before runner startup because `jobs.canary.env` referenced the unavailable `runner` context; temporary paths are now resolved inside the first runner step from `$RUNNER_TEMP`, exported through `$GITHUB_ENV`, and protected by a regression contract.
+- The initial rc.7 product-canary workflow could be rejected before runner startup because `jobs.canary.env` referenced the unavailable `runner` context; #184 resolves temporary paths only after runner startup and exports them through `$GITHUB_ENV`.
+- The next canary attempt exposed an incorrect release-checksum path assumption; #185 verifies downloaded basenames against exact `dist/<asset>` checksum entries instead of relying on `sha256sum --ignore-missing`.
+- The next canary reached the immutable product but expected checkout-assessment rows that correctly did not exist; #187 changed only the evidence harness to assert the product's truthful no-assessment state. The final rc.7 manual canary passed.
+- The first stable-promotion attempt (`32362833963`) incorrectly assumed a mutable rc alias must preserve the accepted source OCI index's top-level descriptor digest. It failed before any stable mutation. #189 replaced the assumption with strict raw-index equivalence while preserving accepted immutable digest refs as the only promotion source.
 
 ### Security
 
@@ -86,8 +93,50 @@ All notable project changes are recorded here. Zakup Gotov is pre-release; this 
 - Chizhik canary production/E2E manifests retain `permissions: ["storage"]` with no host-permission widening; the canary is explicit-user-invocation only and fails closed on missing/foreign/unknown/conflicting context.
 - Precise addresses, credentials, provider tokens, private headers and raw sensitive provider payloads remain excluded from ordinary evidence/logging.
 - Published release tags, including failed candidates, are immutable historical evidence and are never repointed.
+- Stable promotion is content-addressed: accepted immutable API/Web digest refs are the source of truth; mutable OCI aliases cannot become promotion authority.
 
-## [0.1.0-rc.7] — 2026-08-19 — AUTOMATED RELEASE CONTRACT ACCEPTED
+## [0.1.0] — 2026-08-20 — STABLE RELEASE ACCEPTED
+
+Stable product source:
+
+```text
+b754f5193f852db0312011f3f6c3ec6c7dd22eb2
+```
+
+Accepted immutable application indexes:
+
+```text
+API  sha256:1c5c4a104fee295cd579b0e69a23b508a297b1eb931a45c0ce71d8b1791e54e1
+Web  sha256:5bc236f3f304dffe29f54921f5a2bbf27d3df67c18714d4cc268d6d25bafce68
+```
+
+Acceptance evidence:
+
+- rc.7 automated release workflow `32293764820` — **SUCCESS**;
+- rc.7 manual product canary `32359437905` — **SUCCESS / MANUALLY ACCEPTED**;
+- manual evidence artifact id `9402970517`, digest `sha256:158afcff6c270526823ad372cf883cb5eeaf723eacfacab4d2a46fb68c625c25`;
+- stable promotion workflow `32384418147` — **SUCCESS**;
+- stable promotion harness/main commit `a550501dd7fdaabcb51c2faf83a9bbbf4c96c731`;
+- GitHub Release id `373829773`, published `draft=false`, `prerelease=false`;
+- stable Git tag `v0.1.0` verified to resolve exactly to the accepted product source.
+
+Stable promotion did **not** rebuild API or Web. The workflow:
+
+- revalidated accepted manual-canary identities and evidence;
+- revalidated immutable rc.7 release metadata, exact asset set, server-side asset digests and `SHA256SUMS`;
+- required `release-verification.json` to name the exact accepted source, two platforms, unchanged `CRITICAL,HIGH` gate and accepted API/Web digests;
+- verified release manifests and registry indexes using strict raw OCI index equivalence;
+- created `0.1.0` and `latest` from accepted immutable `image@sha256` refs only;
+- re-read and verified API/Web `0.1.0` and `latest` against the accepted immutable indexes;
+- reran the exact-digest Compose smoke until Postgres/API/Web were healthy;
+- verified stable draft evidence assets before registry mutation;
+- published the stable GitHub Release last and reverified its tag and server-side asset digests.
+
+The first stable-promotion attempt `32362833963` failed closed before any stable mutation because it required a mutable rc tag to retain the accepted source index's top-level descriptor digest. #189 corrected the model: mutable tags are aliases, while accepted immutable digest refs remain the trust anchor; only optional top-level OCI annotations may differ, and ordered child descriptors plus every other verified index field remain exact.
+
+**Stable release verdict: ACCEPTED.**
+
+## [0.1.0-rc.7] — 2026-08-19 — AUTOMATED + MANUAL ACCEPTED
 
 Source:
 
@@ -106,10 +155,14 @@ Release workflow: `32293764820`, attempt 1 — **SUCCESS**.
 - Digest-pinned staging and final Compose smoke passed.
 - Verified staging indexes were copied to final packages without rebuild and digest identity was asserted.
 - API and Web provenance attestations were created.
-- `0.1.0-rc.7` prerelease OCI promotion succeeded while `latest` remained untouched.
+- `0.1.0-rc.7` prerelease OCI promotion succeeded while `latest` remained untouched at prerelease publication time.
 - Final manifests, `release-verification.json`, `SHA256SUMS`, vulnerability reports, four SBOMs, Compose and the exact OpenVEX evidence were attached to the GitHub Release.
 - The rc.6 `cannot overwrite digest ...` failure did not recur.
-- Automated release verdict: **ACCEPTED**. A separate manual product canary remains required before stable `v0.1.0`.
+- Automated release verdict: **ACCEPTED**.
+
+Manual product canary `32359437905` later passed all required normal, narrow-layout, unavailable and recovered scenarios against the immutable rc.7 release bundle. The accepted evidence artifact is id `9402970517`, digest `sha256:158afcff6c270526823ad372cf883cb5eeaf723eacfacab4d2a46fb68c625c25`.
+
+Manual product verdict: **ACCEPTED**.
 
 ## [0.1.0-rc.6] — 2026-08-19 — FAILED ARM64 RUNTIME-GUARD MATERIALIZATION
 
@@ -174,7 +227,7 @@ d988b8c596a737326aeac67f74b6f65a6aaed3bf
 - API/Web provenance attestations were created.
 - `0.1.0-rc.3` was promoted while OCI `latest` remained untouched.
 - Release verification metadata, checksums, manifests, vulnerability reports and SBOMs were attached to the GitHub Release.
-- Automated release contract accepted; separate manual product canary remained the product-acceptance gate.
+- Automated release contract accepted; separate manual product canary remained the product-acceptance gate at that time.
 
 ## [0.1.0-rc.2] — 2026-08-09 — FAILED WEB SECURITY GATE
 

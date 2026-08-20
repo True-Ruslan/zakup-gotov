@@ -2,7 +2,7 @@
 
 Updated: 2026-08-20
 
-The roadmap is evidence-driven. Technical connectivity, production-access readiness and deterministic product/core maturity are separate dimensions.
+The roadmap is evidence-driven. Technical connectivity, production-access readiness, deterministic product/core maturity and release acceptance are separate dimensions.
 
 ## Product connectivity invariant
 
@@ -36,11 +36,34 @@ Current accepted scope covers explicit known/unknown checkout economics, determi
 
 One versioned same-origin semantic WeeklyPlan/Pantry draft is accepted. Generated identities, retailer results, economics, optimizer output and provider evidence never become persisted authority.
 
+### Stable product baseline — `v0.1.0` RELEASED / ACCEPTED
+
+The first stable release is accepted. It promotes the already accepted immutable `v0.1.0-rc.7` application artifacts without rebuilding them.
+
+Stable product source:
+
+```text
+b754f5193f852db0312011f3f6c3ec6c7dd22eb2
+```
+
+Accepted application indexes:
+
+```text
+API  sha256:1c5c4a104fee295cd579b0e69a23b508a297b1eb931a45c0ce71d8b1791e54e1
+Web  sha256:5bc236f3f304dffe29f54921f5a2bbf27d3df67c18714d4cc268d6d25bafce68
+```
+
+Automated rc.7 release run `32293764820`, manual product canary run `32359437905` and stable-promotion run `32384418147` are all accepted. Stable publication uses immutable `image@sha256` sources, strict raw-OCI-index verification, no rebuild, exact-digest runtime smoke and GitHub Release publication last.
+
+Current `main` is intentionally ahead of the stable product source. Post-rc.7 work includes Chizhik schema-canary functionality and release/manual-canary/stable-promotion hardening. Published stable tags remain immutable historical evidence and are never repointed to later `main`.
+
 ### M5.2 — INTENTIONALLY UNSELECTED
 
-Do not preselect accounts, analytics, feature flags, provider health or saved history before real release/manual-use evidence identifies the highest-value productization constraint.
+Do **not** preselect accounts, analytics, feature flags, provider health or saved history merely because stable `v0.1.0` now exists.
 
-The immediate productization evidence source is the immutable `v0.1.0-rc.7` manual product canary. A satisfactory manual canary is required before deciding whether stable `v0.1.0` is ready and before selecting M5.2 from actual usage constraints.
+The rc.7 manual product canary found no new product-runtime blocker: normal WeeklyPlan/Pantry, Recipe, manual-list, responsive, API-unavailable and recovery paths passed. The failed attempts that preceded acceptance were evidence-harness defects (#185/#187), not unmet product requirements. Therefore the current evidence does not justify inventing an M5.2 scope.
+
+M5.2 should be selected from real stable-use evidence or a concrete product constraint with measurable value. Until then, work that already has stronger evidence — especially retailer connectivity — remains the priority.
 
 ## Release validation history
 
@@ -52,7 +75,7 @@ Immutable source: `d988b8c596a737326aeac67f74b6f65a6aaed3bf`. Do not move, delet
 
 Immutable source: `8a269288addcb4aa8ea3d0ce46608b650cbdb6dc`.
 
-Release run `32136955056` failed closed at `Release / Verify → Validate release metadata` because GitHub supplied `prerelease=false` for a SemVer prerelease tag. `Release / Publish` never started, so rc.4 established no new GHCR/SBOM/attestation/staging/final-smoke evidence and did not mutate OCI `latest`.
+Release run `32136955056` failed closed at `Release / Verify → Validate release metadata` because GitHub supplied `prerelease=false` for a SemVer prerelease tag. `Release / Publish` never started, so rc.4 established no accepted new GHCR/SBOM/attestation/staging/final-smoke evidence and did not mutate OCI `latest`.
 
 Failure record: [`v0.1.0-rc.4-release-failure-2026-08-18.md`](v0.1.0-rc.4-release-failure-2026-08-18.md).
 
@@ -76,7 +99,7 @@ Recovery PR #180 reproduced the defect against the immutable rc.6 index, then ch
 
 Failure record: [`v0.1.0-rc.6-release-failure-2026-08-19.md`](v0.1.0-rc.6-release-failure-2026-08-19.md).
 
-### `v0.1.0-rc.7` — AUTOMATED ACCEPTED; MANUAL CANARY PENDING
+### `v0.1.0-rc.7` — AUTOMATED + MANUAL ACCEPTED
 
 Immutable source: `b754f5193f852db0312011f3f6c3ec6c7dd22eb2`.
 
@@ -94,18 +117,40 @@ Release run `32293764820` completed **SUCCESS on attempt 1**. The automated rele
 - prerelease OCI promotion;
 - manifests, verification metadata, checksums, vulnerability reports, SBOMs, Compose and exact VEX release evidence.
 
-The rc.6 platform-materialization failure did not recur. As required for a prerelease, OCI `latest` was not mutated.
+Manual canary run `32359437905` then passed the normal product flows, narrow-layout check, fail-closed API-unavailable state and recovered/restarted state using the immutable rc.7 bundle. Evidence artifact id `9402970517`, digest `sha256:158afcff6c270526823ad372cf883cb5eeaf723eacfacab4d2a46fb68c625c25`, was manually reviewed and accepted in #152.
 
-**Automated rc.7 verdict: ACCEPTED.** Stable `v0.1.0` is still blocked on a separate manual product canary using the immutable rc.7 artifacts. Track this in #152.
+**rc.7 verdict: ACCEPTED.**
+
+### `v0.1.0` — STABLE RELEASE ACCEPTED
+
+Stable promotion is an explicit owner-gated release action, not a rebuild of later `main`.
+
+The first promotion attempt `32362833963` failed closed before stable mutation because the workflow incorrectly assumed a mutable rc alias must preserve the source OCI index's top-level descriptor digest. PR #189 replaced that assumption with strict raw-index equivalence while keeping immutable accepted digest refs as the only promotion sources.
+
+Accepted stable-promotion run:
+
+```text
+32384418147
+```
+
+Promotion harness/main source:
+
+```text
+a550501dd7fdaabcb51c2faf83a9bbbf4c96c731
+```
+
+The accepted run verified manual-canary evidence, immutable rc.7 release identity/assets/checksums, stable draft assets, accepted API/Web registry indexes, no-rebuild promotion to `0.1.0` and `latest`, strict post-promotion OCI descriptor equivalence, exact-digest runtime health and final GitHub Release tag/assets. GitHub Release `373829773` was published last as `draft=false`, `prerelease=false` with tag `v0.1.0` resolving exactly to `b754f5193f852db0312011f3f6c3ec6c7dd22eb2`.
+
+**Stable `v0.1.0` verdict: RELEASED / ACCEPTED.**
 
 ## Immediate mainline targets
 
-Two evidence tracks may proceed in parallel without conflating their acceptance criteria:
+The release gate is complete. The strongest evidence-backed next engineering lane is retailer connectivity rather than speculative productization.
 
-1. **Release/product:** run and record the manual product canary from immutable `v0.1.0-rc.7` artifacts; only satisfactory manual acceptance can unblock a stable `v0.1.0` decision and inform M5.2.
-2. **Retailer connectivity:** obtain ordinary-user-browser Chizhik D2 structural evidence with the merged sanitized canary, then independently establish monetary unit/scale and any availability semantics before implementing offer mapping in #169.
-
-Do not retag rc.7 after the post-release `main` changes. The rc.7 source remains immutable historical/release evidence even while normal mainline development continues.
+1. **Chizhik #169 — next priority.** Obtain ordinary-user-browser sanitized D2 structural evidence from the merged canary. Independently establish the monetary unit/scale of `prices.regular`. Separately establish availability semantics if possible; otherwise availability remains `UNKNOWN`. Implement offer mapping only after all relevant evidence gates are accepted.
+2. **Other canonical retailers.** Continue universal connectivity for Kuper (#36), Ozon Fresh, Samokat, Lenta, VkusVill and additional banners. Technical feasibility and production/right-to-operate approval remain separate.
+3. **Stable-use feedback.** Observe real `v0.1.0` usage before selecting M5.2. Create M5.2 only when a concrete product constraint outranks connectivity work by evidence and expected value.
+4. **Release maintenance.** Keep immutable release tags/evidence intact, retain fail-closed HIGH/CRITICAL security policy and treat CI-environment reliability separately from product correctness.
 
 ## Parallel retailer connectivity
 
@@ -127,7 +172,7 @@ Ordinary user-browser store-directory evidence succeeds; stock GitHub-hosted Chr
 
 ### Chizhik D2 schema canary — IMPLEMENTED / MERGED; LIVE EVIDENCE PENDING
 
-PR #177 was refreshed after rc.7 automated acceptance, passed fresh exact-head **9/9 PR workflow groups** plus final security/privacy review, and was squash-merged as `9822659c1b43df978e191e6f7826775fc615926d`.
+PR #177 passed fresh exact-head **9/9 PR workflow groups** plus final security/privacy review and was squash-merged as `9822659c1b43df978e191e6f7826775fc615926d`.
 
 The merged canary is explicit user invocation only, performs exactly one fixed bounded search, requires exactly one browser-evidenced validated store context, adds no host permissions, and emits only bounded allowlisted field/type structure plus sanitized HTTP metadata.
 
@@ -139,7 +184,7 @@ Continue universal connectivity for #36 Kuper supported aggregator/API path and 
 
 ## M6 — Native Mobile — FUTURE
 
-Android/iOS clients should use shared API vocabulary/generated contracts only after browser/API semantics and release behavior are stable enough to justify native clients.
+Android/iOS clients should use shared API vocabulary/generated contracts only after browser/API semantics and real stable-use behavior justify native clients.
 
 ## Guiding rule
 
