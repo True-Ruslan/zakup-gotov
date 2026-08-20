@@ -30,10 +30,6 @@ jobs:
     env:
       RC7_TAG: v0.1.0-rc.7
       RC7_SOURCE_SHA: b754f5193f852db0312011f3f6c3ec6c7dd22eb2
-      CANARY_ROOT: ${{ runner.temp }}/rc7-product-canary
-      RELEASE_DIR: ${{ runner.temp }}/rc7-product-canary/release
-      CANARY_EVIDENCE_DIR: ${{ runner.temp }}/rc7-product-canary/evidence
-      COMPOSE_FILE: ${{ runner.temp }}/rc7-product-canary/release/compose.release.yaml
       CANARY_BASE_URL: http://127.0.0.1:3000
       POSTGRES_PASSWORD: rc7-product-canary-only
       WEB_PORT: "3000"
@@ -51,8 +47,19 @@ jobs:
           node-version-file: .nvmrc
 
       - name: Prepare evidence directories
+        shell: bash
         run: |
+          set -euo pipefail
+          CANARY_ROOT="$RUNNER_TEMP/rc7-product-canary"
+          RELEASE_DIR="$CANARY_ROOT/release"
+          CANARY_EVIDENCE_DIR="$CANARY_ROOT/evidence"
+          COMPOSE_FILE="$CANARY_ROOT/release/compose.release.yaml"
+
           mkdir -p "$RELEASE_DIR" "$CANARY_EVIDENCE_DIR"
+          echo "CANARY_ROOT=$CANARY_ROOT" >> "$GITHUB_ENV"
+          echo "RELEASE_DIR=$RELEASE_DIR" >> "$GITHUB_ENV"
+          echo "CANARY_EVIDENCE_DIR=$CANARY_EVIDENCE_DIR" >> "$GITHUB_ENV"
+          echo "COMPOSE_FILE=$CANARY_ROOT/release/compose.release.yaml" >> "$GITHUB_ENV"
           printf '%s\n' "$GITHUB_SHA" > "$CANARY_EVIDENCE_DIR/evidence-harness-sha.txt"
 
       - name: Install pinned pnpm
