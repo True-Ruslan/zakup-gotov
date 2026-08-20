@@ -30,13 +30,13 @@ jobs:
           persist-credentials: false
 
       - name: Initialize CodeQL for Java
-        uses: github/codeql-action/init@5595ccaf912efad79be6eef63a5619ff05969be3 # v4
+        uses: github/codeql-action/init@ff2f1c621b7f889edc0d3c761ac2e6a3f8cdb0dd # v4
         with:
           languages: java-kotlin
           build-mode: none
 
       - name: Analyze Java
-        uses: github/codeql-action/analyze@5595ccaf912efad79be6eef63a5619ff05969be3 # v4
+        uses: github/codeql-action/analyze@ff2f1c621b7f889edc0d3c761ac2e6a3f8cdb0dd # v4
         with:
           category: "/language:java-kotlin"
 
@@ -51,11 +51,11 @@ jobs:
           persist-credentials: false
 
       - name: Initialize CodeQL for JavaScript/TypeScript
-        uses: github/codeql-action/init@5595ccaf912efad79be6eef63a5619ff05969be3 # v4
+        uses: github/codeql-action/init@ff2f1c621b7f889edc0d3c761ac2e6a3f8cdb0dd # v4
         with:
           languages: javascript-typescript
 
       - name: Analyze JavaScript/TypeScript
-        uses: github/codeql-action/analyze@5595ccaf912efad79be6eef63a5619ff05969be3 # v4
+        uses: github/codeql-action/analyze@ff2f1c621b7f889edc0d3c761ac2e6a3f8cdb0dd # v4
         with:
           category: "/language:javascript-typescript"
