@@ -58,6 +58,34 @@ class StablePromotionContractTest(unittest.TestCase):
             with self.subTest(fragment=fragment):
                 self.assertNotIn(fragment, workflow)
 
+    def test_oci_aliases_use_raw_manifest_equivalence_not_top_level_descriptor_digest(self):
+        workflow = WORKFLOW.read_text(encoding="utf-8")
+
+        required = (
+            "scripts/release/verify_oci_manifest_equivalence.py",
+            "docker buildx imagetools inspect --raw",
+            '"$API_IMAGE@$SOURCE_API_DIGEST"',
+            '"$WEB_IMAGE@$SOURCE_WEB_DIGEST"',
+            '"$API_IMAGE:$SOURCE_RC_VERSION"',
+            '"$WEB_IMAGE:$SOURCE_RC_VERSION"',
+            '"$API_IMAGE:0.1.0"',
+            '"$WEB_IMAGE:0.1.0"',
+            '"$API_IMAGE:latest"',
+            '"$WEB_IMAGE:latest"',
+        )
+        for fragment in required:
+            with self.subTest(fragment=fragment):
+                self.assertIn(fragment, workflow)
+
+        forbidden = (
+            'grep -F "Digest: $SOURCE_API_DIGEST"',
+            'grep -F "Digest: $SOURCE_WEB_DIGEST"',
+            '."containerimage.descriptor".digest',
+        )
+        for fragment in forbidden:
+            with self.subTest(fragment=fragment):
+                self.assertNotIn(fragment, workflow)
+
     def test_promotion_verifies_source_release_identity_and_stable_evidence(self):
         workflow = WORKFLOW.read_text(encoding="utf-8")
 
@@ -73,17 +101,22 @@ class StablePromotionContractTest(unittest.TestCase):
             '--arg manual_canary_run "$MANUAL_CANARY_RUN"',
             '--arg manual_acceptance_comment "$MANUAL_ACCEPTANCE_COMMENT"',
             '--arg promotion_workflow_run "$GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID"',
-            'method: "digest-preserving-promotion"',
+            'method: "manifest-equivalent-promotion"',
             'promoted_from: $promoted_from',
             'manual_canary_run: $manual_canary_run',
             'manual_acceptance_comment: $manual_acceptance_comment',
             'promotion_workflow_run: $promotion_workflow_run',
+            "same accepted content-addressed platform manifests",
+            "verified equivalent to the immutable accepted digest references",
             "Verify stable draft asset digests before registry mutation",
             "Verify published stable release",
         )
         for fragment in required:
             with self.subTest(fragment=fragment):
                 self.assertIn(fragment, workflow)
+
+        self.assertNotIn('method: "digest-preserving-promotion"', workflow)
+        self.assertNotIn("point to those same accepted digests", workflow)
 
     def test_stable_tag_is_exact_idempotent_and_release_uses_existing_tag(self):
         workflow = WORKFLOW.read_text(encoding="utf-8")

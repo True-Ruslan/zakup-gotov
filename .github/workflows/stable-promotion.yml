@@ -218,10 +218,28 @@ jobs:
       - name: Verify rc.7 registry identities and exact bundle
         run: |
           set -euo pipefail
-          docker buildx imagetools inspect "$API_IMAGE:$SOURCE_RC_VERSION" | grep -F "Digest: $SOURCE_API_DIGEST"
-          docker buildx imagetools inspect "$WEB_IMAGE:$SOURCE_RC_VERSION" | grep -F "Digest: $SOURCE_WEB_DIGEST"
-          docker buildx imagetools inspect "$API_IMAGE@$SOURCE_API_DIGEST" >/dev/null
-          docker buildx imagetools inspect "$WEB_IMAGE@$SOURCE_WEB_DIGEST" >/dev/null
+          docker buildx imagetools inspect --raw \
+            "$API_IMAGE@$SOURCE_API_DIGEST" > "$WORK_ROOT/api-source-index.json"
+          docker buildx imagetools inspect --raw \
+            "$WEB_IMAGE@$SOURCE_WEB_DIGEST" > "$WORK_ROOT/web-source-index.json"
+          docker buildx imagetools inspect --raw \
+            "$API_IMAGE:$SOURCE_RC_VERSION" > "$WORK_ROOT/api-rc-index.json"
+          docker buildx imagetools inspect --raw \
+            "$WEB_IMAGE:$SOURCE_RC_VERSION" > "$WORK_ROOT/web-rc-index.json"
+
+          python3 scripts/release/verify_oci_manifest_equivalence.py \
+            "$SOURCE_DIR/api-manifest.json" \
+            "$WORK_ROOT/api-source-index.json"
+          python3 scripts/release/verify_oci_manifest_equivalence.py \
+            "$SOURCE_DIR/web-manifest.json" \
+            "$WORK_ROOT/web-source-index.json"
+          python3 scripts/release/verify_oci_manifest_equivalence.py \
+            "$WORK_ROOT/api-source-index.json" \
+            "$WORK_ROOT/api-rc-index.json"
+          python3 scripts/release/verify_oci_manifest_equivalence.py \
+            "$WORK_ROOT/web-source-index.json" \
+            "$WORK_ROOT/web-rc-index.json"
+
           bash scripts/release/verify-published-release.sh "$SOURCE_DIR/compose.release.yaml"
 
       - name: Prepare stable release evidence and notes
@@ -277,7 +295,7 @@ jobs:
             --arg promotion_workflow_run "$GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID" \
             '{
               schema_version: 1,
-              method: "digest-preserving-promotion",
+              method: "manifest-equivalent-promotion",
               stable_tag: $stable_tag,
               promoted_from: $promoted_from,
               source_sha: $source_sha,
@@ -329,7 +347,7 @@ jobs:
           - linux/amd64 + linux/arm64;
           - HIGH/CRITICAL vulnerability gates, SPDX SBOMs, exact-digest bundle smoke and provenance were accepted on rc.7.
 
-          Stable OCI tags \`0.1.0\` and \`latest\` point to those same accepted digests.
+          Stable OCI tags \`0.1.0\` and \`latest\` reference equivalent multi-platform indexes with the same accepted content-addressed platform manifests.
           EOF
 
       - name: Prepare or verify exact stable tag
@@ -482,8 +500,16 @@ jobs:
             --metadata-file "$WORK_ROOT/web-stable-promotion.json" \
             "$WEB_IMAGE@$SOURCE_WEB_DIGEST"
 
-          test "$(jq -r '."containerimage.descriptor".digest' "$WORK_ROOT/api-stable-promotion.json")" = "$SOURCE_API_DIGEST"
-          test "$(jq -r '."containerimage.descriptor".digest' "$WORK_ROOT/web-stable-promotion.json")" = "$SOURCE_WEB_DIGEST"
+          docker buildx imagetools inspect --raw \
+            "$API_IMAGE:0.1.0" > "$WORK_ROOT/api-stable-index.json"
+          docker buildx imagetools inspect --raw \
+            "$WEB_IMAGE:0.1.0" > "$WORK_ROOT/web-stable-index.json"
+          python3 scripts/release/verify_oci_manifest_equivalence.py \
+            "$WORK_ROOT/api-source-index.json" \
+            "$WORK_ROOT/api-stable-index.json"
+          python3 scripts/release/verify_oci_manifest_equivalence.py \
+            "$WORK_ROOT/web-source-index.json" \
+            "$WORK_ROOT/web-stable-index.json"
 
       - name: Promote exact accepted digests to latest
         run: |
@@ -497,16 +523,42 @@ jobs:
             --metadata-file "$WORK_ROOT/web-latest-promotion.json" \
             "$WEB_IMAGE@$SOURCE_WEB_DIGEST"
 
-          test "$(jq -r '."containerimage.descriptor".digest' "$WORK_ROOT/api-latest-promotion.json")" = "$SOURCE_API_DIGEST"
-          test "$(jq -r '."containerimage.descriptor".digest' "$WORK_ROOT/web-latest-promotion.json")" = "$SOURCE_WEB_DIGEST"
+          docker buildx imagetools inspect --raw \
+            "$API_IMAGE:latest" > "$WORK_ROOT/api-latest-index.json"
+          docker buildx imagetools inspect --raw \
+            "$WEB_IMAGE:latest" > "$WORK_ROOT/web-latest-index.json"
+          python3 scripts/release/verify_oci_manifest_equivalence.py \
+            "$WORK_ROOT/api-source-index.json" \
+            "$WORK_ROOT/api-latest-index.json"
+          python3 scripts/release/verify_oci_manifest_equivalence.py \
+            "$WORK_ROOT/web-source-index.json" \
+            "$WORK_ROOT/web-latest-index.json"
 
       - name: Verify stable and latest registry identities
         run: |
           set -euo pipefail
-          docker buildx imagetools inspect "$API_IMAGE:0.1.0" | grep -F "Digest: $SOURCE_API_DIGEST"
-          docker buildx imagetools inspect "$WEB_IMAGE:0.1.0" | grep -F "Digest: $SOURCE_WEB_DIGEST"
-          docker buildx imagetools inspect "$API_IMAGE:latest" | grep -F "Digest: $SOURCE_API_DIGEST"
-          docker buildx imagetools inspect "$WEB_IMAGE:latest" | grep -F "Digest: $SOURCE_WEB_DIGEST"
+          docker buildx imagetools inspect --raw \
+            "$API_IMAGE:0.1.0" > "$WORK_ROOT/api-stable-final-index.json"
+          docker buildx imagetools inspect --raw \
+            "$WEB_IMAGE:0.1.0" > "$WORK_ROOT/web-stable-final-index.json"
+          docker buildx imagetools inspect --raw \
+            "$API_IMAGE:latest" > "$WORK_ROOT/api-latest-final-index.json"
+          docker buildx imagetools inspect --raw \
+            "$WEB_IMAGE:latest" > "$WORK_ROOT/web-latest-final-index.json"
+
+          python3 scripts/release/verify_oci_manifest_equivalence.py \
+            "$WORK_ROOT/api-source-index.json" \
+            "$WORK_ROOT/api-stable-final-index.json"
+          python3 scripts/release/verify_oci_manifest_equivalence.py \
+            "$WORK_ROOT/web-source-index.json" \
+            "$WORK_ROOT/web-stable-final-index.json"
+          python3 scripts/release/verify_oci_manifest_equivalence.py \
+            "$WORK_ROOT/api-source-index.json" \
+            "$WORK_ROOT/api-latest-final-index.json"
+          python3 scripts/release/verify_oci_manifest_equivalence.py \
+            "$WORK_ROOT/web-source-index.json" \
+            "$WORK_ROOT/web-latest-final-index.json"
+
           bash scripts/release/verify-published-release.sh "$STABLE_DIR/compose.release.yaml"
 
       - name: Publish stable GitHub Release last
@@ -589,7 +641,7 @@ jobs:
               `Source: \`${process.env.SOURCE_RC_TAG}\` / \`${process.env.SOURCE_SHA}\``,
               '',
               result === 'success'
-                ? 'Exact accepted rc.7 API/Web digests were promoted without rebuild to `0.1.0` and `latest`, and the stable GitHub Release was published and verified.'
+                ? 'Accepted rc.7 API/Web platform manifests were promoted without rebuild to `0.1.0` and `latest`, verified equivalent to the immutable accepted digest references, and the stable GitHub Release was published and verified.'
                 : 'Stable publication did not complete successfully. Do not mutate or repoint any published stable tag; inspect the run before recovery.',
             ].join('\n');
             await github.rest.issues.createComment({
