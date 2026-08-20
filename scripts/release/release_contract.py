@@ -150,6 +150,11 @@ def _metadata_command(args: argparse.Namespace) -> None:
         prerelease=args.prerelease,
         commit_sha=args.commit_sha,
     )
+    if metadata.stable:
+        raise ValueError(
+            "stable releases must use the digest-preserving stable promotion workflow"
+        )
+
     api_image, web_image = build_image_names(args.owner, args.repository)
     api_staging_image, web_staging_image = build_staging_image_names(
         args.owner, args.repository
@@ -193,7 +198,7 @@ def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(description="Zakup Gotov release contract helper")
     subparsers = parser.add_subparsers(dest="command", required=True)
 
-    metadata = subparsers.add_parser("metadata", help="validate release metadata")
+    metadata = subparsers.add_parser("metadata", help="validate prerelease metadata")
     metadata.add_argument("--tag", required=True)
     metadata.add_argument("--prerelease", required=True, type=_parse_bool)
     metadata.add_argument("--commit-sha", required=True)
