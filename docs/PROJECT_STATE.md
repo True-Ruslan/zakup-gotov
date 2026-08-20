@@ -9,7 +9,7 @@ Updated: 2026-08-20
 Repository: `True-Ruslan/zakup-gotov`  
 Visibility: Public  
 Current product phase: **M5 — Productization**  
-Current `main` release/tooling baseline: `a550501dd7fdaabcb51c2faf83a9bbbf4c96c731` (#189 merge)  
+Verified executable/release-tooling baseline: `a550501dd7fdaabcb51c2faf83a9bbbf4c96c731` (#189 merge; later documentation-only commits do not change executable behavior)  
 Accepted stable release: **`v0.1.0`**  
 Accepted stable product source: `b754f5193f852db0312011f3f6c3ec6c7dd22eb2` (immutable `v0.1.0-rc.7` source)  
 Immediate technical target: **ordinary-user-browser Chizhik D2 evidence for #169**.
@@ -115,13 +115,15 @@ The downloaded ZIP hash matches GitHub's artifact digest. It contains only `cont
 
 This artifact is suitable as the exact verified bridge build for the ordinary-user-browser #169 canary. Its availability does not itself accept the live retailer schema.
 
-## Current `main` and release-hardening state
+## Verified executable/release-hardening baseline
 
-The current `main` head at this state update is:
+The latest verified executable/release-tooling baseline is:
 
 ```text
 a550501dd7fdaabcb51c2faf83a9bbbf4c96c731
 ```
+
+Later documentation-only synchronization commits do not change executable behavior and therefore do not replace this baseline.
 
 Relevant post-rc.7 mainline changes are intentionally separated from the stable product source:
 
@@ -131,7 +133,8 @@ Relevant post-rc.7 mainline changes are intentionally separated from the stable 
 - #185 / `0e7aad7...` — fail-closed rc.7 release-asset checksum verification by exact `dist/<asset>` paths;
 - #187 / `da35a5c...` — canary assertions aligned with the immutable candidate's truthful no-assessment state;
 - #188 / `72ee6a1...` — owner-gated no-rebuild stable-promotion workflow;
-- #189 / `a550501...` — strict OCI alias verification by raw manifest equivalence.
+- #189 / `a550501...` — strict OCI alias verification by raw manifest equivalence;
+- #190 / `262eb59...` — documentation-only synchronization of stable `v0.1.0` acceptance.
 
 PR #189 exact head `0b5e4bb85fd6467d5eb7ad98278eb4b6785ee811` was `behind=0`, had no review threads and passed all 9 expected PR workflow groups before merge: Release Contract, Release Bundle, Dependency Review, Contract, Container Security, Retailer Bridge, API, CodeQL and Web CI.
 
