@@ -1,5 +1,6 @@
 import { retailerBrowserAdapters } from "./adapters/retailer-browser-adapters";
 import { createChizhikActiveApiClient } from "./chizhik-active-api-client";
+import { createChizhikResourceDiagnosticsTracker } from "./chizhik-resource-diagnostics";
 import { runChizhikSchemaCanary } from "./chizhik-schema-canary";
 import {
   CHIZHIK_SCHEMA_CANARY_RESULT,
@@ -22,11 +23,22 @@ const storeObservations = createChromeObservationSink(sendMessage);
 const clearObservations = createChromeObservationClearer(sendMessage);
 const observedResourceUrls = new Set<string>();
 const chizhikSchemaCanaryClient = createChizhikActiveApiClient();
+
+function currentChizhikResourceDiagnostics() {
+  const tracker = createChizhikResourceDiagnosticsTracker();
+  const pageUrl = new URL(location.href);
+  performance
+    .getEntriesByType("resource")
+    .forEach((entry) => tracker.observe(entry.name, pageUrl));
+  return tracker.snapshot();
+}
+
 const handleChizhikSchemaCanaryMessage = createChizhikSchemaCanaryMessageHandler(() =>
   runChizhikSchemaCanary({
     client: chizhikSchemaCanaryClient,
     pageUrl: new URL(location.href),
     resourceUrls: [...observedResourceUrls],
+    resourceDiagnostics: currentChizhikResourceDiagnostics(),
   }),
 );
 

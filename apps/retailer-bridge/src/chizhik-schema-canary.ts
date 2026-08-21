@@ -2,6 +2,10 @@ import type {
   ChizhikDeliverySearchRequest,
   ChizhikStoreDiscoveryResult,
 } from "./chizhik-active-api-client";
+import {
+  EMPTY_CHIZHIK_RESOURCE_DIAGNOSTICS,
+  type ChizhikResourceDiagnosticsSnapshot,
+} from "./chizhik-resource-diagnostics";
 import { resolveChizhikEvidencedStoreId } from "./chizhik-store-context";
 
 const OFFICIAL_PAGE_ORIGIN = "https://chizhik.club";
@@ -58,7 +62,10 @@ type CanaryClient = Readonly<{
 export type ChizhikSchemaCanaryResult =
   | Readonly<{ status: "wrong-origin" }>
   | Readonly<{ status: "stores-unavailable" }>
-  | Readonly<{ status: "missing-context" }>
+  | Readonly<{
+      status: "missing-context";
+      diagnostics: ChizhikResourceDiagnosticsSnapshot;
+    }>
   | Readonly<{ status: "search-unavailable" }>
   | Readonly<{
       status: "pass";
@@ -72,6 +79,7 @@ export type ChizhikSchemaCanaryInput = Readonly<{
   client: CanaryClient;
   pageUrl: URL;
   resourceUrls: readonly string[];
+  resourceDiagnostics?: ChizhikResourceDiagnosticsSnapshot;
 }>;
 
 function valueType(value: unknown): JsonValueType {
@@ -134,7 +142,12 @@ export async function runChizhikSchemaCanary(
     input.pageUrl,
     validStoreIds,
   );
-  if (!sapId) return { status: "missing-context" };
+  if (!sapId) {
+    return {
+      status: "missing-context",
+      diagnostics: input.resourceDiagnostics ?? EMPTY_CHIZHIK_RESOURCE_DIAGNOSTICS,
+    };
+  }
 
   const search = await input.client.searchStore({
     sapId,

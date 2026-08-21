@@ -1,4 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
+import { EMPTY_CHIZHIK_RESOURCE_DIAGNOSTICS } from "../src/chizhik-resource-diagnostics";
 import { runChizhikSchemaCanary } from "../src/chizhik-schema-canary";
 
 const PAGE_URL = new URL("https://chizhik.club/catalog/chay-kofe--264C39224/");
@@ -119,7 +120,10 @@ describe("runChizhikSchemaCanary", () => {
       const client = clientWithPayload({ products: [] });
       await expect(
         runChizhikSchemaCanary({ client, pageUrl: PAGE_URL, resourceUrls }),
-      ).resolves.toEqual({ status: "missing-context" });
+      ).resolves.toEqual({
+        status: "missing-context",
+        diagnostics: EMPTY_CHIZHIK_RESOURCE_DIAGNOSTICS,
+      });
       expect(client.searchStore).not.toHaveBeenCalled();
     }
   });
