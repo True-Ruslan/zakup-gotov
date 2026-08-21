@@ -21,6 +21,18 @@ const PASS_RESULT = {
   ],
 };
 
+const MISSING_CONTEXT_RESULT = {
+  status: "missing-context" as const,
+  diagnostics: {
+    appOriginSeen: true,
+    deliveryApiSeen: true,
+    deliveryCatalogSeen: true,
+    storeScopedV2V3Seen: false,
+    storeScopedOtherVersionSeen: true,
+    pageOriginDeliverySeen: false,
+  },
+};
+
 describe("Chizhik schema canary message contract", () => {
   it("formats PASS as exactly two sanitized evidence lines", () => {
     expect(formatChizhikSchemaCanaryEvidence(PASS_RESULT)).toBe(
@@ -29,12 +41,22 @@ describe("Chizhik schema canary message contract", () => {
     );
   });
 
-  it("formats failures without exception, store, product, or payload details", () => {
+  it("formats missing context with fixed privacy-safe route-family diagnostics only", () => {
+    const evidence = formatChizhikSchemaCanaryEvidence(MISSING_CONTEXT_RESULT);
+    expect(evidence).toBe(
+      "CHIZHIK_D2 status=MISSING_CONTEXT\n" +
+        "CHIZHIK_D2_DIAG app_origin=SEEN delivery_api=SEEN delivery_catalog=SEEN " +
+        "store_v2_v3=NOT_SEEN store_other_version=SEEN page_origin_delivery=NOT_SEEN",
+    );
+    expect(evidence).not.toContain("http");
+    expect(evidence).not.toContain("stores/");
+    expect(evidence).not.toContain("sap");
+    expect(evidence).not.toContain("price");
+  });
+
+  it("formats other failures without exception, store, product, or payload details", () => {
     expect(formatChizhikSchemaCanaryEvidence({ status: "wrong-origin" })).toBe(
       "CHIZHIK_D2 status=WRONG_ORIGIN",
-    );
-    expect(formatChizhikSchemaCanaryEvidence({ status: "missing-context" })).toBe(
-      "CHIZHIK_D2 status=MISSING_CONTEXT",
     );
     expect(formatChizhikSchemaCanaryEvidence({ status: "stores-unavailable" })).toBe(
       "CHIZHIK_D2 status=STORES_UNAVAILABLE",
