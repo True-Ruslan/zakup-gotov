@@ -15,6 +15,10 @@ function baseContentType(contentType: string): string {
   return base?.trim() || "unknown";
 }
 
+function seen(value: boolean): "SEEN" | "NOT_SEEN" {
+  return value ? "SEEN" : "NOT_SEEN";
+}
+
 export function formatChizhikSchemaCanaryEvidence(
   result: ChizhikSchemaCanaryResult,
 ): string {
@@ -30,7 +34,15 @@ export function formatChizhikSchemaCanaryEvidence(
     case "stores-unavailable":
       return "CHIZHIK_D2 status=STORES_UNAVAILABLE";
     case "missing-context":
-      return "CHIZHIK_D2 status=MISSING_CONTEXT";
+      return (
+        "CHIZHIK_D2 status=MISSING_CONTEXT\n" +
+        `CHIZHIK_D2_DIAG app_origin=${seen(result.diagnostics.appOriginSeen)} ` +
+        `delivery_api=${seen(result.diagnostics.deliveryApiSeen)} ` +
+        `delivery_catalog=${seen(result.diagnostics.deliveryCatalogSeen)} ` +
+        `store_v2_v3=${seen(result.diagnostics.storeScopedV2V3Seen)} ` +
+        `store_other_version=${seen(result.diagnostics.storeScopedOtherVersionSeen)} ` +
+        `page_origin_delivery=${seen(result.diagnostics.pageOriginDeliverySeen)}`
+      );
     case "search-unavailable":
       return "CHIZHIK_D2 status=SEARCH_UNAVAILABLE";
   }
