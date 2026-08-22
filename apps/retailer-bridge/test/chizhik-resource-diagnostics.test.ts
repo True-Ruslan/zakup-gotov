@@ -19,6 +19,10 @@ describe("Chizhik resource diagnostics", () => {
       "https://app.chizhik.club/delivery/api/catalog/v1/categories/inout?store_id=SECRETHBBN&mode=delivery",
       PAGE_URL,
     );
+    tracker.observe(
+      "https://app.chizhik.club/delivery/api/orders/v1/orders/stores/?lon=1&lat=2",
+      PAGE_URL,
+    );
     tracker.observe("https://app.chizhik.club/api/v1/shops/", PAGE_URL);
     tracker.observe("https://chizhik.club/api/delivery/status", PAGE_URL);
     tracker.observe("https://tracker.example/SECRET87", PAGE_URL);
@@ -28,6 +32,7 @@ describe("Chizhik resource diagnostics", () => {
       appOriginSeen: true,
       deliveryApiSeen: true,
       deliveryCatalogSeen: true,
+      deliveryOrdersSeen: true,
       storeScopedV2V3Seen: true,
       storeScopedOtherVersionSeen: true,
       storeScopedCategoriesInoutSeen: true,
@@ -56,6 +61,25 @@ describe("Chizhik resource diagnostics", () => {
     expect(tracker.snapshot().storeScopedCategoriesInoutSeen).toBe(false);
   });
 
+  it("flags a delivery orders-API resource without treating it as a catalog resource", () => {
+    const tracker = createChizhikResourceDiagnosticsTracker();
+    tracker.observe(
+      "https://app.chizhik.club/delivery/api/orders/v3/orders/?in_action=true",
+      PAGE_URL,
+    );
+
+    expect(tracker.snapshot()).toEqual({
+      appOriginSeen: true,
+      deliveryApiSeen: true,
+      deliveryCatalogSeen: false,
+      deliveryOrdersSeen: true,
+      storeScopedV2V3Seen: false,
+      storeScopedOtherVersionSeen: false,
+      storeScopedCategoriesInoutSeen: false,
+      pageOriginDeliverySeen: false,
+    });
+  });
+
   it("stays all-false for malformed and unrelated resources", () => {
     const tracker = createChizhikResourceDiagnosticsTracker();
     tracker.observe("not a url", PAGE_URL);
@@ -65,6 +89,7 @@ describe("Chizhik resource diagnostics", () => {
       appOriginSeen: false,
       deliveryApiSeen: false,
       deliveryCatalogSeen: false,
+      deliveryOrdersSeen: false,
       storeScopedV2V3Seen: false,
       storeScopedOtherVersionSeen: false,
       storeScopedCategoriesInoutSeen: false,
