@@ -1,6 +1,6 @@
 # Project State
 
-Updated: 2026-08-20
+Updated: 2026-08-22
 
 ## Project
 
@@ -98,6 +98,10 @@ Issue #169 remains **OPEN**. Before any offer/price mapping it still requires:
 2. separate evidence proving the monetary unit/scale of `prices.regular` before `priceMinor` mapping;
 3. separately accepted availability semantics, otherwise availability stays `UNKNOWN`;
 4. no inferred promotion/loyalty/package/discount semantics.
+
+A real ordinary-browser #169 run reproduced `CHIZHIK_D2 status=MISSING_CONTEXT` even after the official Chizhik search UI loaded product cards for `кола`, disproving the assumption that normal search interaction necessarily exposes one accepted store-scoped resource path to the content script. Rather than guessing a new store-context source or broadening the accepted route, PR #192 (squash-merged `940b2423cb1f467f673f2c4ba967145dd7c7c074`) added privacy-safe route-family diagnostics: on `MISSING_CONTEXT`, the canary evidence now includes one fixed `CHIZHIK_D2_DIAG` line of `SEEN`/`NOT_SEEN` booleans over the Resource Timing entries already in memory, with no raw URL, store ID, or credential ever persisted or rendered.
+
+A follow-up automated-browser reconnaissance session against `app.chizhik.club` (run by Claude, not an ordinary-user session; see invariant 20) observed a successful `/delivery/api/catalog/v1/categories/inout?store_id=...` request before the session was blocked by the site's own WAF (`403 Forbidden`, consistent with D1's finding that automated Chromium is not the selected acquisition environment). That route shape does not match the accepted `v2|v3/stores/{sap_id}/...` contract and was not previously distinguished from the generic "other version" flag. PR #193 (squash-merged `7f68cb5404df77e33c08f350bdd02f033de45099`) added a dedicated `storeScopedCategoriesInoutSeen` / `store_categories_inout` diagnostic flag for this shape, verified by unit and Playwright E2E coverage before merge. This is diagnostic-only: `categories/inout?store_id=` is not accepted as a resolvable store context, and no offer/availability mapping was enabled. Ordinary-user-browser confirmation of whether this flag actually fires on a real MISSING_CONTEXT run is still outstanding.
 
 ### Verified Retailer Bridge artifact
 
