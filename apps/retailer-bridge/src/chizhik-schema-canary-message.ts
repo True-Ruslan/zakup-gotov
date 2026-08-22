@@ -39,6 +39,7 @@ export function formatChizhikSchemaCanaryEvidence(
         `CHIZHIK_D2_DIAG app_origin=${seen(result.diagnostics.appOriginSeen)} ` +
         `delivery_api=${seen(result.diagnostics.deliveryApiSeen)} ` +
         `delivery_catalog=${seen(result.diagnostics.deliveryCatalogSeen)} ` +
+        `delivery_orders=${seen(result.diagnostics.deliveryOrdersSeen)} ` +
         `store_v2_v3=${seen(result.diagnostics.storeScopedV2V3Seen)} ` +
         `store_other_version=${seen(result.diagnostics.storeScopedOtherVersionSeen)} ` +
         `store_categories_inout=${seen(result.diagnostics.storeScopedCategoriesInoutSeen)} ` +

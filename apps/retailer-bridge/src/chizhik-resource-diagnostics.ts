@@ -8,12 +8,14 @@ const ANY_NUMERIC_STORE_PATH =
   /^\/delivery\/api\/catalog\/v(\d{1,2})\/stores\/[A-Za-z0-9_-]{1,64}(?:\/|$)/;
 const CATEGORIES_INOUT_PATH =
   /^\/delivery\/api\/catalog\/v\d{1,2}\/categories\/inout(?:\/|$)/;
+const DELIVERY_ORDERS_PREFIX = "/delivery/api/orders/";
 const PAGE_ORIGIN_DELIVERY_PATH = /^\/(?:api\/)?delivery(?:\/|$)/;
 
 export type ChizhikResourceDiagnosticsSnapshot = Readonly<{
   appOriginSeen: boolean;
   deliveryApiSeen: boolean;
   deliveryCatalogSeen: boolean;
+  deliveryOrdersSeen: boolean;
   storeScopedV2V3Seen: boolean;
   storeScopedOtherVersionSeen: boolean;
   storeScopedCategoriesInoutSeen: boolean;
@@ -24,6 +26,7 @@ const EMPTY_SNAPSHOT: ChizhikResourceDiagnosticsSnapshot = {
   appOriginSeen: false,
   deliveryApiSeen: false,
   deliveryCatalogSeen: false,
+  deliveryOrdersSeen: false,
   storeScopedV2V3Seen: false,
   storeScopedOtherVersionSeen: false,
   storeScopedCategoriesInoutSeen: false,
@@ -54,6 +57,10 @@ export function createChizhikResourceDiagnosticsTracker() {
 
         if (!resourceUrl.pathname.startsWith(DELIVERY_API_PREFIX)) return;
         state.deliveryApiSeen = true;
+
+        if (resourceUrl.pathname.startsWith(DELIVERY_ORDERS_PREFIX)) {
+          state.deliveryOrdersSeen = true;
+        }
 
         if (!resourceUrl.pathname.startsWith(DELIVERY_CATALOG_PREFIX)) return;
         state.deliveryCatalogSeen = true;
