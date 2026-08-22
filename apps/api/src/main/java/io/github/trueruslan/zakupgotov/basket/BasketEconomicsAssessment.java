@@ -32,8 +32,18 @@ public record BasketEconomicsAssessment(
         if (checkoutTotalStatus != expectedCheckoutTotalStatus) {
             throw new IllegalArgumentException("checkout total status must match basket economics knowledge");
         }
-        if (!checkoutTotal.equals(expectedCheckoutTotal)) {
+        if (!sameCheckoutTotal(checkoutTotal, expectedCheckoutTotal)) {
             throw new IllegalArgumentException("checkout total amount must match merchandise subtotal and known fees");
         }
+    }
+
+    private static boolean sameCheckoutTotal(Optional<BasketTotal> actual, Optional<BasketTotal> expected) {
+        if (actual.isEmpty() || expected.isEmpty()) {
+            return actual.isEmpty() == expected.isEmpty();
+        }
+        var actualTotal = actual.get();
+        var expectedTotal = expected.get();
+        return actualTotal.currencyCode().equals(expectedTotal.currencyCode())
+                && actualTotal.amount().compareTo(expectedTotal.amount()) == 0;
     }
 }
