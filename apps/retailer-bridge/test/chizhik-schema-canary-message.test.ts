@@ -29,6 +29,7 @@ const MISSING_CONTEXT_RESULT = {
     deliveryCatalogSeen: true,
     storeScopedV2V3Seen: false,
     storeScopedOtherVersionSeen: true,
+    storeScopedCategoriesInoutSeen: false,
     pageOriginDeliverySeen: false,
   },
 };
@@ -46,7 +47,8 @@ describe("Chizhik schema canary message contract", () => {
     expect(evidence).toBe(
       "CHIZHIK_D2 status=MISSING_CONTEXT\n" +
         "CHIZHIK_D2_DIAG app_origin=SEEN delivery_api=SEEN delivery_catalog=SEEN " +
-        "store_v2_v3=NOT_SEEN store_other_version=SEEN page_origin_delivery=NOT_SEEN",
+        "store_v2_v3=NOT_SEEN store_other_version=SEEN store_categories_inout=NOT_SEEN " +
+        "page_origin_delivery=NOT_SEEN",
     );
     expect(evidence).not.toContain("http");
     expect(evidence).not.toContain("stores/");

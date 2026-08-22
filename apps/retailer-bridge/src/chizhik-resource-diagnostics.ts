@@ -6,6 +6,8 @@ const ACCEPTED_STORE_PATH =
   /^\/delivery\/api\/catalog\/v(?:2|3)\/stores\/[A-Za-z0-9_-]{1,32}(?:\/|$)/;
 const ANY_NUMERIC_STORE_PATH =
   /^\/delivery\/api\/catalog\/v(\d{1,2})\/stores\/[A-Za-z0-9_-]{1,64}(?:\/|$)/;
+const CATEGORIES_INOUT_PATH =
+  /^\/delivery\/api\/catalog\/v\d{1,2}\/categories\/inout(?:\/|$)/;
 const PAGE_ORIGIN_DELIVERY_PATH = /^\/(?:api\/)?delivery(?:\/|$)/;
 
 export type ChizhikResourceDiagnosticsSnapshot = Readonly<{
@@ -14,6 +16,7 @@ export type ChizhikResourceDiagnosticsSnapshot = Readonly<{
   deliveryCatalogSeen: boolean;
   storeScopedV2V3Seen: boolean;
   storeScopedOtherVersionSeen: boolean;
+  storeScopedCategoriesInoutSeen: boolean;
   pageOriginDeliverySeen: boolean;
 }>;
 
@@ -23,6 +26,7 @@ const EMPTY_SNAPSHOT: ChizhikResourceDiagnosticsSnapshot = {
   deliveryCatalogSeen: false,
   storeScopedV2V3Seen: false,
   storeScopedOtherVersionSeen: false,
+  storeScopedCategoriesInoutSeen: false,
   pageOriginDeliverySeen: false,
 };
 
@@ -62,6 +66,13 @@ export function createChizhikResourceDiagnosticsTracker() {
         const version = resourceUrl.pathname.match(ANY_NUMERIC_STORE_PATH)?.[1];
         if (version && version !== "2" && version !== "3") {
           state.storeScopedOtherVersionSeen = true;
+        }
+
+        if (
+          CATEGORIES_INOUT_PATH.test(resourceUrl.pathname) &&
+          !!resourceUrl.searchParams.get("store_id")
+        ) {
+          state.storeScopedCategoriesInoutSeen = true;
         }
       } catch {
         // Malformed resource names are intentionally ignored.
