@@ -41,6 +41,8 @@ All notable project changes are recorded here. Zakup Gotov reached its first acc
 - PR #177 adds an explicit user-invoked privacy-hardened D2 schema canary with no permission widening, exactly one fixed bounded search, a fixed reviewed candidate-field allowlist and persistent-Chromium E2E. It passed fresh exact-head 9/9 PR CI plus final security/privacy review and was squash-merged as `9822659c1b43df978e191e6f7826775fc615926d`.
 - The canary output is limited to sanitized HTTP metadata plus bounded allowlisted field/type structure; raw store/product/SKU/name/price/promotion/request/header/cookie/credential values are not emitted.
 - Chizhik offer mapping remains blocked on ordinary-user-browser structural evidence plus independent monetary-unit/scale evidence. Availability remains `UNKNOWN` unless separately evidenced semantics are accepted.
+- PR #192 adds privacy-safe route-family diagnostics for `MISSING_CONTEXT` canary runs, after a real ordinary-browser run showed the official search UI can load results without exposing an accepted store-scoped resource. Diagnostics reduce Resource Timing entries to fixed `SEEN`/`NOT_SEEN` booleans; no raw URL, store ID, or credential is persisted or rendered.
+- PR #193 adds one further diagnostic flag (`store_categories_inout`) for a `/delivery/api/catalog/v1/categories/inout?store_id=...` route shape, observed during automated reconnaissance, that does not match the accepted `v2|v3/stores/{sap_id}/...` contract. Diagnostic-only: this route is not accepted as store context and no offer mapping is enabled.
 
 #### Release security, product acceptance and stable promotion
 

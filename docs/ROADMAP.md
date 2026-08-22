@@ -1,6 +1,6 @@
 # Roadmap
 
-Updated: 2026-08-20
+Updated: 2026-08-22
 
 The roadmap is evidence-driven. Technical connectivity, production-access readiness, deterministic product/core maturity and release acceptance are separate dimensions.
 
@@ -177,6 +177,10 @@ PR #177 passed fresh exact-head **9/9 PR workflow groups** plus final security/p
 The merged canary is explicit user invocation only, performs exactly one fixed bounded search, requires exactly one browser-evidenced validated store context, adds no host permissions, and emits only bounded allowlisted field/type structure plus sanitized HTTP metadata.
 
 Do **not** implement production `BrowserObservation` / `ObservedOffer` mapping until #169 receives ordinary-user-browser evidence proving product container/identifier/name and price candidate structure, plus independent evidence of the price **monetary unit/scale**. Availability maps only from separately accepted semantics; otherwise it remains `UNKNOWN`. Promotion/package/loyalty/discount semantics are not inferred.
+
+### Chizhik D2 missing-context diagnostics — IMPLEMENTED / MERGED; LIVE CONFIRMATION PENDING
+
+A real ordinary-browser #169 run reproduced `MISSING_CONTEXT` even while the official search UI showed results, disproving the assumption that normal search interaction reliably exposes an accepted store-scoped resource. PR #192 (`940b242`) added privacy-safe route-family diagnostics (fixed `SEEN`/`NOT_SEEN` booleans, no raw URL/store ID) instead of guessing a new accepted route. PR #193 (`7f68cb5`) extended those diagnostics with one more flag for a `/delivery/api/catalog/v1/categories/inout?store_id=...` route shape observed during automated reconnaissance — a shape that does not match the accepted `v2|v3/stores/{sap_id}/...` contract. Both changes are diagnostic-only and change no accepted store-context source. The next step on #169 is an ordinary-user-browser run of the canary to see which route-family flags actually fire on a live `MISSING_CONTEXT`.
 
 ### Other mandatory retailer work
 
