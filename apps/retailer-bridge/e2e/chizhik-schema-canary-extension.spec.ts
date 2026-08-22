@@ -210,7 +210,8 @@ test("renders only fixed route-family diagnostics when live resource shape is no
     await expect(evidence).toContainText("CHIZHIK_D2 status=MISSING_CONTEXT");
     await expect(evidence).toContainText(
       "CHIZHIK_D2_DIAG app_origin=SEEN delivery_api=SEEN delivery_catalog=SEEN " +
-        "store_v2_v3=NOT_SEEN store_other_version=SEEN page_origin_delivery=NOT_SEEN",
+        "store_v2_v3=NOT_SEEN store_other_version=SEEN store_categories_inout=NOT_SEEN " +
+        "page_origin_delivery=NOT_SEEN",
     );
     expect(acceptedV3SearchRequests).toBe(0);
 
@@ -218,6 +219,92 @@ test("renders only fixed route-family diagnostics when live resource shape is no
     expect(rendered).not.toContain(privateStoreId);
     expect(rendered).not.toContain(changedVersionResource);
     expect(rendered).not.toContain("/v4/");
+    expect(rendered).not.toContain("q=cola");
+  } finally {
+    await context.close();
+    await rm(userDataDir, { recursive: true, force: true });
+  }
+});
+
+test("flags a categories/inout store_id resource as its own route family without accepting it as context", async () => {
+  const userDataDir = await mkdtemp(join(tmpdir(), "zg-retailer-bridge-canary-inout-"));
+  const context = await chromium.launchPersistentContext(userDataDir, {
+    channel: "chromium",
+    headless: true,
+    args: [
+      `--disable-extensions-except=${extensionPath}`,
+      `--load-extension=${extensionPath}`,
+    ],
+  });
+
+  let acceptedV3SearchRequests = 0;
+  const privateStoreId = "PRIVATEHBBN";
+  const categoriesInoutResource =
+    `https://app.chizhik.club/delivery/api/catalog/v1/categories/inout?store_id=${privateStoreId}&mode=delivery`;
+
+  try {
+    await context.route("https://chizhik.club/**", (route) =>
+      route.fulfill({
+        status: 200,
+        contentType: "text/html; charset=utf-8",
+        body: "<!doctype html><html><body><main>Chizhik search fixture</main></body></html>",
+      }),
+    );
+    await context.route(shopsEndpoint, (route) =>
+      route.fulfill({
+        status: 200,
+        headers: {
+          "access-control-allow-origin": "https://chizhik.club",
+          "content-type": "application/json; charset=utf-8",
+        },
+        body: JSON.stringify(stores),
+      }),
+    );
+    await context.route("https://app.chizhik.club/delivery/api/catalog/**", async (route) => {
+      const url = new URL(route.request().url());
+      if (url.pathname.includes("/v3/stores/") && url.pathname.endsWith("/search")) {
+        acceptedV3SearchRequests += 1;
+      }
+      await route.fulfill({
+        status: 200,
+        headers: {
+          "access-control-allow-origin": "https://chizhik.club",
+          "content-type": "application/json; charset=utf-8",
+        },
+        body: JSON.stringify({ products: [] }),
+      });
+    });
+
+    const page = await context.newPage();
+    await page.goto("https://chizhik.club/catalog/search?q=cola");
+    await page.evaluate(async (resourceUrl) => {
+      await fetch(resourceUrl, {
+        method: "GET",
+        mode: "cors",
+        credentials: "same-origin",
+        headers: { Accept: "application/json, text/plain, */*" },
+      });
+    }, categoriesInoutResource);
+
+    const worker = context.serviceWorkers()[0] ?? (await context.waitForEvent("serviceworker"));
+    const extensionId = new URL(worker.url()).host;
+    const popup = await context.newPage();
+    await popup.goto(`chrome-extension://${extensionId}/popup.html`);
+    await page.bringToFront();
+
+    await popup.getByRole("button", { name: "Run sanitized Chizhik canary" }).click();
+    const evidence = popup.locator("#evidence");
+    await expect(evidence).toContainText("CHIZHIK_D2 status=MISSING_CONTEXT");
+    await expect(evidence).toContainText(
+      "CHIZHIK_D2_DIAG app_origin=SEEN delivery_api=SEEN delivery_catalog=SEEN " +
+        "store_v2_v3=NOT_SEEN store_other_version=NOT_SEEN store_categories_inout=SEEN " +
+        "page_origin_delivery=NOT_SEEN",
+    );
+    expect(acceptedV3SearchRequests).toBe(0);
+
+    const rendered = await evidence.textContent();
+    expect(rendered).not.toContain(privateStoreId);
+    expect(rendered).not.toContain(categoriesInoutResource);
     expect(rendered).not.toContain("q=cola");
   } finally {
     await context.close();

@@ -41,6 +41,7 @@ export function formatChizhikSchemaCanaryEvidence(
         `delivery_catalog=${seen(result.diagnostics.deliveryCatalogSeen)} ` +
         `store_v2_v3=${seen(result.diagnostics.storeScopedV2V3Seen)} ` +
         `store_other_version=${seen(result.diagnostics.storeScopedOtherVersionSeen)} ` +
+        `store_categories_inout=${seen(result.diagnostics.storeScopedCategoriesInoutSeen)} ` +
         `page_origin_delivery=${seen(result.diagnostics.pageOriginDeliverySeen)}`
       );
     case "search-unavailable":

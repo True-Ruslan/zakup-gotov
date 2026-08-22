@@ -15,6 +15,10 @@ describe("Chizhik resource diagnostics", () => {
       "https://app.chizhik.club/delivery/api/catalog/v4/stores/SECRET99/search?mode=store&q=%D0%BA%D0%BE%D0%BB%D0%B0",
       PAGE_URL,
     );
+    tracker.observe(
+      "https://app.chizhik.club/delivery/api/catalog/v1/categories/inout?store_id=SECRETHBBN&mode=delivery",
+      PAGE_URL,
+    );
     tracker.observe("https://app.chizhik.club/api/v1/shops/", PAGE_URL);
     tracker.observe("https://chizhik.club/api/delivery/status", PAGE_URL);
     tracker.observe("https://tracker.example/SECRET87", PAGE_URL);
@@ -26,14 +30,30 @@ describe("Chizhik resource diagnostics", () => {
       deliveryCatalogSeen: true,
       storeScopedV2V3Seen: true,
       storeScopedOtherVersionSeen: true,
+      storeScopedCategoriesInoutSeen: true,
       pageOriginDeliverySeen: true,
     });
 
     const serialized = JSON.stringify(snapshot);
     expect(serialized).not.toContain("SECRET87");
     expect(serialized).not.toContain("SECRET99");
+    expect(serialized).not.toContain("SECRETHBBN");
     expect(serialized).not.toContain("tracker.example");
     expect(serialized).not.toContain("/delivery/");
+  });
+
+  it("does not flag categories/inout without a store_id value", () => {
+    const tracker = createChizhikResourceDiagnosticsTracker();
+    tracker.observe(
+      "https://app.chizhik.club/delivery/api/catalog/v1/categories/inout?mode=delivery",
+      PAGE_URL,
+    );
+    tracker.observe(
+      "https://app.chizhik.club/delivery/api/catalog/v1/categories/inout?store_id=&mode=delivery",
+      PAGE_URL,
+    );
+
+    expect(tracker.snapshot().storeScopedCategoriesInoutSeen).toBe(false);
   });
 
   it("stays all-false for malformed and unrelated resources", () => {
@@ -47,6 +67,7 @@ describe("Chizhik resource diagnostics", () => {
       deliveryCatalogSeen: false,
       storeScopedV2V3Seen: false,
       storeScopedOtherVersionSeen: false,
+      storeScopedCategoriesInoutSeen: false,
       pageOriginDeliverySeen: false,
     });
   });
