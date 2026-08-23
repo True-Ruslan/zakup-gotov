@@ -9,9 +9,15 @@ public record PantryAdjustment(
         List<PantryAdjustmentEvidence> evidence) {
 
     public PantryAdjustment {
-        remainingShoppingList = Objects.requireNonNull(
+        remainingShoppingList = copyOf(Objects.requireNonNull(
                 remainingShoppingList,
-                "remainingShoppingList must not be null");
+                "remainingShoppingList must not be null"));
         evidence = List.copyOf(Objects.requireNonNull(evidence, "evidence must not be null"));
+    }
+
+    private static ShoppingList copyOf(ShoppingList source) {
+        var copy = new ShoppingList(source.id());
+        source.items().forEach(copy::add);
+        return copy;
     }
 }
