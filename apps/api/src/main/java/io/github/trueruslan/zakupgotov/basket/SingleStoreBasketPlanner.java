@@ -74,9 +74,15 @@ public final class SingleStoreBasketPlanner {
         }
 
         var snapshot = match.candidates().getFirst();
-        if (snapshot.availability() == AvailabilityStatus.UNAVAILABLE) {
-            return new BasketItemResolution(
-                    item, match, BasketItemResolutionStatus.UNAVAILABLE, Optional.empty());
+        switch (snapshot.availability()) {
+            case UNAVAILABLE -> {
+                return new BasketItemResolution(
+                        item, match, BasketItemResolutionStatus.UNAVAILABLE, Optional.empty());
+            }
+            case AVAILABLE, UNKNOWN -> {
+                // Resolution continues below; the exhaustive switch guards against a future
+                // AvailabilityStatus value silently falling through as available.
+            }
         }
 
         var packageQuantity = packageQuantities.quantityFor(snapshot.id());
@@ -93,9 +99,11 @@ public final class SingleStoreBasketPlanner {
                 snapshot,
                 item.quantity(),
                 packageQuantity.orElseThrow());
-        var status = snapshot.availability() == AvailabilityStatus.UNKNOWN
-                ? BasketItemResolutionStatus.AVAILABILITY_UNKNOWN
-                : BasketItemResolutionStatus.FULFILLED;
+        var status = switch (snapshot.availability()) {
+            case UNKNOWN -> BasketItemResolutionStatus.AVAILABILITY_UNKNOWN;
+            case AVAILABLE -> BasketItemResolutionStatus.FULFILLED;
+            case UNAVAILABLE -> throw new IllegalStateException("UNAVAILABLE is handled above");
+        };
         return new BasketItemResolution(item, match, status, Optional.of(selection));
     }
 
