@@ -6,3 +6,6 @@ packages:
 allowBuilds:
   sharp: true
   unrs-resolver: true
+
+overrides:
+  js-yaml@>=4.0.0 <4.3.1: ">=4.3.1 <5.0.0"
