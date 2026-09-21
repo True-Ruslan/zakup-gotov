@@ -11,9 +11,9 @@
     "test:e2e": "pnpm build && pnpm build:e2e && playwright test --config playwright.config.ts"
   },
   "devDependencies": {
-    "@playwright/test": "1.62.1",
+    "@playwright/test": "1.63.0",
     "@types/node": "20.19.43",
-    "jsdom": "30.0.1",
+    "jsdom": "30.1.0",
     "typescript": "5.9.3",
     "vitest": "4.1.10"
   }
